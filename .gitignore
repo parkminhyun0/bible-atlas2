@@ -4,3 +4,6 @@ bake/data/
 preview.png
 __pycache__/
 .DS_Store
+
+# 전지구 베이스 원본(28MB JPEG). 타일만 커밋한다.
+bake/world-src/
