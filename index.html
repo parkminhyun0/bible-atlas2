@@ -14,7 +14,12 @@
     --accent: #4f6d8f;
   }
   html, body { margin: 0; height: 100%; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); }
+  /* 우주에서 시작해 지표로 내려오면 낮 하늘로 바뀐다 (updateBackdrop). */
+  body { background: #04060d; }
   #map { position: absolute; inset: 0; }
+  /* 지구 밖에서는 MapLibre 캔버스가 투명하므로 그 뒤에 우주를 직접 그린다. */
+  /* canvas 는 대체 요소라 inset: 0 만으로는 늘어나지 않는다. 크기를 명시해야 한다. */
+  #space { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
 
   .panel {
     position: absolute; top: 14px; left: 14px; width: 250px;
@@ -53,6 +58,7 @@
 </style>
 </head>
 <body>
+<canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
 
 <div class="panel" role="region" aria-label="지형 표시 설정">
@@ -66,7 +72,7 @@
   <input id="snow" type="range" min="1500" max="4500" step="50" value="2500" />
 
   <div class="row"><label><input type="checkbox" id="baked" checked /> 구운 지표 텍스처 (WorldCover)</label></div>
-  <div class="row"><label><input type="checkbox" id="forest" /> OSM 삼림 폴리곤 (텍스처 없을 때)</label></div>
+  <div class="row"><label><input type="checkbox" id="forest" checked /> 실제 지표 피복 (산림·경작지·사막)</label></div>
   <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
   <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
   <div class="row"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
@@ -94,6 +100,87 @@
 <div class="status" id="status"></div>
 
 <script type="module">
+// ---------- 우주 배경 ----------
+// 지구 밖은 MapLibre 캔버스가 투명하다. 그 뒤에 별을 직접 그려 넣는다.
+// 지표로 내려올수록 걷어내야 한다. 낮 하늘 위에 별이 남으면 오히려 비현실적이다.
+const space = document.getElementById('space');
+const sctx = space.getContext('2d');
+
+const SKY_SEED = 20260905;
+let seed = SKY_SEED;
+const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+
+function drawSpace() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = space.clientWidth, h = space.clientHeight;
+  if (!w || !h) return;
+  space.width = Math.round(w * dpr);
+  space.height = Math.round(h * dpr);
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  sctx.clearRect(0, 0, w, h);   // 배경색은 body 가 맡는다. 여기서는 별만 그린다.
+
+  seed = SKY_SEED;                       // 창 크기를 바꿔도 같은 하늘이 나오게 고정한다
+  const count = Math.round(w * h / 1300);
+  for (let i = 0; i < count; i++) {
+    const x = rnd() * w, y = rnd() * h;
+    const mag = rnd();                   // 실제 하늘처럼 대부분 어둡고 소수만 밝다
+    const r = 0.25 + mag * mag * mag * 1.6;
+    const a = 0.16 + mag * mag * 0.82;
+    const tint = rnd();
+    sctx.fillStyle = tint < 0.72 ? `rgba(255,255,255,${a})`
+                   : tint < 0.88 ? `rgba(188,212,255,${a})`
+                                 : `rgba(255,224,194,${a})`;
+    sctx.beginPath();
+    sctx.arc(x, y, r, 0, 6.2832);
+    sctx.fill();
+
+    if (mag > 0.993) {                   // 가장 밝은 몇 개에만 아주 옅은 광채를 준다
+      const halo = sctx.createRadialGradient(x, y, 0, x, y, r * 4);
+      halo.addColorStop(0, 'rgba(255,255,255,0.16)');
+      halo.addColorStop(1, 'rgba(255,255,255,0)');
+      sctx.fillStyle = halo;
+      sctx.beginPath();
+      sctx.arc(x, y, r * 4, 0, 6.2832);
+      sctx.fill();
+    }
+  }
+}
+
+const clamp01 = t => t < 0 ? 0 : t > 1 ? 1 : t;
+
+// 별은 대기권으로 들어서기 전에 먼저 사라진다.
+const starOpacity = zoom => clamp01((5.5 - zoom) / 2);
+
+// 배경은 우주의 검정에서 낮 하늘로 '색을 보간'한다.
+// 반투명 크로스페이드로 검정을 걷어내면 중간 줌에서 회색 스모그처럼 보인다.
+// 검정에서 옅은 하늘색으로 곧장 이으면 그 직선이 회색을 지나므로,
+// 고고도의 짙은 파랑을 경유하게 해서 고도를 낮추는 느낌을 낸다.
+const BACKDROP = [
+  [5.8, [  4,   6,  13]],   // 우주
+  [7.0, [ 26,  52,  92]],   // 고고도 짙은 하늘
+  [8.6, [139, 176, 214]],   // 상층 하늘
+  [10.0, [206, 224, 240]]   // 지표 부근 낮 하늘
+];
+function backdropColor(zoom) {
+  if (zoom <= BACKDROP[0][0]) return `rgb(${BACKDROP[0][1]})`;
+  for (let i = 1; i < BACKDROP.length; i++) {
+    const [z0, c0] = BACKDROP[i - 1], [z1, c1] = BACKDROP[i];
+    if (zoom <= z1) {
+      const t = (zoom - z0) / (z1 - z0);
+      return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * t)).join(',')})`;
+    }
+  }
+  return `rgb(${BACKDROP[BACKDROP.length - 1][1]})`;
+}
+
+drawSpace();
+let resizeTimer = null;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawSpace, 150);
+});
+
 // ---------- 라이브러리 로드 (MapLibre v6는 ESM 전용: .mjs만 배포됨) ----------
 const CDNS = [
   'https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.mjs',
@@ -121,23 +208,33 @@ const BATHY_DEM = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{
 // 벡터(물·산림·빙하·국경): OpenFreeMap (OpenMapTiles 스키마, 키 불필요)
 const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 // 구운 텍스처 타일 (bake/README.md 참고). 아직 굽지 않았으면 이 레이어는 비어 있고 아래 고도색이 대신 보인다.
-const BAKED_TILES = new URL('tiles/{z}/{x}/{y}.webp', location.href).href;
+// new URL(...)은 {z}/{x}/{y} 중괄호를 퍼센트 인코딩해 MapLibre가 좌표를 치환하지 못한다.
+// hash: true 라서 주소에 #4.6/33.5/36.5 가 붙으므로 쿼리·해시를 떼고 디렉터리만 남긴다.
+const BAKED_TILES = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + 'tiles/{z}/{x}/{y}.webp';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
 function reliefRamp(snowLine) {
   const s = snowLine;
+  // 암석대 시작. 401 하한은 저지대 스톱(0m 투명 처리 포함)이 항상 살아남게 한다.
+  const rock = Math.max(401, Math.min(2350, s - 250));
+  // 저지대 색은 설선과 무관하게 고정한다. 설선이 내려오면 암석대에 먹히는 스톱만 덜어낸다.
+  // interpolate 는 입력값이 강한 오름차순이어야 하므로 이 filter 가 불변식을 강제한다.
+  const base = [
+    [-450, '#c9d3a8'],  // 사해 주변 저지
+    [  -1, '#cfd6a6'],
+    [   0, 'rgba(0,0,0,0)'],
+    [   1, '#cfd6a6'],
+    [ 150, '#d8d6a0'],
+    [ 400, '#dac68f'],
+    [ 800, '#c6a87a'],  // 채도를 낮춰 사막 주황이 아나톨리아 고원까지 번지지 않게 한다
+    [1300, '#ab9070'],
+    [1900, '#948069']
+  ].filter(([elev]) => elev < rock);
+
   return ['interpolate', ['linear'], ['elevation'],
-    -450, '#c9d3a8',   // 사해 주변 저지
-      -1, '#cfd6a6',
-       0, 'rgba(0,0,0,0)',
-       1, '#cfd6a6',
-     150, '#d8d6a0',
-     400, '#dcc78f',
-     800, '#cba86e',
-    1300, '#b28755',
-    1900, '#9c7b5e',
-    Math.min(2350, s - 250), '#8b8375',  // 암석 회갈색
+    ...base.flat(),
+    rock,    '#8b8375',                  // 암석 회갈색
     s - 120, '#a9a59c',
     s,       '#e9edf0',                  // 설선
     s + 500, '#ffffff'
@@ -187,7 +284,23 @@ const style = {
     { id: 'relief', type: 'color-relief', source: 'land',
       paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
 
-    // 2b) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
+    // 2b) 실제 지표 피복 (OSM landcover). 고도색만으로는 아나톨리아 고원과 요르단 사막이
+    //     같은 색이 되어버린다. 아래 세 레이어가 그 구분을 실제 데이터로 되돌린다.
+    //     구운 텍스처가 있으면 그 위에 덮이므로(2c) 중복 표현되지 않는다.
+    { id: 'farmland', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'farmland'],
+      paint: { 'fill-color': '#93a86a', 'fill-opacity': 0.38, 'fill-antialias': true } },
+
+    { id: 'sand', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'sand'],
+      paint: { 'fill-color': '#e3c893', 'fill-opacity': 0.5, 'fill-antialias': true } },
+
+    // 산림: 레바논·타우루스·폰투스·자그로스의 실제 수목 분포
+    { id: 'forest', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'wood'],
+      paint: { 'fill-color': '#4a6b3d', 'fill-opacity': 0.45, 'fill-antialias': true } },
+
+    // 2c) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
     { id: 'baked', type: 'raster', source: 'baked',
       paint: { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
 
@@ -200,12 +313,6 @@ const style = {
     { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
       filter: ['==', ['get', 'class'], 'lake'],
       paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true } },
-
-    // 5) 산림: OSM 삼림 폴리곤 (landcover.class = wood)
-    { id: 'forest', type: 'fill', source: 'vector', 'source-layer': 'landcover',
-      filter: ['==', ['get', 'class'], 'wood'],
-      layout: { visibility: 'none' },   // 구운 텍스처에 식생이 포함되므로 기본 꺼짐
-      paint: { 'fill-color': '#4f7f42', 'fill-opacity': 0.5, 'fill-antialias': true } },
 
     // 6) 빙하·만년설: OSM landcover.class = ice
     { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
@@ -227,9 +334,28 @@ const style = {
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'land',
-      paint: { 'hillshade-exaggeration': 0.5, 'hillshade-illumination-direction': 315,
-               'hillshade-shadow-color': '#4a3d2c', 'hillshade-highlight-color': '#fffaf0',
-               'hillshade-accent-color': '#6b5b48' } }
+      paint: {
+        // 다중 광원. 단일 광원은 주광 반대면이 통째로 뭉개져 산줄기가 사라진다.
+        // 주광(북서) + 보조광 3개로 채우면 능선·계곡이 살아나고 그늘이 새까맣게 죽지 않는다.
+        'hillshade-method': 'multidirectional',
+        // 태양을 지형에 고정한다. viewport 기준이면 지도를 돌릴 때 그림자가 따라 돌아
+        // 실제 지형처럼 보이지 않는다.
+        'hillshade-illumination-anchor': 'map',
+        'hillshade-illumination-direction': ['literal', [315, 45, 225, 135]],
+        'hillshade-illumination-altitude': ['literal', [42, 64, 72, 68]],
+        // 볕든 면은 따뜻하게, 그늘은 하늘빛을 받아 푸르게. 야외광의 색온도 차이를 흉내내면
+        // 같은 기복도 훨씬 입체적으로 읽힌다.
+        // 하이라이트는 반드시 반투명이어야 한다. 불투명 흰색이면 광원을 정면으로 받는
+        // 평탄면(바다·고원)까지 전부 하얗게 날아가 고도색과 지표 피복이 사라진다.
+        'hillshade-highlight-color': ['literal', [
+          'rgba(255,243,220,0.30)', 'rgba(255,250,240,0.20)',
+          'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.16)']],
+        'hillshade-shadow-color': ['literal', [
+          'rgba(46,56,78,0.72)', 'rgba(60,70,92,0.48)',
+          'rgba(72,80,98,0.38)', 'rgba(78,86,104,0.38)']],
+        'hillshade-exaggeration': 0.58,
+        'hillshade-accent-color': '#585a60'
+      } }
   ],
   terrain: { source: 'terrain', exaggeration: 1.6 }
 };
@@ -241,6 +367,15 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
   canvasContextAttributes: { antialias: true }   // 폴리곤·선 가장자리 계단 현상 완화
 });
+const syncSpace = () => {
+  const z = map.getZoom();
+  space.style.opacity = starOpacity(z);
+  document.body.style.backgroundColor = backdropColor(z);
+};
+syncSpace();
+map.on('move', syncSpace);
+map.on('zoom', syncSpace);
+
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1.6 }), 'top-right');
 
@@ -290,8 +425,10 @@ $('snow').addEventListener('input', e => {
   map.setPaintProperty('relief', 'color-relief-color', reliefRamp(v));
   paintRampBar(v);
 });
-$('forest').addEventListener('change', e =>
-  map.setLayoutProperty('forest', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('forest').addEventListener('change', e => {
+  const v = e.target.checked ? 'visible' : 'none';
+  for (const id of ['forest', 'farmland', 'sand']) map.setLayoutProperty(id, 'visibility', v);
+});
 $('baked').addEventListener('change', e =>
   map.setLayoutProperty('baked', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('shade').addEventListener('change', e =>
