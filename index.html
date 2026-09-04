@@ -14,7 +14,12 @@
     --accent: #4f6d8f;
   }
   html, body { margin: 0; height: 100%; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); }
+  /* 우주에서 시작해 지표로 내려오면 낮 하늘로 바뀐다 (updateBackdrop). */
+  body { background: #04060d; }
   #map { position: absolute; inset: 0; }
+  /* 지구 밖에서는 MapLibre 캔버스가 투명하므로 그 뒤에 우주를 직접 그린다. */
+  /* canvas 는 대체 요소라 inset: 0 만으로는 늘어나지 않는다. 크기를 명시해야 한다. */
+  #space { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
 
   .panel {
     position: absolute; top: 14px; left: 14px; width: 250px;
@@ -53,6 +58,7 @@
 </style>
 </head>
 <body>
+<canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
 
 <div class="panel" role="region" aria-label="지형 표시 설정">
@@ -94,6 +100,87 @@
 <div class="status" id="status"></div>
 
 <script type="module">
+// ---------- 우주 배경 ----------
+// 지구 밖은 MapLibre 캔버스가 투명하다. 그 뒤에 별을 직접 그려 넣는다.
+// 지표로 내려올수록 걷어내야 한다. 낮 하늘 위에 별이 남으면 오히려 비현실적이다.
+const space = document.getElementById('space');
+const sctx = space.getContext('2d');
+
+const SKY_SEED = 20260905;
+let seed = SKY_SEED;
+const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+
+function drawSpace() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = space.clientWidth, h = space.clientHeight;
+  if (!w || !h) return;
+  space.width = Math.round(w * dpr);
+  space.height = Math.round(h * dpr);
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  sctx.clearRect(0, 0, w, h);   // 배경색은 body 가 맡는다. 여기서는 별만 그린다.
+
+  seed = SKY_SEED;                       // 창 크기를 바꿔도 같은 하늘이 나오게 고정한다
+  const count = Math.round(w * h / 1300);
+  for (let i = 0; i < count; i++) {
+    const x = rnd() * w, y = rnd() * h;
+    const mag = rnd();                   // 실제 하늘처럼 대부분 어둡고 소수만 밝다
+    const r = 0.25 + mag * mag * mag * 1.6;
+    const a = 0.16 + mag * mag * 0.82;
+    const tint = rnd();
+    sctx.fillStyle = tint < 0.72 ? `rgba(255,255,255,${a})`
+                   : tint < 0.88 ? `rgba(188,212,255,${a})`
+                                 : `rgba(255,224,194,${a})`;
+    sctx.beginPath();
+    sctx.arc(x, y, r, 0, 6.2832);
+    sctx.fill();
+
+    if (mag > 0.993) {                   // 가장 밝은 몇 개에만 아주 옅은 광채를 준다
+      const halo = sctx.createRadialGradient(x, y, 0, x, y, r * 4);
+      halo.addColorStop(0, 'rgba(255,255,255,0.16)');
+      halo.addColorStop(1, 'rgba(255,255,255,0)');
+      sctx.fillStyle = halo;
+      sctx.beginPath();
+      sctx.arc(x, y, r * 4, 0, 6.2832);
+      sctx.fill();
+    }
+  }
+}
+
+const clamp01 = t => t < 0 ? 0 : t > 1 ? 1 : t;
+
+// 별은 대기권으로 들어서기 전에 먼저 사라진다.
+const starOpacity = zoom => clamp01((5.5 - zoom) / 2);
+
+// 배경은 우주의 검정에서 낮 하늘로 '색을 보간'한다.
+// 반투명 크로스페이드로 검정을 걷어내면 중간 줌에서 회색 스모그처럼 보인다.
+// 검정에서 옅은 하늘색으로 곧장 이으면 그 직선이 회색을 지나므로,
+// 고고도의 짙은 파랑을 경유하게 해서 고도를 낮추는 느낌을 낸다.
+const BACKDROP = [
+  [5.8, [  4,   6,  13]],   // 우주
+  [7.0, [ 26,  52,  92]],   // 고고도 짙은 하늘
+  [8.6, [139, 176, 214]],   // 상층 하늘
+  [10.0, [206, 224, 240]]   // 지표 부근 낮 하늘
+];
+function backdropColor(zoom) {
+  if (zoom <= BACKDROP[0][0]) return `rgb(${BACKDROP[0][1]})`;
+  for (let i = 1; i < BACKDROP.length; i++) {
+    const [z0, c0] = BACKDROP[i - 1], [z1, c1] = BACKDROP[i];
+    if (zoom <= z1) {
+      const t = (zoom - z0) / (z1 - z0);
+      return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * t)).join(',')})`;
+    }
+  }
+  return `rgb(${BACKDROP[BACKDROP.length - 1][1]})`;
+}
+
+drawSpace();
+let resizeTimer = null;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawSpace, 150);
+});
+
 // ---------- 라이브러리 로드 (MapLibre v6는 ESM 전용: .mjs만 배포됨) ----------
 const CDNS = [
   'https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.mjs',
@@ -280,6 +367,15 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
   canvasContextAttributes: { antialias: true }   // 폴리곤·선 가장자리 계단 현상 완화
 });
+const syncSpace = () => {
+  const z = map.getZoom();
+  space.style.opacity = starOpacity(z);
+  document.body.style.backgroundColor = backdropColor(z);
+};
+syncSpace();
+map.on('move', syncSpace);
+map.on('zoom', syncSpace);
+
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1.6 }), 'top-right');
 
