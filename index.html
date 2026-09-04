@@ -235,7 +235,9 @@ const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 // 구운 텍스처 타일 (bake/README.md 참고). 아직 굽지 않았으면 이 레이어는 비어 있고 아래 고도색이 대신 보인다.
 // new URL(...)은 {z}/{x}/{y} 중괄호를 퍼센트 인코딩해 MapLibre가 좌표를 치환하지 못한다.
 // hash: true 라서 주소에 #4.6/33.5/36.5 가 붙으므로 쿼리·해시를 떼고 디렉터리만 남긴다.
-const BAKED_TILES = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + 'tiles/{z}/{x}/{y}.webp';
+const SITE_ROOT = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
+const BAKED_TILES = SITE_ROOT + 'tiles/{z}/{x}/{y}.webp';
+const WORLD_TILES = SITE_ROOT + 'world/{z}/{x}/{y}.webp';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -288,6 +290,10 @@ const style = {
     bathy:   { type: 'raster-dem', tiles: [BATHY_DEM], encoding: 'terrarium', tileSize: 256, maxzoom: 10,
                attribution: 'Bathymetry: Mapzen/AWS Terrain Tiles (ETOPO1)' },
     vector:  { type: 'vector', url: VECTOR_URL, attribution: '© OpenStreetMap contributors, OpenFreeMap' },
+    // 전지구 자연색 베이스. 고도만으로는 위도·강수 차이를 표현할 수 없어 지구 전체 뷰에서
+    // 콩고 분지와 유럽까지 사막색이 된다. 저줌 구간만 실제 위성색으로 덮는다. (bake/world.py)
+    world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
+               attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
     baked:   { type: 'raster', tiles: [BAKED_TILES], tileSize: 512, minzoom: 4, maxzoom: 10,
                bounds: [8, 20, 56, 46],
@@ -313,6 +319,11 @@ const style = {
     // 2) 육지: 고도별 색상 (0m = 투명 → 아래 해저색이 보임)
     { id: 'relief', type: 'color-relief', source: 'land',
       paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
+
+    // 2a) 전지구 자연색. 확대하면 고도색+음영기복에 자리를 넘긴다.
+    { id: 'world', type: 'raster', source: 'world',
+      paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 1, 7.2, 0],
+               'raster-resampling': 'linear', 'raster-fade-duration': 200 } },
 
     // 2b) 실제 지표 피복 (OSM landcover). 고도색만으로는 아나톨리아 고원과 요르단 사막이
     //     같은 색이 되어버린다. 아래 세 레이어가 그 구분을 실제 데이터로 되돌린다.
