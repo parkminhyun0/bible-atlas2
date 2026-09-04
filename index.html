@@ -85,6 +85,7 @@
   <div class="row"><label for="snow">설선 (텍스처 없는 곳의 고도색)</label><output id="snowOut">2,500 m</output></div>
   <input id="snow" type="range" min="1500" max="4500" step="50" value="2500" />
 
+  <div class="row"><label><input type="checkbox" id="sat" checked /> 위성 영상 (Sentinel-2, 확대 시)</label></div>
   <div class="row"><label><input type="checkbox" id="baked" checked /> 구운 지표 텍스처 (WorldCover)</label></div>
   <div class="row"><label><input type="checkbox" id="forest" checked /> 실제 지표 피복 (산림·경작지·사막)</label></div>
   <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
@@ -238,6 +239,9 @@ const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 const SITE_ROOT = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
 const BAKED_TILES = SITE_ROOT + 'tiles/{z}/{x}/{y}.webp';
 const WORLD_TILES = SITE_ROOT + 'world/{z}/{x}/{y}.webp';
+// 확대했을 때의 실제 위성 영상 (Sentinel-2 10m 무운량 합성).
+// WMTS REST 라 경로가 {z}/{행}/{열} 순서다 — {y}/{x} 로 넣어야 한다.
+const S2_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -294,6 +298,9 @@ const style = {
     // 콩고 분지와 유럽까지 사막색이 된다. 저줌 구간만 실제 위성색으로 덮는다. (bake/world.py)
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
+    // 저장소의 Blue Marble 은 1.9 km/px 라 z5 가 한계다. 그 위로는 실제 위성 영상으로 잇는다.
+    s2:      { type: 'raster', tiles: [S2_TILES], tileSize: 256, minzoom: 5, maxzoom: 14,
+               attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2024</a> by EOX (modified Copernicus Sentinel data 2024)' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
     baked:   { type: 'raster', tiles: [BAKED_TILES], tileSize: 512, minzoom: 4, maxzoom: 10,
                bounds: [8, 20, 56, 46],
@@ -341,6 +348,12 @@ const style = {
       filter: ['==', ['get', 'class'], 'wood'],
       paint: { 'fill-color': '#4a6b3d', 'fill-opacity': 0.45, 'fill-antialias': true } },
 
+    // 2b-2) 실제 위성 영상. 확대하면 여기가 화면을 넘겨받아 위성 형태가 계속 유지된다.
+    //       OSM 지표 피복 폴리곤 위에 놓아야 평평한 초록이 실사를 덮지 않는다.
+    { id: 's2', type: 'raster', source: 's2',
+      paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0, 7, 1],
+               'raster-resampling': 'linear', 'raster-fade-duration': 200 } },
+
     // 2c) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
     { id: 'baked', type: 'raster', source: 'baked',
       paint: { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
@@ -351,14 +364,17 @@ const style = {
       paint: { 'fill-color': '#3f88be', 'fill-opacity': 0.22, 'fill-antialias': true } },
 
     // 4) 호수 (갈릴리·사해·반 호수 등)
+    // 위성 영상이 켜지면 걷는다. 평평한 하늘색이 실제 사해·갈릴리 영상을 덮어버린다.
     { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
       filter: ['==', ['get', 'class'], 'lake'],
-      paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true } },
+      paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true,
+               'fill-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 1, 7.5, 0] } },
 
     // 6) 빙하·만년설: OSM landcover.class = ice
     { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'ice'],
-      paint: { 'fill-color': '#f4f7fa', 'fill-opacity': 0.9, 'fill-antialias': true } },
+      paint: { 'fill-color': '#f4f7fa', 'fill-antialias': true,
+               'fill-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 0.9, 7.5, 0] } },
 
     // 7) 하천 (나일·유프라테스·티그리스·요단)
     { id: 'rivers', type: 'line', source: 'vector', 'source-layer': 'waterway',
@@ -472,6 +488,8 @@ $('forest').addEventListener('change', e => {
 });
 $('baked').addEventListener('change', e =>
   map.setLayoutProperty('baked', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('sat').addEventListener('change', e =>
+  map.setLayoutProperty('s2', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('shade').addEventListener('change', e =>
   map.setLayoutProperty('hillshade', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('borders').addEventListener('change', e =>
@@ -532,10 +550,18 @@ map.on('mousemove', e => {
 });
 
 // ---------- 오류 표시 ----------
+let errHide = null;
 map.on('error', ev => {
+  const e = (ev && ev.error) || {};
   const s = $('status');
   s.style.display = 'block';
-  s.textContent = '타일 로드 오류: ' + (ev.error && ev.error.message ? ev.error.message : '네트워크 확인');
+  s.textContent = '타일 로드 오류: ' + (e.message || '네트워크 확인');
+  // 외부 타일 서비스는 이따금 한 번씩 실패한다. 그런 일시적 실패까지 오류창을 계속
+  // 띄워두면 안 된다. 반면 스타일·표현식 오류는 고쳐야 하는 문제이므로 남겨 둔다.
+  clearTimeout(errHide);
+  if (typeof e.status === 'number' || /ajax|network|fetch/i.test(e.name || '')) {
+    errHide = setTimeout(() => { s.style.display = 'none'; }, 6000);
+  }
 });
 } // initMap
 </script>
