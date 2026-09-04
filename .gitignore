@@ -1,0 +1,6 @@
+# 원본 래스터(수십 GB)는 저장소에 올리지 않는다
+bake/data/
+.venv/
+preview.png
+__pycache__/
+.DS_Store

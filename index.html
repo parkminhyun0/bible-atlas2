@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bible-atlas2 — 3D 지형 프로토타입 v0.1</title>
+<link id="mlcss" href="https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #2b2a26;
+    --ink-soft: #6a655b;
+    --panel: rgba(250, 248, 243, 0.92);
+    --line: #d9d3c6;
+    --accent: #4f6d8f;
+  }
+  html, body { margin: 0; height: 100%; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); }
+  #map { position: absolute; inset: 0; }
+
+  .panel {
+    position: absolute; top: 14px; left: 14px; width: 250px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    font-size: 13px; line-height: 1.45;
+  }
+  .panel h1 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .panel .sub { color: var(--ink-soft); font-size: 12px; margin-bottom: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+  .row label { flex: 1; }
+  .row output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 0 0 8px; }
+  input[type=checkbox] { accent-color: var(--accent); }
+  button { font: inherit; font-size: 12px; padding: 5px 9px; border: 1px solid var(--line); background: #fff; border-radius: 4px; cursor: pointer; color: var(--ink); }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .legend { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .ramp { height: 10px; border-radius: 3px; border: 1px solid var(--line); }
+  .ramp-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+  .swatches { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--ink-soft); }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 4px; border: 1px solid rgba(0,0,0,.15); }
+
+  .readout {
+    position: absolute; left: 14px; bottom: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-soft);
+  }
+  .readout b { color: var(--ink); font-weight: 600; }
+
+  .status {
+    position: absolute; top: 14px; right: 60px; background: #fff3c4; border: 1px solid #e3cf7a;
+    border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none;
+  }
+  @media (max-width: 600px) { .panel { width: calc(100% - 28px); } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="panel" role="region" aria-label="지형 표시 설정">
+  <h1>bible-atlas2 · 3D 지형</h1>
+  <div class="sub">고대근동 · 이집트 · 가나안 · 바울 선교지 · 구형(globe)</div>
+
+  <div class="row"><label for="exag">지형 과장 배율</label><output id="exagOut">1.6×</output></div>
+  <input id="exag" type="range" min="1" max="4" step="0.1" value="1.6" />
+
+  <div class="row"><label for="snow">설선 (텍스처 없는 곳의 고도색)</label><output id="snowOut">2,500 m</output></div>
+  <input id="snow" type="range" min="1500" max="4500" step="50" value="2500" />
+
+  <div class="row"><label><input type="checkbox" id="baked" checked /> 구운 지표 텍스처 (WorldCover)</label></div>
+  <div class="row"><label><input type="checkbox" id="forest" /> OSM 삼림 폴리곤 (텍스처 없을 때)</label></div>
+  <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
+  <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
+  <div class="row"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
+  <div class="sub" style="margin:2px 0 4px">좌우 = 회전, 상하 = 기울기 · 핀치 = 확대/축소 · 한 손가락 드래그 = 이동</div>
+  <div class="row" style="margin-top:8px">
+    <button id="viewLevant">가나안</button>
+    <button id="viewAnatolia">소아시아</button>
+    <button id="viewAll">전체</button>
+    <button id="viewGlobe">지구</button>
+  </div>
+
+  <div class="legend">
+    <div class="ramp" id="rampBar"></div>
+    <div class="ramp-labels"><span>−430 m</span><span>1,000</span><span>2,000</span><span id="snowLabel">2,500+</span></div>
+    <div class="swatches">
+      <span><i class="sw" style="background:#4d7d3f"></i>산림</span>
+      <span><i class="sw" style="background:#f4f7fa"></i>눈·빙하</span>
+      <span><i class="sw" style="background:#7fb5dc"></i>호수</span>
+      <span><i class="sw" style="background:linear-gradient(90deg,#c4e2ef,#0f2a4d)"></i>바다 (얕음→깊음)</span>
+    </div>
+  </div>
+</div>
+
+<div class="readout" id="readout">마우스를 지도 위에 올리면 고도를 표시합니다</div>
+<div class="status" id="status"></div>
+
+<script type="module">
+// ---------- 라이브러리 로드 (MapLibre v6는 ESM 전용: .mjs만 배포됨) ----------
+const CDNS = [
+  'https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.mjs',
+  'https://cdn.jsdelivr.net/npm/maplibre-gl@6/dist/maplibre-gl.mjs'
+];
+let maplibregl = null;
+for (const url of CDNS) {
+  try { maplibregl = await import(url); break; } catch (e) { console.warn('CDN 실패:', url, e); }
+}
+if (!maplibregl) {
+  const s = document.getElementById('status');
+  s.style.display = 'block';
+  s.textContent = 'MapLibre 모듈을 불러오지 못했습니다. 인터넷 연결 또는 CDN 차단 여부를 확인하세요.';
+} else {
+  initMap();
+}
+
+function initMap() {
+// ---------- 데이터 소스 ----------
+// 육지 DEM: Mapterhorn (Terrarium 인코딩, 512px WebP, 무료·키 불필요, 바다는 0m로 고정)
+//   → 지형 3D는 이걸로만 세운다. 해저 깊이가 지형에 섞이면 해안선이 절벽처럼 꺼져 '깨짐'이 생긴다.
+const LAND_DEM  = 'https://tiles.mapterhorn.com/{z}/{x}/{y}.webp';
+// 해저 DEM: AWS Terrain Tiles (Terrarium, ETOPO1 해저지형 포함) → 바다 깊이 색상 전용
+const BATHY_DEM = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+// 벡터(물·산림·빙하·국경): OpenFreeMap (OpenMapTiles 스키마, 키 불필요)
+const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
+// 구운 텍스처 타일 (bake/README.md 참고). 아직 굽지 않았으면 이 레이어는 비어 있고 아래 고도색이 대신 보인다.
+const BAKED_TILES = new URL('tiles/{z}/{x}/{y}.webp', location.href).href;
+
+// ---------- 육지 고도 색상 (설선 가변) ----------
+// 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
+function reliefRamp(snowLine) {
+  const s = snowLine;
+  return ['interpolate', ['linear'], ['elevation'],
+    -450, '#c9d3a8',   // 사해 주변 저지
+      -1, '#cfd6a6',
+       0, 'rgba(0,0,0,0)',
+       1, '#cfd6a6',
+     150, '#d8d6a0',
+     400, '#dcc78f',
+     800, '#cba86e',
+    1300, '#b28755',
+    1900, '#9c7b5e',
+    Math.min(2350, s - 250), '#8b8375',  // 암석 회갈색
+    s - 120, '#a9a59c',
+    s,       '#e9edf0',                  // 설선
+    s + 500, '#ffffff'
+  ];
+}
+// ---------- 해저 깊이 색상 (지중해 최대 약 5,100m, 홍해 약 2,500m) ----------
+const BATHY_RAMP = ['interpolate', ['linear'], ['elevation'],
+  -6000, '#0f2a4d',
+  -4000, '#173b69',
+  -2500, '#1e4f86',
+  -1200, '#2a6aa5',
+   -500, '#3f88be',
+   -150, '#6fb1d9',
+    -30, '#a4d1e7',
+      0, '#c4e2ef',
+      1, 'rgba(0,0,0,0)'
+];
+
+const style = {
+  version: 8,
+  projection: { type: 'globe' },   // 구글어스식 구형 지구
+  sources: {
+    terrain: { type: 'raster-dem', tiles: [LAND_DEM], encoding: 'terrarium', tileSize: 512, maxzoom: 12,
+               attribution: 'Terrain: Mapterhorn' },
+    land:    { type: 'raster-dem', tiles: [LAND_DEM], encoding: 'terrarium', tileSize: 512, maxzoom: 12 },
+    bathy:   { type: 'raster-dem', tiles: [BATHY_DEM], encoding: 'terrarium', tileSize: 256, maxzoom: 10,
+               attribution: 'Bathymetry: Mapzen/AWS Terrain Tiles (ETOPO1)' },
+    vector:  { type: 'vector', url: VECTOR_URL, attribution: '© OpenStreetMap contributors, OpenFreeMap' },
+    // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
+    baked:   { type: 'raster', tiles: [BAKED_TILES], tileSize: 512, minzoom: 4, maxzoom: 10,
+               bounds: [8, 20, 56, 46],
+               attribution: '© ESA WorldCover 2021 · Copernicus DEM © DLR/Airbus/ESA' }
+  },
+  sky: {
+    'sky-color': '#cfe0f0', 'horizon-color': '#e9e4d8', 'fog-color': '#e3dfd3',
+    'sky-horizon-blend': 0.75, 'horizon-fog-blend': 0.7, 'fog-ground-blend': 0.5,
+    'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.4, 7, 0]
+  },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#1e4f86' } },
+
+    // 1) 해저: 깊이별 색상 (실제 수심 데이터)
+    { id: 'bathy', type: 'color-relief', source: 'bathy',
+      paint: { 'color-relief-color': BATHY_RAMP, 'color-relief-opacity': 1 } },
+
+    // 2) 육지: 고도별 색상 (0m = 투명 → 아래 해저색이 보임)
+    { id: 'relief', type: 'color-relief', source: 'land',
+      paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
+
+    // 2b) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
+    { id: 'baked', type: 'raster', source: 'baked',
+      paint: { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
+
+    // 3) 바다 색조 통일 + DEM/해안선 어긋남 감춤 (연한 덧칠, 깊이 색은 그대로 비침)
+    { id: 'ocean-tint', type: 'fill', source: 'vector', 'source-layer': 'water',
+      filter: ['==', ['get', 'class'], 'ocean'],
+      paint: { 'fill-color': '#3f88be', 'fill-opacity': 0.22, 'fill-antialias': true } },
+
+    // 4) 호수 (갈릴리·사해·반 호수 등)
+    { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
+      filter: ['==', ['get', 'class'], 'lake'],
+      paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true } },
+
+    // 5) 산림: OSM 삼림 폴리곤 (landcover.class = wood)
+    { id: 'forest', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'wood'],
+      layout: { visibility: 'none' },   // 구운 텍스처에 식생이 포함되므로 기본 꺼짐
+      paint: { 'fill-color': '#4f7f42', 'fill-opacity': 0.5, 'fill-antialias': true } },
+
+    // 6) 빙하·만년설: OSM landcover.class = ice
+    { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'ice'],
+      paint: { 'fill-color': '#f4f7fa', 'fill-opacity': 0.9, 'fill-antialias': true } },
+
+    // 7) 하천 (나일·유프라테스·티그리스·요단)
+    { id: 'rivers', type: 'line', source: 'vector', 'source-layer': 'waterway',
+      filter: ['==', ['get', 'class'], 'river'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#5b93c9', 'line-opacity': 0.9,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 7, 1.4, 10, 2.4, 13, 3.5] } },
+
+    // 8) 국경선 — 현대 행정 경계(OSM admin_level 2), 이름·색 없음
+    { id: 'borders', type: 'line', source: 'vector', 'source-layer': 'boundary',
+      filter: ['all', ['==', ['get', 'admin_level'], 2], ['!=', ['get', 'maritime'], 1]],
+      paint: { 'line-color': '#6f665a', 'line-opacity': 0.65,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.6, 8, 1.4] } },
+
+    // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
+    { id: 'hillshade', type: 'hillshade', source: 'land',
+      paint: { 'hillshade-exaggeration': 0.5, 'hillshade-illumination-direction': 315,
+               'hillshade-shadow-color': '#4a3d2c', 'hillshade-highlight-color': '#fffaf0',
+               'hillshade-accent-color': '#6b5b48' } }
+  ],
+  terrain: { source: 'terrain', exaggeration: 1.6 }
+};
+
+const map = new maplibregl.Map({
+  container: 'map', style,
+  center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
+  maxPitch: 78, minZoom: 1, maxZoom: 14, renderWorldCopies: false, hash: true,
+  attributionControl: { compact: true },
+  canvasContextAttributes: { antialias: true }   // 폴리곤·선 가장자리 계단 현상 완화
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1.6 }), 'top-right');
+
+// ---------- 트랙패드 두 손가락 드래그 → 회전(좌우)·기울기(상하) ----------
+// 브라우저는 두 손가락 드래그를 wheel 이벤트(deltaX/deltaY)로 전달한다.
+// 핀치(맥 트랙패드)는 ctrlKey=true 로 오므로 그대로 MapLibre 확대/축소에 넘긴다.
+let gestureOn = true, accX = 0, accY = 0, raf = null;
+function applyGesture() {
+  raf = null;
+  if (!accX && !accY) return;
+  map.setBearing(map.getBearing() + accX * 0.25);
+  map.setPitch(Math.max(0, Math.min(map.getMaxPitch(), map.getPitch() - accY * 0.2)));
+  accX = accY = 0;
+}
+map.getCanvasContainer().addEventListener('wheel', ev => {
+  if (!gestureOn || ev.ctrlKey || ev.metaKey) return;   // 핀치 줌은 통과
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  const k = ev.deltaMode === 1 ? 16 : 1;                 // line 단위(마우스 휠) 보정
+  accX += ev.deltaX * k; accY += ev.deltaY * k;
+  if (!raf) raf = requestAnimationFrame(applyGesture);
+}, { capture: true, passive: false });
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('ko-KR');
+
+function paintRampBar(snow) {
+  const stops = reliefRamp(snow);
+  const lo = -450, hi = snow + 500, parts = [];
+  for (let i = 3; i < stops.length; i += 2) {
+    const pct = ((stops[i] - lo) / (hi - lo) * 100).toFixed(1);
+    parts.push(`${stops[i + 1]} ${pct}%`);
+  }
+  $('rampBar').style.background = `linear-gradient(90deg, ${parts.join(',')})`;
+}
+paintRampBar(2500);
+
+$('exag').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  $('exagOut').textContent = v.toFixed(1) + '×';
+  map.setTerrain({ source: 'terrain', exaggeration: v });
+});
+$('snow').addEventListener('input', e => {
+  const v = parseInt(e.target.value, 10);
+  $('snowOut').textContent = fmt(v) + ' m';
+  $('snowLabel').textContent = fmt(v) + '+';
+  map.setPaintProperty('relief', 'color-relief-color', reliefRamp(v));
+  paintRampBar(v);
+});
+$('forest').addEventListener('change', e =>
+  map.setLayoutProperty('forest', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('baked').addEventListener('change', e =>
+  map.setLayoutProperty('baked', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('shade').addEventListener('change', e =>
+  map.setLayoutProperty('hillshade', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('borders').addEventListener('change', e =>
+  map.setLayoutProperty('borders', 'visibility', e.target.checked ? 'visible' : 'none'));
+$('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
+
+const fly = (c, z, b = -8, p = 58) => map.flyTo({ center: c, zoom: z, bearing: b, pitch: p, duration: 1800 });
+$('viewLevant').onclick   = () => fly([35.6, 32.4], 7.2);     // 갈릴리~사해, 헤르몬
+$('viewAnatolia').onclick = () => fly([31.5, 38.0], 6.0);     // 소아시아 (바울 1·2차)
+$('viewAll').onclick      = () => fly([36.5, 33.5], 4.6, -8, 50);
+$('viewGlobe').onclick    = () => fly([36.5, 30.0], 1.6, 0, 0);       // 구형 전체 보기
+
+// ---------- 고도 읽기 (실제 DEM 값 확인용) ----------
+map.on('mousemove', e => {
+  const z = typeof map.queryTerrainElevation === 'function' ? map.queryTerrainElevation(e.lngLat, { exaggerated: false }) : null;
+  const el = z == null ? '—' : fmt(Math.round(z)) + ' m';
+  $('readout').innerHTML =
+    `고도 <b>${el}</b> &nbsp;·&nbsp; ${e.lngLat.lng.toFixed(3)}, ${e.lngLat.lat.toFixed(3)}`;
+});
+
+// ---------- 오류 표시 ----------
+map.on('error', ev => {
+  const s = $('status');
+  s.style.display = 'block';
+  s.textContent = '타일 로드 오류: ' + (ev.error && ev.error.message ? ev.error.message : '네트워크 확인');
+});
+} // initMap
+</script>
+</body>
+</html>
