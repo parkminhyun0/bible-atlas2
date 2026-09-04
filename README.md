@@ -6,6 +6,9 @@
 - 뷰어: https://parkminhyun0.github.io/bible-atlas2/
 - 지형: Mapterhorn(Copernicus DEM 기반) · 수심: Mapzen/AWS Terrain Tiles(ETOPO1)
 - 전지구 자연색: NASA Blue Marble Next Generation (2004-08), z0–5 (`bake/world.py`)
+- 확대 시 위성: Sentinel-2 cloudless 2024 (10 m, EOX 실시간 타일), z6–z14
+  CC BY-NC-SA 4.0 — 비상업 이용에 한한다. 상업 이용이 필요하면 이 레이어를 빼거나
+  NASA GIBS(퍼블릭 도메인, z8까지)로 바꾼다.
 - 물·국경: OpenFreeMap(OpenStreetMap) · 지표 텍스처: ESA WorldCover 2021 + Copernicus GLO-30 (`bake/` 참고)
 - 엔진: MapLibre GL JS 6 (globe 투영, 3D terrain, color-relief, 다중 광원 음영)
 - 배경: 줌에 따라 우주(별) → 고고도 하늘 → 낮 하늘로 이어진다
