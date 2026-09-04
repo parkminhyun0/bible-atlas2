@@ -22,10 +22,15 @@
   #space { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
 
   .panel {
-    position: absolute; top: 14px; left: 14px; width: 250px;
+    /* content-box 면 max-height 가 패딩·테두리를 빼고 계산돼 실제 높이가 넘친다.
+       width 280px = 기존 내용폭 250 + 패딩 28 + 테두리 2 로 겉보기 크기는 그대로다. */
+    box-sizing: border-box;
+    position: absolute; top: 14px; left: 14px; width: 280px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
     padding: 12px 14px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
     font-size: 13px; line-height: 1.45;
+    /* 방위 기준 항목이 들어가며 길어졌다. 낮은 화면에서 범례가 잘리지 않게 한다. */
+    max-height: calc(100% - 28px); overflow-y: auto; overscroll-behavior: contain;
   }
   .panel h1 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
   .panel .sub { color: var(--ink-soft); font-size: 12px; margin-bottom: 10px; }
@@ -37,6 +42,15 @@
   button { font: inherit; font-size: 12px; padding: 5px 9px; border: 1px solid var(--line); background: #fff; border-radius: 4px; cursor: pointer; color: var(--ink); }
   button:hover { border-color: var(--accent); }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .aspect { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .aspect-h { font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btns button { width: 100%; }
+  .btns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .aspect-note { font-size: 11px; line-height: 1.55; color: var(--ink-soft); margin-top: 8px; min-height: 4.6em; }
+  .aspect-note b { color: var(--ink); font-weight: 600; }
+  .aspect-note bdi { font-size: 12.5px; }
+
   .legend { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
   .ramp { height: 10px; border-radius: 3px; border: 1px solid var(--line); }
   .ramp-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
@@ -82,6 +96,17 @@
     <button id="viewAnatolia">소아시아</button>
     <button id="viewAll">전체</button>
     <button id="viewGlobe">지구</button>
+  </div>
+
+  <div class="aspect">
+    <div class="aspect-h">방위 기준 — ‘위쪽’은 자연법칙이 아니라 약속이다</div>
+    <div class="btns" role="group" aria-label="방위 기준 선택">
+      <button id="aspN" data-aspect="N" aria-pressed="false">북쪽 위</button>
+      <button id="aspE" data-aspect="E" aria-pressed="false">동쪽 위</button>
+      <button id="aspTilt" data-aspect="TILT" aria-pressed="false">기울기</button>
+      <button id="aspS" data-aspect="S" aria-pressed="false">남쪽 위</button>
+    </div>
+    <div class="aspect-note" id="aspNote"></div>
   </div>
 
   <div class="legend">
@@ -436,6 +461,45 @@ $('shade').addEventListener('change', e =>
 $('borders').addEventListener('change', e =>
   map.setLayoutProperty('borders', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
+
+// ---------- 방위 기준 ----------
+// MapLibre 의 bearing 은 '화면 위쪽에 오는 나침반 방위'다 (0=북, 90=동, 180=남).
+// 중심과 축척은 그대로 두고 위쪽만 바꾼다. 같은 땅이 기준에 따라 어떻게 달라 보이는지가 핵심이다.
+// pitch 를 0 으로 눕혀야 네 기준을 같은 조건에서 비교할 수 있다.
+const ASPECTS = {
+  N: { bearing: 0, note:
+    '<b>현대 관습.</b> 프톨레마이오스 이래 굳어진 약속일 뿐, 자연이 정한 방향이 아니다.' },
+  E: { bearing: 90, note:
+    '<b>구약의 기준.</b> 해 뜨는 쪽을 향해 서서 방위를 부른다 — ' +
+    '<bdi>קֶדֶם</bdi>(qedem) 앞=동 · <bdi>אָחוֹר</bdi>(aḥor) 뒤=서 · ' +
+    '<bdi>יָמִין</bdi>(yamin) 오른쪽=남 · <bdi>שְׂמֹאל</bdi>(semol) 왼쪽=북.' },
+  TILT: { bearing: 23.44, note:
+    '<b>우주에는 위아래가 없다.</b> 지구 자전축은 공전면 수직에서 23.44° 기울어 있다. ' +
+    'NASA 가 배포하는 사진이 늘 북쪽 위인 것은 관습이지 관측 사실이 아니다. 구형 뷰에서 가장 잘 보인다.' },
+  S: { bearing: 180, note:
+    '<b>아폴로 17호 블루마블 원본은 남쪽이 위였다.</b> 승무원이 그렇게 찍었고, ' +
+    'NASA 가 배포하면서 180° 돌린 것이다.' }
+};
+const aspButtons = [...document.querySelectorAll('.btns button[data-aspect]')];
+
+function syncAspectButtons() {
+  const b = ((map.getBearing() % 360) + 360) % 360;
+  for (const btn of aspButtons) {
+    const t = ASPECTS[btn.dataset.aspect].bearing;
+    const d = Math.abs(b - t);
+    btn.setAttribute('aria-pressed', Math.min(d, 360 - d) < 0.5 ? 'true' : 'false');
+  }
+}
+for (const btn of aspButtons) {
+  btn.addEventListener('click', () => {
+    const a = ASPECTS[btn.dataset.aspect];
+    map.easeTo({ bearing: a.bearing, pitch: 0, duration: 1200 });
+    $('aspNote').innerHTML = a.note;
+  });
+}
+$('aspNote').innerHTML = '버튼을 눌러 ‘위쪽’을 바꿔 본다. 중심과 축척은 그대로 두므로, 같은 땅이 기준에 따라 어떻게 달라 보이는지 바로 비교된다.';
+map.on('rotate', syncAspectButtons);
+syncAspectButtons();
 
 const fly = (c, z, b = -8, p = 58) => map.flyTo({ center: c, zoom: z, bearing: b, pitch: p, duration: 1800 });
 $('viewLevant').onclick   = () => fly([35.6, 32.4], 7.2);     // 갈릴리~사해, 헤르몬
