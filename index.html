@@ -121,23 +121,33 @@ const BATHY_DEM = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{
 // 벡터(물·산림·빙하·국경): OpenFreeMap (OpenMapTiles 스키마, 키 불필요)
 const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 // 구운 텍스처 타일 (bake/README.md 참고). 아직 굽지 않았으면 이 레이어는 비어 있고 아래 고도색이 대신 보인다.
-const BAKED_TILES = new URL('tiles/{z}/{x}/{y}.webp', location.href).href;
+// new URL(...)은 {z}/{x}/{y} 중괄호를 퍼센트 인코딩해 MapLibre가 좌표를 치환하지 못한다.
+// hash: true 라서 주소에 #4.6/33.5/36.5 가 붙으므로 쿼리·해시를 떼고 디렉터리만 남긴다.
+const BAKED_TILES = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + 'tiles/{z}/{x}/{y}.webp';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
 function reliefRamp(snowLine) {
   const s = snowLine;
+  // 암석대 시작. 401 하한은 저지대 스톱(0m 투명 처리 포함)이 항상 살아남게 한다.
+  const rock = Math.max(401, Math.min(2350, s - 250));
+  // 저지대 색은 설선과 무관하게 고정한다. 설선이 내려오면 암석대에 먹히는 스톱만 덜어낸다.
+  // interpolate 는 입력값이 강한 오름차순이어야 하므로 이 filter 가 불변식을 강제한다.
+  const base = [
+    [-450, '#c9d3a8'],  // 사해 주변 저지
+    [  -1, '#cfd6a6'],
+    [   0, 'rgba(0,0,0,0)'],
+    [   1, '#cfd6a6'],
+    [ 150, '#d8d6a0'],
+    [ 400, '#dcc78f'],
+    [ 800, '#cba86e'],
+    [1300, '#b28755'],
+    [1900, '#9c7b5e']
+  ].filter(([elev]) => elev < rock);
+
   return ['interpolate', ['linear'], ['elevation'],
-    -450, '#c9d3a8',   // 사해 주변 저지
-      -1, '#cfd6a6',
-       0, 'rgba(0,0,0,0)',
-       1, '#cfd6a6',
-     150, '#d8d6a0',
-     400, '#dcc78f',
-     800, '#cba86e',
-    1300, '#b28755',
-    1900, '#9c7b5e',
-    Math.min(2350, s - 250), '#8b8375',  // 암석 회갈색
+    ...base.flat(),
+    rock,    '#8b8375',                  // 암석 회갈색
     s - 120, '#a9a59c',
     s,       '#e9edf0',                  // 설선
     s + 500, '#ffffff'
