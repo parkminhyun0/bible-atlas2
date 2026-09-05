@@ -162,7 +162,7 @@
       <button id="ntPlaces" aria-pressed="false">신약 지명</button>
       <button id="otPlaces" aria-pressed="false" disabled title="다음 단계에서 추가한다">구약 지명</button>
     </div>
-    <div class="sub" id="placeNote" style="margin-top:7px">신약의 무대가 된 84곳. 붉은 점이 위치다.</div>
+    <div class="sub" id="placeNote" style="margin-top:7px">1세기 배경 261곳. 붉은 점이 위치, 삼각형이 산이다.</div>
   </div>
 
   <div class="aspect">
@@ -526,7 +526,9 @@ const style = {
     // 10) 신약 지명 — 붉은 점
     //     circle-pitch-alignment: viewport 라야 지도를 기울여도 점이 타원으로 눌리지 않는다.
     { id: 'nt-dot', type: 'circle', source: 'ntplaces',
-      filter: ['!=', ['get', 'kind'], 'water'],
+      // 물·지역·산은 점을 찍지 않는다. 물과 지역은 면이라 점이 어울리지 않고,
+      // 산에는 아래의 산 모양 아이콘이 대신 붙는다.
+      filter: ['!', ['in', ['get', 'kind'], ['literal', ['water', 'region', 'mountain']]]],
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
@@ -540,6 +542,20 @@ const style = {
         'circle-opacity': PLACE_OPACITY,
         'circle-stroke-opacity': PLACE_OPACITY
       } },
+
+    // 10b) 산 — 산 모양 아이콘 (아이콘 이미지는 styleimagemissing 에서 만든다)
+    { id: 'nt-peak', type: 'symbol', source: 'ntplaces',
+      filter: ['==', ['get', 'kind'], 'mountain'],
+      layout: {
+        visibility: 'none',
+        'icon-image': 'peak',
+        'icon-anchor': 'bottom',        // 산 밑변이 좌표에 놓인다
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'icon-pitch-alignment': 'viewport',
+        'icon-rotation-alignment': 'viewport'
+      },
+      paint: { 'icon-opacity': PLACE_OPACITY } },
 
     // 11) 신약 지명 — 라벨
     //     라벨이 줌·회전·기울임에 흔들리지 않게 하는 것이 핵심이다.
@@ -555,10 +571,14 @@ const style = {
         'text-field': ['get', 'ko'],
         'text-font': ['Noto Sans Bold'],
         'text-size': 12.5,
-        // 물 이름은 수면 한가운데, 나머지는 점 바로 아래.
-        'text-anchor': ['case', ['==', ['get', 'kind'], 'water'], 'center', 'top'],
-        'text-offset': ['case', ['==', ['get', 'kind'], 'water'], ['literal', [0, 0]],
-                        ['literal', [0, 0.7]]],
+        // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
+        'text-anchor': ['case',
+          ['in', ['get', 'kind'], ['literal', ['water', 'region']]], 'center', 'top'],
+        'text-offset': ['case',
+          ['in', ['get', 'kind'], ['literal', ['water', 'region']]], ['literal', [0, 0]],
+          ['literal', [0, 0.7]]],
+        // 지역명은 자간을 벌려 '면'임을 드러낸다 — 인쇄 지도의 관례다.
+        'text-letter-spacing': ['case', ['==', ['get', 'kind'], 'region'], 0.14, 0],
         'text-max-width': 9,
         'text-allow-overlap': true,
         'text-ignore-placement': true,
@@ -567,7 +587,10 @@ const style = {
         'symbol-sort-key': ['get', 'rank']
       },
       paint: {
-        'text-color': ['case', ['==', ['get', 'kind'], 'water'], '#2c6491', '#1e1c18'],
+        'text-color': ['case',
+          ['==', ['get', 'kind'], 'water'], '#2c6491',
+          ['==', ['get', 'kind'], 'region'], '#6b5230',
+          '#1e1c18'],
         'text-halo-color': 'rgba(255,255,255,0.95)',
         'text-halo-width': 1.7,
         'text-halo-blur': 0.2,
@@ -684,16 +707,51 @@ $('borders').addEventListener('change', e =>
 $('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
 
 // ---------- 지명 ----------
+// 산 아이콘. 스프라이트 없이 캔버스로 그려 넣는다.
+// 어두운 지형 위에서도 형태가 보이도록 흰 테두리를 두르고, 봉우리에 눈을 얹는다.
+function makePeakIcon(px) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const cx = px / 2, top = px * 0.14, base = px * 0.86, half = px * 0.42;
+  const tri = () => {
+    g.beginPath();
+    g.moveTo(cx, top);
+    g.lineTo(cx + half, base);
+    g.lineTo(cx - half, base);
+    g.closePath();
+  };
+  tri(); g.lineJoin = 'round'; g.lineWidth = px * 0.17; g.strokeStyle = '#ffffff'; g.stroke();
+  tri(); g.fillStyle = '#6f5c49'; g.fill();
+  g.save(); tri(); g.clip();
+  const capY = top + (base - top) * 0.40;
+  g.beginPath();
+  g.moveTo(cx, top);
+  g.lineTo(cx + half * 0.44, capY);
+  g.lineTo(cx + half * 0.20, capY - px * 0.05);
+  g.lineTo(cx - half * 0.16, capY);
+  g.lineTo(cx - half * 0.44, capY);
+  g.closePath();
+  g.fillStyle = '#f6f8fa'; g.fill(); g.restore();
+  return { width: px, height: px, data: new Uint8Array(g.getImageData(0, 0, px, px).data.buffer) };
+}
+// 레이어가 아이콘을 찾을 때 만들어 준다 — 스타일 로드 시점에 기대지 않아도 된다.
+map.on('styleimagemissing', e => {
+  if (e.id === 'peak' && !map.hasImage('peak')) {
+    map.addImage('peak', makePeakIcon(34), { pixelRatio: 2 });
+  }
+});
+
 let ntOn = false;
 $('ntPlaces').addEventListener('click', () => {
   ntOn = !ntOn;
-  for (const id of ['nt-dot', 'nt-label']) {
+  for (const id of ['nt-dot', 'nt-peak', 'nt-label']) {
     map.setLayoutProperty(id, 'visibility', ntOn ? 'visible' : 'none');
   }
   $('ntPlaces').setAttribute('aria-pressed', ntOn ? 'true' : 'false');
   $('placeNote').textContent = ntOn
-    ? '신약 지명 84곳. 확대할수록 작은 지명까지 나타난다.'
-    : '신약의 무대가 된 84곳. 붉은 점이 위치다.';
+    ? '1세기 지명 261곳. 확대할수록 작은 지명까지 나타난다.'
+    : '1세기 배경 261곳. 붉은 점이 위치, 삼각형이 산이다.';
 });
 
 // ---------- 태양 위치 ----------
