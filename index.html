@@ -401,11 +401,18 @@ const style = {
   },
   sky: BASE_SKY,
   layers: [
-    { id: 'bg', type: 'background', paint: { 'background-color': '#1e4f86' } },
+    // 바다 바탕. 배경 레이어는 늘 화면 전체를 덮으므로, 벡터 폴리곤이 타일 단위로
+    // 비어 있어도 빈틈이 생기지 않는다. 확대하면 이 색이 바다가 된다.
+    { id: 'bg', type: 'background',
+      paint: { 'background-color': ['interpolate', ['linear'], ['zoom'], 8, '#1e4f86', 11, '#39699b'] } },
 
     // 1) 해저: 깊이별 색상 (실제 수심 데이터)
+    //    ETOPO1 은 1분각(약 1.8 km) 이라 확대하면 셀 하나가 거대한 블록이 되고,
+    //    해안에 걸친 셀의 결측값이 최대 수심 색(짙은 남색)으로 칠해져 톱니처럼 보였다.
+    //    넓게 볼 때만 쓰고, 확대하면 아래 바다 채움에 자리를 넘긴다.
     { id: 'bathy', type: 'color-relief', source: 'bathy',
-      paint: { 'color-relief-color': BATHY_RAMP, 'color-relief-opacity': 1 } },
+      paint: { 'color-relief-color': BATHY_RAMP,
+               'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 9, 1, 11, 0] } },
 
     // 2) 육지: 고도별 색상 (0m = 투명 → 아래 해저색이 보임)
     { id: 'relief', type: 'color-relief', source: 'land',
@@ -447,7 +454,9 @@ const style = {
     { id: 'baked', type: 'raster', source: 'baked',
       paint: { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
 
-    // 3) 바다 색조 통일 + DEM/해안선 어긋남 감춤 (연한 덧칠, 깊이 색은 그대로 비침)
+    // 3) 바다 색조 통일 (연한 덧칠, 깊이 색은 그대로 비침).
+    //    불투명하게 만들면 안 된다 — OSM 바다 폴리곤이 타일 단위로 비어 있는 곳이
+    //    있어서, 진하게 칠하면 그 경계가 사다리꼴 얼룩으로 드러난다.
     { id: 'ocean-tint', type: 'fill', source: 'vector', 'source-layer': 'water',
       filter: ['==', ['get', 'class'], 'ocean'],
       paint: { 'fill-color': '#3f88be', 'fill-opacity': 0.22, 'fill-antialias': true } },
