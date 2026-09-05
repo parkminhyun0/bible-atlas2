@@ -217,15 +217,6 @@
   </div>
 
   <div class="aspect">
-    <div class="aspect-h">세계 지형</div>
-    <div class="btns" role="group" aria-label="세계 지형 이름">
-      <button id="showRanges" aria-pressed="false">주요 산맥</button>
-      <button id="showRivers" aria-pressed="false">주요 강</button>
-    </div>
-    <div class="sub" id="worldNote" style="margin-top:7px"></div>
-  </div>
-
-  <div class="aspect">
     <div class="aspect-h">태양 · 시간대</div>
     <div class="row"><label><input type="checkbox" id="sunOn" checked /> 태양 위치로 그림자 만들기</label></div>
     <div class="row"><label for="sunHour">시각 (현지 태양시)</label><output id="sunOut">14:00</output></div>
@@ -386,6 +377,7 @@ const OT_PLACES = SITE_ROOT + 'data/ot-places.geojson';
 const RANGES     = SITE_ROOT + 'data/ranges.geojson';
 const BIG_RIVERS = SITE_ROOT + 'data/rivers-major.geojson';
 const WORLD_PTS  = SITE_ROOT + 'data/world-labels-pt.geojson';
+const PEAKS      = SITE_ROOT + 'data/peaks.geojson';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -487,6 +479,11 @@ const WORLD_LABEL_PT = ['interpolate', ['linear'], ['zoom'],
   3.0, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
   3.6, 0
 ];
+const PEAK_OPACITY = ['interpolate', ['linear'], ['zoom'],
+  1.2, ['case', ['<=', ['get', 'rank'], 1], 1, 0],
+  2.8, ['case', ['<=', ['get', 'rank'], 2], 1, 0],
+  4.2, 1
+];
 const WORLD_LABEL_LINE = ['interpolate', ['linear'], ['zoom'],
   3.2, 0,
   3.7, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
@@ -513,6 +510,7 @@ const style = {
     ranges:   { type: 'geojson', data: RANGES },
     wrivers:  { type: 'geojson', data: BIG_RIVERS },
     worldpts: { type: 'geojson', data: WORLD_PTS },
+    peaks:    { type: 'geojson', data: PEAKS },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
@@ -596,16 +594,17 @@ const style = {
 
     // 8a) 주요 강 (Natural Earth 50m 중심선). OSM 하천은 확대해야 나오므로
     //     세계 시점에서는 이 선이 강줄기를 보여주고, 겹치기 전에 물러난다.
-    { id: 'wriver-line', type: 'line', source: 'wrivers', layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+    { id: 'wriver-line', type: 'line', source: 'wrivers', layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#5b93c9',
                'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.5, 3, 1.1, 5, 1.8],
                'line-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.9, 3.5, 0.9, 5.2, 0] } },
 
     // 8b) 강 이름 — 물줄기를 따라 흐르게 놓는다.
     { id: 'wriver-label', type: 'symbol', source: 'wrivers', layout: {
-        visibility: 'none',
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
-        'symbol-placement': 'line', 'symbol-spacing': 260,
+        'symbol-placement': 'line',
+        // 확대할수록 간격을 벌린다. 고정값이면 z6 에서 브라마푸트라강이 여섯 번 반복된다.
+        'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 3, 260, 6, 760, 9, 1400],
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10, 4, 11.5, 8, 13],
         'text-letter-spacing': 0.02, 'text-max-angle': 75, 'text-padding': 2,
         'symbol-sort-key': ['get', 'rank'] },
@@ -615,7 +614,6 @@ const style = {
     // 8b-1) 낮은 줌(지구 시점)용 강 이름 — 점 배치.
     { id: 'wriver-label-pt', type: 'symbol', source: 'worldpts',
       filter: ['==', ['get', 'kind'], 'river'], layout: {
-        visibility: 'none',
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10, 3.5, 11.5],
         'text-max-width': 7, 'text-padding': 3, 'symbol-sort-key': ['get', 'rank'] },
@@ -625,7 +623,6 @@ const style = {
     // 8c) 주요 산맥 이름. 산맥은 면이라 선은 그리지 않고, 폴리곤에서 뽑은
     //     등줄기(bake/world_labels.py)를 글자가 지나갈 길로만 쓴다.
     { id: 'range-label', type: 'symbol', source: 'ranges', layout: {
-        visibility: 'none',
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'symbol-placement': 'line-center', 'symbol-spacing': 600,
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10.5, 4, 12.5, 8, 14],
@@ -637,13 +634,28 @@ const style = {
     // 8c-1) 낮은 줌용 산맥 이름 — 점 배치.
     { id: 'range-label-pt', type: 'symbol', source: 'worldpts',
       filter: ['==', ['get', 'kind'], 'range'], layout: {
-        visibility: 'none',
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10.5, 3.5, 12.5],
         'text-max-width': 7, 'text-letter-spacing': 0.1, 'text-padding': 4,
         'symbol-sort-key': ['get', 'rank'] },
       paint: { 'text-color': '#6b4f36', 'text-halo-color': '#fbf7f0', 'text-halo-width': 1.8,
                'text-opacity': WORLD_LABEL_PT } },
+
+    // 8d) 세계 주요 산 87곳. 산맥·강과 함께 늘 켜 둔다(버튼 없음).
+    //     아이콘은 지명 레이어가 쓰는 것과 같은 삼각형이라 표기 방식이 일관된다.
+    { id: 'world-peak', type: 'symbol', source: 'peaks', layout: {
+        'icon-image': 'peak', 'icon-anchor': 'bottom',
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+        // 이름 아래에 해발을 한 단 작게 붙인다.
+        'text-field': ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'elev'], { 'font-scale': 0.82 }],
+        'text-font': ['Noto Sans Bold'], 'text-size': 11.5,
+        'text-anchor': 'top', 'text-offset': [0, 0.45], 'text-max-width': 9,
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport',
+        'symbol-sort-key': ['get', 'rank'] },
+      paint: { 'icon-opacity': PEAK_OPACITY,
+               'text-color': '#4a3b2a', 'text-halo-color': '#fbf7f0', 'text-halo-width': 1.7,
+               'text-opacity': PEAK_OPACITY } },
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'land',
@@ -967,26 +979,6 @@ const PLACE_SETS = {
   ntPlaces: { on: false, ids: ['nt-dot', 'nt-peak', 'nt-label'], label: '신약 269곳(붉은 점)' },
   otPlaces: { on: false, ids: ['ot-dot', 'ot-peak', 'ot-label'], label: '구약 216곳(남색 점)' }
 };
-const WORLD_SETS = {
-  showRanges: { on: false, ids: ['range-label', 'range-label-pt'], label: '산맥 68개' },
-  showRivers: { on: false, ids: ['wriver-line', 'wriver-label', 'wriver-label-pt'], label: '강 88개' }
-};
-function syncWorldNote() {
-  const on = Object.values(WORLD_SETS).filter(s => s.on).map(s => s.label);
-  $('worldNote').textContent = on.length
-    ? on.join(' · ') + ' — 확대할수록 작은 것까지 나타난다. 이름은 산줄기·물줄기를 따라 흐른다.'
-    : '세계의 주요 산맥과 강 이름. 각각 버튼으로 켠다.';
-}
-for (const [btnId, set] of Object.entries(WORLD_SETS)) {
-  $(btnId).addEventListener('click', () => {
-    set.on = !set.on;
-    for (const id of set.ids) map.setLayoutProperty(id, 'visibility', set.on ? 'visible' : 'none');
-    $(btnId).setAttribute('aria-pressed', set.on ? 'true' : 'false');
-    syncWorldNote();
-  });
-}
-syncWorldNote();
-
 function syncPlaceNote() {
   const on = Object.values(PLACE_SETS).filter(s => s.on).map(s => s.label);
   $('placeNote').textContent = on.length
