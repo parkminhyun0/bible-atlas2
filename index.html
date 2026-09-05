@@ -52,6 +52,11 @@
   .btns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btns button:disabled { color: var(--ink-soft); opacity: .5; cursor: default; border-style: dashed; }
   .btns button:disabled:hover { border-color: var(--line); }
+  .cert { margin-right: 10px; white-space: nowrap; }
+  .cd { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+        vertical-align: -1px; margin-right: 3px; border: 1.4px solid #2d4b8e; }
+  .cd-sure { background: #2d4b8e; }
+  .cd-approx { background: #fff; }
   .aspect-note { font-size: 11px; line-height: 1.55; color: var(--ink-soft); margin-top: 8px; min-height: 4.6em; }
   .aspect-note b { color: var(--ink); font-weight: 600; }
   .aspect-note bdi { font-size: 12.5px; }
@@ -183,6 +188,12 @@
       <button id="otPlaces" aria-pressed="false">구약 지명</button>
     </div>
     <div class="row" style="margin-top:8px"><label><input type="checkbox" id="occlude" checked /> 산에 가린 지명 숨기기</label></div>
+    <div class="sub" style="margin-top:6px; line-height:1.6">
+      <span class="cert"><i class="cd cd-sure"></i>확정</span>
+      <span class="cert"><i class="cd cd-approx"></i>유력</span>
+      <span class="cert"><i class="cd cd-approx"></i>추정<b>?</b></span>
+      <br><span style="opacity:.75">Barrington Atlas · Pleiades 표기</span>
+    </div>
     <div class="sub" id="placeNote" style="margin-top:7px"></div>
   </div>
 
@@ -422,6 +433,17 @@ const CARTO_LIGHT = {
 // rank 1 은 늘, 2 는 z6 부터, 3 은 z8 부터 서서히 나타난다.
 // MapLibre 는 한 표현식 안에 줌 기반 보간을 하나만 허용한다. 그래서 줌 보간을
 // 바깥에 두고, 각 구간의 값에서 rank 로 갈라 준다.
+// Barrington Atlas · Pleiades 의 관행을 따른다.
+//   known       확정        ● 속 채운 점
+//   approximate 유력하나 미확정 ○ 빈 점
+//   tentative   추정        ○ 빈 점 + 이름 뒤 물음표
+const IS_SURE = ['==', ['get', 'certainty'], 'known'];
+const dotFill = c => ['case', IS_SURE, c, '#ffffff'];
+const dotStroke = c => ['case', IS_SURE, '#ffffff', c];
+// 이름 뒤 물음표는 '추정' 에만 붙인다.
+const PLACE_LABEL = ['concat', ['get', 'ko'],
+  ['case', ['==', ['get', 'certainty'], 'tentative'], '?', '']];
+
 // 지형에 가린 지명은 feature-state 로 감춘다(updateOcclusion).
 const PLACE_VISIBLE = ['case', ['boolean', ['feature-state', 'hidden'], false], 0, 1];
 const PLACE_OPACITY = ['interpolate', ['linear'], ['zoom'],
@@ -559,9 +581,9 @@ const style = {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
-        'circle-color': '#d92b2b',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 1.3,
+        'circle-color': dotFill('#d92b2b'),
+        'circle-stroke-color': dotStroke('#d92b2b'),
+        'circle-stroke-width': ['case', IS_SURE, 1.3, 1.7],
         'circle-pitch-alignment': 'viewport',
         // 기본값 'map' 은 원근을 적용해 가까운 점을 크게 그린다. 글자는 고정 크기이므로
         // 점만 커지면 둘이 어긋나 보인다. 화면 기준으로 맞춰 늘 같은 크기로 둔다.
@@ -595,7 +617,7 @@ const style = {
     { id: 'nt-label', type: 'symbol', source: 'ntplaces',
       layout: {
         visibility: 'none',
-        'text-field': ['get', 'ko'],
+        'text-field': PLACE_LABEL,
         'text-font': ['Noto Sans Bold'],
         'text-size': 12.5,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
@@ -633,9 +655,9 @@ const style = {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
-        'circle-color': '#2d4b8e',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 1.3,
+        'circle-color': dotFill('#2d4b8e'),
+        'circle-stroke-color': dotStroke('#2d4b8e'),
+        'circle-stroke-width': ['case', IS_SURE, 1.3, 1.7],
         'circle-pitch-alignment': 'viewport',
         // 기본값 'map' 은 원근을 적용해 가까운 점을 크게 그린다. 글자는 고정 크기이므로
         // 점만 커지면 둘이 어긋나 보인다. 화면 기준으로 맞춰 늘 같은 크기로 둔다.
@@ -662,7 +684,7 @@ const style = {
     { id: 'ot-label', type: 'symbol', source: 'otplaces',
       layout: {
         visibility: 'none',
-        'text-field': ['get', 'ko'],
+        'text-field': PLACE_LABEL,
         'text-font': ['Noto Sans Bold'],
         'text-size': 12.5,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
@@ -934,6 +956,29 @@ function updateOcclusion() {
 }
 map.on('moveend', updateOcclusion);
 $('occlude').addEventListener('change', updateOcclusion);
+
+// ---------- 지명 클릭 ----------
+// 위치가 확정되지 않은 곳은 왜 그런지 알 수 있어야 한다. 근거를 함께 보여준다.
+const CERT_TEXT = { known: '위치 확정', approximate: '유력하나 미확정', tentative: '추정' };
+const placePopup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 10 });
+for (const layer of ['nt-dot', 'ot-dot', 'nt-peak', 'ot-peak']) {
+  map.on('click', layer, e => {
+    const f = e.features && e.features[0];
+    if (!f) return;
+    const p = f.properties;
+    const cert = CERT_TEXT[p.certainty] || '';
+    placePopup.setLngLat(f.geometry.coordinates)
+      .setHTML(
+        `<div style="font:600 13px/1.4 system-ui;color:#1e1c18">${p.ko}</div>` +
+        `<div style="font:11px/1.5 system-ui;color:#6a655b;margin-top:2px">${p.en || ''}</div>` +
+        (cert ? `<div style="font:11px/1.5 system-ui;color:#6a655b;margin-top:4px">${cert}</div>` : '') +
+        (p.note ? `<div style="font:11.5px/1.6 system-ui;color:#2b2a26;margin-top:6px;padding-top:6px;border-top:1px solid #d9d3c6">${p.note}</div>` : '')
+      )
+      .addTo(map);
+  });
+  map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+}
 
 // ---------- 태양 위치 ----------
 // 저정밀 태양 위치(USNO 공식). 검증: 예루살렘(31.78N) 하지 정오 81.6°, 동지 34.8°,
