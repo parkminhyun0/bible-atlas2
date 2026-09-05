@@ -50,6 +50,8 @@
   .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .btns button { width: 100%; }
   .btns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btns button:disabled { color: var(--ink-soft); opacity: .5; cursor: default; border-style: dashed; }
+  .btns button:disabled:hover { border-color: var(--line); }
   .aspect-note { font-size: 11px; line-height: 1.55; color: var(--ink-soft); margin-top: 8px; min-height: 4.6em; }
   .aspect-note b { color: var(--ink); font-weight: 600; }
   .aspect-note bdi { font-size: 12.5px; }
@@ -152,6 +154,15 @@
     <button id="viewAnatolia">소아시아</button>
     <button id="viewAll">전체</button>
     <button id="viewGlobe">지구</button>
+  </div>
+
+  <div class="aspect">
+    <div class="aspect-h">지명</div>
+    <div class="btns" role="group" aria-label="지명 표시">
+      <button id="ntPlaces" aria-pressed="false">신약 지명</button>
+      <button id="otPlaces" aria-pressed="false" disabled title="다음 단계에서 추가한다">구약 지명</button>
+    </div>
+    <div class="sub" id="placeNote" style="margin-top:7px">신약의 무대가 된 84곳. 붉은 점이 위치다.</div>
   </div>
 
   <div class="aspect">
@@ -310,6 +321,7 @@ const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 const SITE_ROOT = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
 const BAKED_TILES = SITE_ROOT + 'tiles/{z}/{x}/{y}.webp';
 const WORLD_TILES = SITE_ROOT + 'world/{z}/{x}/{y}.webp';
+const NT_PLACES = SITE_ROOT + 'data/nt-places.geojson';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -380,8 +392,22 @@ const CARTO_LIGHT = {
   exag: 0.58
 };
 
+// 지명 라벨의 노출 구간. 넓게 볼 때 84개가 한꺼번에 나오면 읽을 수 없다.
+// rank 1 은 늘, 2 는 z6 부터, 3 은 z8 부터 서서히 나타난다.
+// MapLibre 는 한 표현식 안에 줌 기반 보간을 하나만 허용한다. 그래서 줌 보간을
+// 바깥에 두고, 각 구간의 값에서 rank 로 갈라 준다.
+const PLACE_OPACITY = ['interpolate', ['linear'], ['zoom'],
+  5.5, ['case', ['<=', ['get', 'rank'], 1], 1, 0],
+  6.5, ['case', ['<=', ['get', 'rank'], 2], 1, 0],
+  7.5, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
+  8.5, ['case', ['<=', ['get', 'rank'], 4], 1, 0],
+  9.5, 1
+];
+
 const style = {
   version: 8,
+  // 한글 라벨용 글리프. OpenFreeMap 이 Noto Sans 의 한글 범위를 제공한다.
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   projection: { type: 'globe' },   // 구글어스식 구형 지구
   sources: {
     terrain: { type: 'raster-dem', tiles: [LAND_DEM], encoding: 'terrarium', tileSize: 512, maxzoom: 12,
@@ -392,6 +418,7 @@ const style = {
     vector:  { type: 'vector', url: VECTOR_URL, attribution: '© OpenStreetMap contributors, OpenFreeMap' },
     // 전지구 자연색 베이스. 고도만으로는 위도·강수 차이를 표현할 수 없어 지구 전체 뷰에서
     // 콩고 분지와 유럽까지 사막색이 된다. 저줌 구간만 실제 위성색으로 덮는다. (bake/world.py)
+    ntplaces: { type: 'geojson', data: NT_PLACES },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
@@ -494,6 +521,57 @@ const style = {
         'hillshade-shadow-color': ['literal', CARTO_LIGHT.sh],
         'hillshade-exaggeration': CARTO_LIGHT.exag,
         'hillshade-accent-color': '#585a60'
+      } },
+
+    // 10) 신약 지명 — 붉은 점
+    //     circle-pitch-alignment: viewport 라야 지도를 기울여도 점이 타원으로 눌리지 않는다.
+    { id: 'nt-dot', type: 'circle', source: 'ntplaces',
+      filter: ['!=', ['get', 'kind'], 'water'],
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
+        'circle-color': '#d92b2b',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.3,
+        'circle-pitch-alignment': 'viewport',
+        // 기본값 'map' 은 원근을 적용해 가까운 점을 크게 그린다. 글자는 고정 크기이므로
+        // 점만 커지면 둘이 어긋나 보인다. 화면 기준으로 맞춰 늘 같은 크기로 둔다.
+        'circle-pitch-scale': 'viewport',
+        'circle-opacity': PLACE_OPACITY,
+        'circle-stroke-opacity': PLACE_OPACITY
+      } },
+
+    // 11) 신약 지명 — 라벨
+    //     라벨이 줌·회전·기울임에 흔들리지 않게 하는 것이 핵심이다.
+    //     - allow-overlap + ignore-placement: 충돌 판정을 끄면 라벨이 서로 밀려나거나
+    //       깜빡이며 사라지지 않는다. 대신 rank 로 노출 구간을 나눠 겹침을 줄인다.
+    //     - variable-anchor 를 쓰지 않는다. 쓰면 라벨이 점 주위를 옮겨 다닌다.
+    //     - pitch/rotation-alignment: viewport 라야 지도를 눕히거나 돌려도 라벨이
+    //       지면에 눕지 않고 늘 화면과 나란히 서서 읽힌다.
+    //     - text-size 를 고정한다. 줌마다 크기가 변하면 글자가 떨리며 뭉개진다.
+    { id: 'nt-label', type: 'symbol', source: 'ntplaces',
+      layout: {
+        visibility: 'none',
+        'text-field': ['get', 'ko'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 12.5,
+        // 물 이름은 수면 한가운데, 나머지는 점 바로 아래.
+        'text-anchor': ['case', ['==', ['get', 'kind'], 'water'], 'center', 'top'],
+        'text-offset': ['case', ['==', ['get', 'kind'], 'water'], ['literal', [0, 0]],
+                        ['literal', [0, 0.7]]],
+        'text-max-width': 9,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+        'text-pitch-alignment': 'viewport',
+        'text-rotation-alignment': 'viewport',
+        'symbol-sort-key': ['get', 'rank']
+      },
+      paint: {
+        'text-color': ['case', ['==', ['get', 'kind'], 'water'], '#2c6491', '#1e1c18'],
+        'text-halo-color': 'rgba(255,255,255,0.95)',
+        'text-halo-width': 1.7,
+        'text-halo-blur': 0.2,
+        'text-opacity': PLACE_OPACITY
       } }
   ],
   terrain: { source: 'terrain', exaggeration: 1.6 }
@@ -604,6 +682,19 @@ $('shade').addEventListener('change', e =>
 $('borders').addEventListener('change', e =>
   map.setLayoutProperty('borders', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
+
+// ---------- 지명 ----------
+let ntOn = false;
+$('ntPlaces').addEventListener('click', () => {
+  ntOn = !ntOn;
+  for (const id of ['nt-dot', 'nt-label']) {
+    map.setLayoutProperty(id, 'visibility', ntOn ? 'visible' : 'none');
+  }
+  $('ntPlaces').setAttribute('aria-pressed', ntOn ? 'true' : 'false');
+  $('placeNote').textContent = ntOn
+    ? '신약 지명 84곳. 확대할수록 작은 지명까지 나타난다.'
+    : '신약의 무대가 된 84곳. 붉은 점이 위치다.';
+});
 
 // ---------- 태양 위치 ----------
 // 저정밀 태양 위치(USNO 공식). 검증: 예루살렘(31.78N) 하지 정오 81.6°, 동지 34.8°,
