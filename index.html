@@ -17,6 +17,9 @@
   /* 우주에서 시작해 지표로 내려오면 낮 하늘로 바뀐다 (updateBackdrop). */
   body { background: #04060d; }
   #map { position: absolute; inset: 0; }
+  /* 해가 진 뒤 화면 전체를 눌러 어둡게 한다. 지도 위, 패널 아래. */
+  #night { position: absolute; inset: 0; pointer-events: none;
+           background: #040814; opacity: 0; transition: opacity .35s linear; }
   /* 지구 밖에서는 MapLibre 캔버스가 투명하므로 그 뒤에 우주를 직접 그린다. */
   /* canvas 는 대체 요소라 inset: 0 만으로는 늘어나지 않는다. 크기를 명시해야 한다. */
   #space { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
@@ -123,6 +126,7 @@
 <body>
 <canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
+<div id="night" aria-hidden="true"></div>
 
 <button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ 지도 설정</button>
 
@@ -149,6 +153,14 @@
     <button id="viewAnatolia">소아시아</button>
     <button id="viewAll">전체</button>
     <button id="viewGlobe">지구</button>
+  </div>
+
+  <div class="aspect">
+    <div class="aspect-h">태양 · 시간대</div>
+    <div class="row"><label><input type="checkbox" id="sunOn" checked /> 태양 위치로 그림자 만들기</label></div>
+    <div class="row"><label for="sunHour">시각 (현지 태양시)</label><output id="sunOut">14:00</output></div>
+    <input id="sunHour" type="range" min="0" max="24" step="0.25" value="14" />
+    <div class="sub" id="sunNote" style="margin-top:2px"></div>
   </div>
 
   <div class="aspect">
@@ -338,6 +350,30 @@ const BATHY_RAMP = ['interpolate', ['linear'], ['elevation'],
       1, 'rgba(0,0,0,0)'
 ];
 
+// 하늘. 지표에서도 대기를 그려야 지평선 위가 '빈 배경'이 아니라 실제 하늘이 된다.
+// 예전에는 z7 에서 atmosphere-blend 를 0 으로 떨어뜨려, 확대하면 하늘이 사라지고
+// body 배경색이 그대로 비쳤다.
+const BASE_SKY = {
+  'sky-color': '#4d8fd6', 'horizon-color': '#cfe0ee', 'fog-color': '#cfe0ee',
+  'sky-horizon-blend': 0.7,
+  // fog-ground-blend 는 안개가 시작하는 지점이다. 0 은 화면 중앙, 1 은 지평선.
+  // 1 로 밀어 지형은 끝까지 선명하게 두고 지평선 끝에서만 하늘과 만나게 한다.
+  'fog-ground-blend': 1,
+  'horizon-fog-blend': 1,
+  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 7, 0.75, 9, 1]
+};
+
+// 지도 관습대로 북서쪽에서 빛을 주는 설정. 태양 시뮬레이션을 끄면 여기로 돌아온다.
+const CARTO_LIGHT = {
+  dir: [315, 45, 225, 135],
+  alt: [42, 64, 72, 68],
+  hi: ['rgba(255,243,220,0.30)', 'rgba(255,250,240,0.20)',
+       'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.16)'],
+  sh: ['rgba(46,56,78,0.72)', 'rgba(60,70,92,0.48)',
+       'rgba(72,80,98,0.38)', 'rgba(78,86,104,0.38)'],
+  exag: 0.58
+};
+
 const style = {
   version: 8,
   projection: { type: 'globe' },   // 구글어스식 구형 지구
@@ -360,16 +396,7 @@ const style = {
                bounds: [8, 20, 56, 46],
                attribution: '© ESA WorldCover 2021 · Copernicus DEM © DLR/Airbus/ESA' }
   },
-  sky: {
-    'sky-color': '#cfe0f0', 'horizon-color': '#dfe4ea', 'fog-color': '#dfe4ea',
-    'sky-horizon-blend': 0.75,
-    // fog-ground-blend 는 안개가 시작하는 지점이다. 0 은 화면 중앙, 1 은 지평선.
-    // 기본값 0.5 는 확대할수록 지형 대부분을 뿌옇게 덮어 능선과 계곡이 사라졌다.
-    // 1 로 밀어 지평선 끝에서만 하늘과 만나게 하고, 지형은 끝까지 선명하게 둔다.
-    'fog-ground-blend': 1,
-    'horizon-fog-blend': 1,
-    'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.4, 7, 0]
-  },
+  sky: BASE_SKY,
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#1e4f86' } },
 
@@ -453,19 +480,15 @@ const style = {
         // 태양을 지형에 고정한다. viewport 기준이면 지도를 돌릴 때 그림자가 따라 돌아
         // 실제 지형처럼 보이지 않는다.
         'hillshade-illumination-anchor': 'map',
-        'hillshade-illumination-direction': ['literal', [315, 45, 225, 135]],
-        'hillshade-illumination-altitude': ['literal', [42, 64, 72, 68]],
+        'hillshade-illumination-direction': ['literal', CARTO_LIGHT.dir],
+        'hillshade-illumination-altitude': ['literal', CARTO_LIGHT.alt],
         // 볕든 면은 따뜻하게, 그늘은 하늘빛을 받아 푸르게. 야외광의 색온도 차이를 흉내내면
         // 같은 기복도 훨씬 입체적으로 읽힌다.
         // 하이라이트는 반드시 반투명이어야 한다. 불투명 흰색이면 광원을 정면으로 받는
         // 평탄면(바다·고원)까지 전부 하얗게 날아가 고도색과 지표 피복이 사라진다.
-        'hillshade-highlight-color': ['literal', [
-          'rgba(255,243,220,0.30)', 'rgba(255,250,240,0.20)',
-          'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.16)']],
-        'hillshade-shadow-color': ['literal', [
-          'rgba(46,56,78,0.72)', 'rgba(60,70,92,0.48)',
-          'rgba(72,80,98,0.38)', 'rgba(78,86,104,0.38)']],
-        'hillshade-exaggeration': 0.58,
+        'hillshade-highlight-color': ['literal', CARTO_LIGHT.hi],
+        'hillshade-shadow-color': ['literal', CARTO_LIGHT.sh],
+        'hillshade-exaggeration': CARTO_LIGHT.exag,
         'hillshade-accent-color': '#585a60'
       } }
   ],
@@ -475,7 +498,9 @@ const style = {
 const map = new maplibregl.Map({
   container: 'map', style,
   center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
-  maxPitch: 78, minZoom: 1, maxZoom: 14, renderWorldCopies: false, hash: true,
+  // 지면 가까이까지 내려갈 수 있게 한다. 위성 원본은 10 m 라 z14 를 넘으면 늘어나지만,
+  // 지형 위를 걷는 듯한 시점은 그때부터 나온다.
+  maxPitch: 85, minZoom: 1, maxZoom: 18, renderWorldCopies: false, hash: true,
   attributionControl: { compact: true },
   // 폴리곤·선 가장자리 계단 현상 완화. 다만 모바일 GPU 에서는 비용이 커서 터치 기기는 끈다.
   canvasContextAttributes: { antialias: !TOUCH }
@@ -568,6 +593,136 @@ $('shade').addEventListener('change', e =>
 $('borders').addEventListener('change', e =>
   map.setLayoutProperty('borders', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
+
+// ---------- 태양 위치 ----------
+// 저정밀 태양 위치(USNO 공식). 검증: 예루살렘(31.78N) 하지 정오 81.6°, 동지 34.8°,
+// 춘분 58.1° — 천문값과 일치한다.
+const D2R = Math.PI / 180;
+function sunPosition(utcMillis, lat, lon) {
+  const d = (utcMillis - Date.UTC(2000, 0, 1, 12)) / 86400000;
+  const g = D2R * (357.528 + 0.9856003 * d);
+  const L = D2R * (280.460 + 0.9856474 * d);
+  const lam = L + D2R * (1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
+  const eps = D2R * (23.439 - 0.0000004 * d);
+  const ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam));
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lam));
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24;
+  const lmst = (gmst + lon / 15 + 24) % 24;
+  let H = lmst * 15 * D2R - ra;
+  H = Math.atan2(Math.sin(H), Math.cos(H));          // -π..π 로 접는다
+  const phi = lat * D2R;
+  const sinAlt = Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H);
+  const alt = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+  let cosAz = (Math.sin(dec) - Math.sin(phi) * sinAlt) / (Math.cos(phi) * Math.cos(alt));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz))) / D2R;
+  if (Math.sin(H) > 0) az = 360 - az;               // 정오 이후에는 서쪽
+  return { altitude: alt / D2R, azimuth: az };
+}
+
+// 슬라이더는 '그 지점의 태양시'다. 경도로 UTC 를 되돌린다.
+function localSolarToUTC(hour, lon) {
+  const base = new Date();
+  base.setUTCHours(0, 0, 0, 0);
+  return base.getTime() + (hour - lon / 15) * 3600000;
+}
+
+const mixRGB = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const rgbStr = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+const rgbaStr = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
+
+// 태양 고도에 따른 하늘색 (천정, 지평선)
+const SKY_STOPS = [
+  [-14, [  6,   9,  20], [ 14,  20,  38]],   // 밤
+  [ -4, [ 22,  34,  64], [ 74,  62,  96]],   // 박명
+  [  3, [ 70, 110, 166], [236, 158,  96]],   // 일출·일몰
+  [ 12, [ 66, 124, 186], [206, 222, 236]],   // 아침·저녁
+  [ 45, [ 48, 108, 190], [196, 220, 238]]    // 한낮
+];
+function skyByAltitude(alt) {
+  if (alt <= SKY_STOPS[0][0]) return { zenith: SKY_STOPS[0][1], horizon: SKY_STOPS[0][2] };
+  for (let i = 1; i < SKY_STOPS.length; i++) {
+    const [a0, z0, h0] = SKY_STOPS[i - 1];
+    const [a1, z1, h1] = SKY_STOPS[i];
+    if (alt <= a1) {
+      const t = (alt - a0) / (a1 - a0);
+      return { zenith: mixRGB(z0, z1, t), horizon: mixRGB(h0, h1, t) };
+    }
+  }
+  const last = SKY_STOPS[SKY_STOPS.length - 1];
+  return { zenith: last[1], horizon: last[2] };
+}
+
+const COMPASS = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'];
+let styleReady = false;
+let sunHour = 14;
+
+function applySun() {
+  if (!styleReady) return;
+  const hs = (k, v) => map.setPaintProperty('hillshade', k, v);
+
+  if (!$('sunOn').checked) {
+    hs('hillshade-illumination-direction', ['literal', CARTO_LIGHT.dir]);
+    hs('hillshade-illumination-altitude', ['literal', CARTO_LIGHT.alt]);
+    hs('hillshade-highlight-color', ['literal', CARTO_LIGHT.hi]);
+    hs('hillshade-shadow-color', ['literal', CARTO_LIGHT.sh]);
+    hs('hillshade-exaggeration', CARTO_LIGHT.exag);
+    map.setSky(BASE_SKY);
+    $('night').style.opacity = 0;
+    $('sunNote').textContent = '지도 관습대로 북서쪽에서 빛을 준다 — 시간과 무관하다.';
+    return;
+  }
+
+  const c = map.getCenter();
+  const s = sunPosition(localSolarToUTC(sunHour, c.lng), c.lat, c.lng);
+  const alt = s.altitude, az = s.azimuth;
+  const day = clamp01((alt + 6) / 14);        // -6°~8° 에 걸쳐 밤 → 낮
+  const warm = clamp01(1 - alt / 28);         // 해가 낮을수록 붉다
+
+  // 주광은 태양, 나머지 셋은 하늘빛을 흉내낸 약한 보조광이다.
+  // 보조광이 없으면 그늘이 새까맣게 죽어 지형이 읽히지 않는다.
+  hs('hillshade-illumination-direction',
+     ['literal', [az, (az + 150) % 360, (az + 210) % 360, (az + 180) % 360]]);
+  hs('hillshade-illumination-altitude', ['literal', [Math.max(alt, 1.5), 58, 58, 72]]);
+  hs('hillshade-highlight-color', ['literal', [
+    rgbaStr(mixRGB([255, 250, 240], [255, 190, 120], warm), 0.40 * day),
+    'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.08)']]);
+  hs('hillshade-shadow-color', ['literal', [
+    rgbaStr(mixRGB([38, 48, 72], [62, 42, 58], warm), 0.30 + 0.55 * day),
+    'rgba(60,70,92,0.22)', 'rgba(72,80,98,0.18)', 'rgba(78,86,104,0.18)']]);
+  // 해가 낮을수록 그림자가 길어진다 — 과장을 올려 그 느낌을 낸다.
+  hs('hillshade-exaggeration', 0.5 + 0.30 * (1 - clamp01(alt / 60)));
+
+  const sky = skyByAltitude(alt);
+  map.setSky(Object.assign({}, BASE_SKY, {
+    'sky-color': rgbStr(sky.zenith),
+    'horizon-color': rgbStr(sky.horizon),
+    'fog-color': rgbStr(sky.horizon)
+  }));
+
+  // 밤에는 화면 전체를 눌러 어둡게. 구형 뷰까지 어두워지지 않도록 줌으로 가중한다.
+  const nightAmt = clamp01((-alt - 1) / 10) * 0.55;
+  $('night').style.opacity = (nightAmt * clamp01((map.getZoom() - 5) / 2)).toFixed(3);
+
+  const hh = Math.floor(sunHour), mm = Math.round((sunHour - hh) * 60);
+  $('sunOut').textContent = `${String(hh % 24).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  $('sunNote').innerHTML = alt > 0
+    ? `태양 고도 <b>${alt.toFixed(0)}°</b> · 방위 <b>${az.toFixed(0)}°</b> (${COMPASS[Math.round(az / 45) % 8]})`
+    : `해가 진 뒤 · 고도 <b>${alt.toFixed(0)}°</b>`;
+}
+
+$('sunOn').addEventListener('change', applySun);
+$('sunHour').addEventListener('input', e => { sunHour = parseFloat(e.target.value); applySun(); });
+map.on('moveend', applySun);
+// 'load' 는 외부 소스 사정에 따라 발화가 늦거나 오지 않을 수 있다.
+// 스타일이 실제로 준비됐는지 확인해 한 번만 초기화한다.
+function markStyleReady() {
+  if (styleReady || !map.isStyleLoaded()) return;
+  styleReady = true;
+  applySun();
+}
+map.on('load', markStyleReady);
+map.on('styledata', markStyleReady);
+map.on('idle', markStyleReady);
 
 // ---------- 방위 기준 ----------
 // MapLibre 의 bearing 은 '화면 위쪽에 오는 나침반 방위'다 (0=북, 90=동, 180=남).
