@@ -3,12 +3,13 @@
 원본은 Natural Earth (public domain):
   - ne_10m_geography_regions_polys.geojson  → Range/mtn 폴리곤
   - ne_50m_rivers_lake_centerlines.geojson  → 강 중심선
+  - ne_10m_geography_regions_elevation_points.geojson → 봉우리
 
 산맥은 폴리곤이라 그대로는 곡선 라벨을 붙일 수 없다. 주성분축을 따라 잘라
 구간마다 무게중심을 잡으면, 히말라야의 호나 안데스의 굽이를 따라가는 등줄기
 선이 나온다. 이 선은 그리지 않고 라벨 경로로만 쓴다.
 
-사용법:  python3 bake/world_labels.py <ne_regions.geojson> <ne_rivers.geojson>
+사용법:  python3 bake/world_labels.py <ne_regions.geojson> <ne_rivers.geojson> <ne_peaks.geojson>
 """
 import json, math, sys, pathlib
 
@@ -264,12 +265,84 @@ def build_rivers(path):
     return out, missing
 
 
+# ── 세계 주요 산봉우리: 쓸 것과 한국어 이름·등급 ───────────────────────
+# Natural Earth 의 scalerank 는 봉우리에서 신뢰하기 어렵다(칸첸중가가 9등급).
+# 널리 알려진 정도로 직접 등급을 매긴다. 1 = 지구 시점에서도 보인다.
+PEAKS = {
+  'Mount Everest': ('에베레스트산', 1), 'K2': ('K2(고드윈오스틴)', 1),
+  'Cerro Aconcagua': ('아콩카과산', 1), 'Denali': ('데날리산(매킨리)', 1),
+  'Mount Kilimanjaro': ('킬리만자로산', 1), 'Gora Elbrus': ('엘브루스산', 1),
+  'Vinson Massif': ('빈슨산괴', 1), 'Puncak Jaya': ('푼착자야산', 1),
+  'Kanchenjunga': ('칸첸중가', 2), 'Nanga Parbat': ('낭가파르바트', 2),
+  'Dhaulagiri': ('다울라기리', 2), 'Mont Blanc': ('몽블랑산', 2),
+  'Fuji': ('후지산', 2), 'Matterhorn': ('마터호른', 2),
+  'Mount Kenya': ('케냐산', 2), 'Mount Damavand': ('다마반드산', 2),
+  'Mount Ararat': ('아라라트산', 2), 'Nevado Ojos del Salado': ('오호스델살라도산', 2),
+  'Nevado Huascarán': ('우아스카란산', 2), 'Chimborazo': ('침보라소산', 2),
+  'Aoraki (Mount Cook)': ('쿡산(아오라키)', 2), 'Mount Logan': ('로건산', 2),
+  'Pico de Orizaba': ('오리사바산', 2), 'Paektu-san': ('백두산', 2),
+  'Mount Erebus': ('에러버스산', 2), 'Kailash': ('카일라스산', 2),
+  'Tirich Mir': ('티리치미르', 3), 'Nowshak': ('노샤크산', 3),
+  'Pik Imeni Ismail Samani': ('이스모일소모니봉', 3), 'Pik Pobeda': ('포베다산', 3),
+  'Gongga Shan': ('궁가산', 3), 'Namcha Barwa': ('남차바르와산', 3),
+  'Nanda Devi': ('난다데비', 3), 'Gangkar Punsum': ('강카르푼섬', 3),
+  'Volcán Popocatépetl': ('포포카테페틀산', 3), 'Nevado Illimani': ('일리마니산', 3),
+  'Ritacuba Blanco': ('리타쿠바블랑코', 3), 'Mount Whitney': ('휘트니산', 3),
+  'Mount Rainier': ('레이니어산', 3), 'Mount Elbert': ('엘버트산', 3),
+  'Mount Shasta': ('섀스타산', 3), 'Mount Hood': ('후드산', 3),
+  'Gunung Kinabalu': ('키나발루산', 3), 'Gunung Rinjani': ('린자니산', 3),
+  'Gunung Semeru': ('스메루산', 3), 'Monte Rosa': ('몬테로사산', 3),
+  'Grossglockner': ('그로스글로크너산', 3), 'Zugspitze': ('추크슈피체산', 3),
+  'Monte Etna': ('에트나산', 3), 'Mount Olympus': ('올림포스산', 3),
+  'Jebel Toubkal': ('투브칼산', 3), 'Emi Koussi': ('에미쿠시산', 3),
+  'Mont Cameroun': ('카메룬산', 3), 'Volcan Karisimbi': ('카리심비산', 3),
+  'Mafadi': ('마파디산', 3), 'Gora Shkhara': ('시하라산', 3),
+  'Mount Kosciuszko': ('코지어스코산', 3), 'Mount Tapuaenuku': ('타푸에누쿠산', 3),
+  'Halla-san': ('한라산', 3), 'Vesuvio': ('베수비오산', 3),
+  'Ben Nevis': ('벤네비스산', 3), 'Galdhpiggen': ('갈회피겐산', 3),
+  'Tavan Bogd Uul': ('타반보그드산', 3), 'Aragats Lerr': ('아라가츠산', 3),
+  'Bazar Dyuzi': ('바자르뒤쥐산', 3), 'Zard Kuh': ('자르드쿠산', 3),
+  'Cheekha Dar': ('치카다르산', 3), 'Jabal ash Shaykh': ('헤르몬산(자발셰이크)', 3),
+  'Gebel Katherna': ('카타리나산(시나이 반도 최고봉)', 3),
+  'Jabal al Lawz': ('자발알라우즈', 3), 'Amba Farit': ('암바파리트산', 3),
+  'Hkakabo Razi': ('카카보라지산', 3), 'Musala': ('무살라산', 3),
+  'Triglav': ('트리글라우산', 3), 'Maromokotro': ('마로모코트로산', 3),
+  'Phou Bia': ('푸비아산', 3), 'Mount Halcon': ('할콘산', 3),
+  'Psiloritis': ('이디산(크레타 최고봉)', 3), 'Wutai Shan': ('우타이산', 3),
+  'Pico de Almanzor': ('알만소르봉', 3), 'Mount Sir Sandford': ('서샌드퍼드산', 3),
+  'Cerro San Rafael': ('산라파엘산', 3), 'Volcán Tacaná': ('타카나산', 3),
+  'Pico de Santa Isabel': ('산타이사벨봉', 3), 'Ayrybaba': ('아이리바바산', 3),
+  'Big Ben': ('빅벤산', 3), 'Mtorwi': ('음토르위산', 3),
+}
+
+
+def build_peaks(path):
+    src = json.load(open(path, encoding='utf-8'))
+    out, seen = [], set()
+    for f in src['features']:
+        p = f['properties']
+        hit = PEAKS.get(p.get('name') or '')
+        if not hit or hit[0] in seen:
+            continue
+        ko, rank = hit
+        seen.add(ko)
+        elev = p.get('elevation')
+        out.append({'type': 'Feature', 'id': 'k' + str(len(out)),
+                    'properties': {'ko': ko, 'en': p.get('name_en') or p.get('name'),
+                                   'rank': rank, 'm': elev,
+                                   'elev': f'{elev:,} m' if elev else ''},
+                    'geometry': f['geometry']})
+    missing = sorted(set(v[0] for v in PEAKS.values()) - seen)
+    return out, missing
+
+
 if __name__ == '__main__':
-    reg, riv = sys.argv[1], sys.argv[2]
+    reg, riv, pk = sys.argv[1], sys.argv[2], sys.argv[3]
     rg, rg_missing = build_ranges(reg)
     rv, rv_missing = build_rivers(riv)
+    kk, kk_missing = build_peaks(pk)
     root = pathlib.Path(__file__).resolve().parent.parent / 'data'
-    for name, feats in (('ranges.geojson', rg), ('rivers-major.geojson', rv)):
+    for name, feats in (('ranges.geojson', rg), ('rivers-major.geojson', rv), ('peaks.geojson', kk)):
         (root / name).write_text(json.dumps(
             {'type': 'FeatureCollection', 'features': feats}, ensure_ascii=False, separators=(',', ':')),
             encoding='utf-8')
@@ -287,7 +360,9 @@ if __name__ == '__main__':
     (root / 'world-labels-pt.geojson').write_text(json.dumps(
         {'type': 'FeatureCollection', 'features': pts}, ensure_ascii=False, separators=(',', ':')),
         encoding='utf-8')
-    print(f'산맥 {len(rg)}개 · 강 {len(rv)}개 · 점 앵커 {len(pts)}개')
+    print(f'산맥 {len(rg)}개 · 강 {len(rv)}개 · 봉우리 {len(kk)}개 · 점 앵커 {len(pts)}개')
+    if kk_missing:
+        print('원본에 없는 봉우리:', ', '.join(kk_missing))
     if rg_missing:
         print('원본에 없는 산맥:', ', '.join(rg_missing))
     if rv_missing:

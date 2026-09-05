@@ -38,8 +38,9 @@ tiles/            구운 근동 텍스처 타일 (bake 산출물, {z}/{x}/{y}.we
 - 지명 설명: 점이나 산 아이콘을 누르면 그 자리에서 팝업이 솟아오르며 설명과 해당
   성경 본문을 보여주고, 지도를 누르면 다시 접히며 사라진다. 성경에 직접 나오지
   않는 곳(폼페이·쿰란 등)은 본문 대신 그 사실을 흐린 글씨로 적는다.
-- 세계 지형: 주요 산맥 68개(`data/ranges.geojson`)와 주요 강 88개
-  (`data/rivers-major.geojson`). 원본은 Natural Earth(public domain)이며
+- 세계 지형(버튼 없이 늘 켜짐): 주요 산맥 68개(`data/ranges.geojson`) · 주요 강 88개
+  (`data/rivers-major.geojson`) · 주요 산 87곳(`data/peaks.geojson`, 산 아이콘과
+  이름·해발). 원본은 Natural Earth(public domain)이며
   `bake/world_labels.py` 로 만든다. 산맥은 폴리곤이라 주성분축을 따라 잘라
   구간 무게중심을 이은 등줄기를 뽑고, 그 선은 그리지 않고 라벨이 지나갈 길로만 쓴다.
   구형 투영에서는 낮은 줌의 선 배치 라벨이 거의 전부 버려지므로(실측 z1.6: 선 0개
