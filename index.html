@@ -376,15 +376,18 @@ function reliefRamp(snowLine) {
   ];
 }
 // ---------- 해저 깊이 색상 (지중해 최대 약 5,100m, 홍해 약 2,500m) ----------
+// 해저 깊이색은 '깊은 바다'에만 쓴다.
+// 고도만 보고 칠하므로 해수면 아래 육지(요단 지구대 -200~-430m, 카타라 -133m)까지
+// 바다로 칠해버린다. 지구상 해수면 아래 육지의 최저점은 사해 수면(-430m)이므로
+// -800m 에서 자르면 그런 곳이 걸리지 않는다. 얕은 바다는 평면 바다색(ocean-tint)이 맡는다.
+const SEA_FLAT = '#3a7fb5';
 const BATHY_RAMP = ['interpolate', ['linear'], ['elevation'],
   -6000, '#0f2a4d',
   -4000, '#173b69',
   -2500, '#1e4f86',
-  -1200, '#2a6aa5',
-   -500, '#3f88be',
-   -150, '#6fb1d9',
-    -30, '#a4d1e7',
-     -8, 'rgba(0,0,0,0)'   // 얕은 연안·육지는 건드리지 않는다
+  -1500, '#2a6aa5',
+   -900, SEA_FLAT,          // 평면 바다색과 같게 두어 경계가 드러나지 않는다
+   -800, 'rgba(0,0,0,0)'
 ];
 
 // 하늘. 지표에서도 대기를 그려야 지평선 위가 '빈 배경'이 아니라 실제 하늘이 된다.
@@ -469,14 +472,12 @@ const style = {
     //     Blue Marble 아래에 두므로 저줌 구형 뷰의 실제 위성 바다색은 그대로다.
     { id: 'ocean-tint', type: 'fill', source: 'vector', 'source-layer': 'water',
       filter: ['==', ['get', 'class'], 'ocean'],
-      paint: { 'fill-color': ['interpolate', ['linear'], ['zoom'], 8, '#2f6ba4', 11, '#39699b'],
-               'fill-antialias': true } },
+      paint: { 'fill-color': SEA_FLAT, 'fill-antialias': true } },
 
     // 2b) 깊은 바다 색조. -8m 위는 투명이라 얕은 연안과 육지에는 손대지 않는다.
     //     ETOPO1 은 1분각이라 확대하면 셀이 블록으로 보이므로 z9→z11 에 걸쳐 걷는다.
     { id: 'bathy', type: 'color-relief', source: 'bathy',
-      paint: { 'color-relief-color': BATHY_RAMP,
-               'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 9, 1, 11, 0] } },
+      paint: { 'color-relief-color': BATHY_RAMP, 'color-relief-opacity': 1 } },
 
     // 2c) 전지구 자연색. 확대하면 고도색+음영기복에 자리를 넘긴다.
     { id: 'world', type: 'raster', source: 'world',
