@@ -402,6 +402,19 @@ const style = {
       filter: ['==', ['get', 'class'], 'wood'],
       paint: { 'fill-color': '#4a6b3d', 'fill-opacity': 0.45, 'fill-antialias': true } },
 
+    // 호수·빙하는 위성 영상 '아래'에 둔다. 위성이 켜지면 실사가 자연스럽게 덮고,
+    // 꺼지면 그대로 드러난다. 예전에는 줌에 따라 투명도를 0 으로 떨어뜨렸는데,
+    // 위성을 끈 고도색 지도에서도 사라져 갈릴리·사해가 통째로 없어졌다.
+    // 런타임에 setPaintProperty 로 되돌리는 방법은 쓸 수 없다 — MapLibre 는 3D 지형에
+    // 덧입힌 텍스처를 캐시해서, 화면을 움직이기 전까지 변경이 반영되지 않는다.
+    { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
+      filter: ['==', ['get', 'class'], 'lake'],
+      paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true } },
+
+    { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
+      filter: ['==', ['get', 'class'], 'ice'],
+      paint: { 'fill-color': '#f4f7fa', 'fill-opacity': 0.9, 'fill-antialias': true } },
+
     // 2b-2) 실제 위성 영상. 확대하면 여기가 화면을 넘겨받아 위성 형태가 계속 유지된다.
     //       OSM 지표 피복 폴리곤 위에 놓아야 평평한 초록이 실사를 덮지 않는다.
     { id: 's2', type: 'raster', source: 's2',
@@ -418,18 +431,6 @@ const style = {
       paint: { 'fill-color': '#3f88be', 'fill-opacity': 0.22, 'fill-antialias': true } },
 
     // 4) 호수 (갈릴리·사해·반 호수 등)
-    // 위성 영상이 켜지면 걷는다. 평평한 하늘색이 실제 사해·갈릴리 영상을 덮어버린다.
-    { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
-      filter: ['==', ['get', 'class'], 'lake'],
-      paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true,
-               'fill-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 1, 7.5, 0] } },
-
-    // 6) 빙하·만년설: OSM landcover.class = ice
-    { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
-      filter: ['==', ['get', 'class'], 'ice'],
-      paint: { 'fill-color': '#f4f7fa', 'fill-antialias': true,
-               'fill-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 0.9, 7.5, 0] } },
-
     // 7) 하천 (나일·유프라테스·티그리스·요단)
     { id: 'rivers', type: 'line', source: 'vector', 'source-layer': 'waterway',
       filter: ['==', ['get', 'class'], 'river'],
