@@ -316,24 +316,66 @@ PEAKS = {
 }
 
 
+def clean_ko(ko, en):
+    """Natural Earth 의 한국어 이름은 기계 음역이라 군더더기가 남는다.
+    뜻이 바뀔 위험이 없는 기계적 흔적만 다듬는다(뜻을 새로 지어내지 않는다).
+      '리우시 샨' → '리우시산'   '샨 다이윈' → '다이윈산'
+      '쿠주-산'   → '쿠주산'     '마운트 타푸에누쿠' → '타푸에누쿠산'
+      '고라 콘자코프스키 카멘' → '콘자코프스키 카멘산'
+    """
+    if not ko:
+        return en
+    ko = ko.strip()
+    for head in ('마운트 ', '고라 ', '마운틴 '):
+        if ko.startswith(head):
+            ko = ko[len(head):] + '산'
+    t = ko.split()
+    if t and t[0] == '샨':            # 어순이 뒤집힌 중국어 山
+        ko = ' '.join(t[1:]) + '산'
+    elif t and t[-1] == '샨':
+        ko = ' '.join(t[:-1]) + '산'
+    if t and t[-1] == '펑':           # 중국어 峰
+        ko = ' '.join(t[:-1]) + '봉'
+    ko = ko.replace('-산', '산')
+    if ko.endswith(' 산'):            # '다테 산' → '다테산'
+        ko = ko[:-2] + '산'
+    return ko
+
+
+def peak_rank(ko, elev):
+    """알려진 정도(PEAKS)가 있으면 그것을, 없으면 해발로 등급을 정한다."""
+    e = elev or 0
+    if e >= 5000:
+        return 4
+    if e >= 3500:
+        return 5
+    if e >= 2000:
+        return 6
+    return 7
+
+
 def build_peaks(path):
     src = json.load(open(path, encoding='utf-8'))
     out, seen = [], set()
     for f in src['features']:
         p = f['properties']
-        hit = PEAKS.get(p.get('name') or '')
-        if not hit or hit[0] in seen:
+        if p.get('featurecla') != 'mountain':
             continue
-        ko, rank = hit
-        seen.add(ko)
+        name = p.get('name') or ''
         elev = p.get('elevation')
+        hit = PEAKS.get(name)
+        ko = hit[0] if hit else clean_ko(p.get('name_ko'), p.get('name_en') or name)
+        if not ko or ko in seen:
+            continue
+        seen.add(ko)
         out.append({'type': 'Feature', 'id': 'k' + str(len(out)),
-                    'properties': {'ko': ko, 'en': p.get('name_en') or p.get('name'),
-                                   'rank': rank, 'm': elev,
+                    'properties': {'ko': ko, 'en': p.get('name_en') or name,
+                                   'rank': hit[1] if hit else peak_rank(ko, elev), 'm': elev,
                                    'elev': f'{elev:,} m' if elev else ''},
                     'geometry': f['geometry']})
     missing = sorted(set(v[0] for v in PEAKS.values()) - seen)
     return out, missing
+
 
 
 if __name__ == '__main__':

@@ -479,11 +479,50 @@ const WORLD_LABEL_PT = ['interpolate', ['linear'], ['zoom'],
   3.0, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
   3.6, 0
 ];
-const PEAK_OPACITY = ['interpolate', ['linear'], ['zoom'],
+// 세계 산 627곳. 알려진 정도(1~3등급)와 해발(4등급 5,000m↑ · 5등급 3,500m↑ ·
+// 6등급 2,000m↑ · 7등급 그 밖)로 등장 줌을 나눈다.
+//
+// 한 레이어에 627개를 다 넣고 투명도로만 감추면 안 된다. MapLibre 는 투명한
+// 심벌도 자리를 차지하는 것으로 계산하고, 겹침 판정은 위 레이어가 이긴다.
+// 실측: 한 레이어로 두었더니 지구 시점의 산맥 라벨이 11개 → 1개, 강이 7개 → 2개로
+// 무명 봉우리에게 밀려났다. 등급대별로 레이어를 나누고 minzoom 을 주면 그 줌
+// 아래에서는 배치 계산 자체에서 빠진다.
+const PEAK_MAJOR = ['interpolate', ['linear'], ['zoom'],
   1.2, ['case', ['<=', ['get', 'rank'], 1], 1, 0],
   2.8, ['case', ['<=', ['get', 'rank'], 2], 1, 0],
   4.2, 1
 ];
+const PEAK_MID = ['interpolate', ['linear'], ['zoom'],
+  5.0, ['case', ['<=', ['get', 'rank'], 4], 1, 0],
+  6.6, 1
+];
+const PEAK_MINOR = ['interpolate', ['linear'], ['zoom'],
+  7.6, ['case', ['<=', ['get', 'rank'], 6], 1, 0],
+  9.0, 1
+];
+
+// 세 레이어가 아이콘·글자 모양을 공유한다.
+const peakLayer = (id, minzoom, filter, opacity) => ({
+  id, type: 'symbol', source: 'peaks', minzoom, filter,
+  layout: {
+    'icon-image': 'peak', 'icon-anchor': 'bottom',
+    'icon-allow-overlap': true, 'icon-ignore-placement': true,
+    'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+    // 이름 아래에 해발을 한 단 작게 붙인다.
+    'text-field': ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'elev'], { 'font-scale': 0.82 }],
+    'text-font': ['Noto Sans Bold'],
+    // 이름난 봉우리일수록 크게. 줌 보간을 쓰지 않아 다른 식과 충돌하지 않는다.
+    'text-size': ['case', ['<=', ['get', 'rank'], 2], 12.5, ['<=', ['get', 'rank'], 4], 11.5, 10.5],
+    'text-anchor': 'top', 'text-offset': [0, 0.45], 'text-max-width': 9,
+    'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport',
+    'symbol-sort-key': ['get', 'rank']
+  },
+  paint: {
+    'icon-opacity': opacity,
+    'text-color': '#4a3b2a', 'text-halo-color': '#fbf7f0', 'text-halo-width': 1.7,
+    'text-opacity': opacity
+  }
+});
 const WORLD_LABEL_LINE = ['interpolate', ['linear'], ['zoom'],
   3.2, 0,
   3.7, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
@@ -641,21 +680,11 @@ const style = {
       paint: { 'text-color': '#6b4f36', 'text-halo-color': '#fbf7f0', 'text-halo-width': 1.8,
                'text-opacity': WORLD_LABEL_PT } },
 
-    // 8d) 세계 주요 산 87곳. 산맥·강과 함께 늘 켜 둔다(버튼 없음).
+    // 8d) 세계 산 627곳. 산맥·강과 함께 늘 켜 둔다(버튼 없음).
     //     아이콘은 지명 레이어가 쓰는 것과 같은 삼각형이라 표기 방식이 일관된다.
-    { id: 'world-peak', type: 'symbol', source: 'peaks', layout: {
-        'icon-image': 'peak', 'icon-anchor': 'bottom',
-        'icon-allow-overlap': true, 'icon-ignore-placement': true,
-        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
-        // 이름 아래에 해발을 한 단 작게 붙인다.
-        'text-field': ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'elev'], { 'font-scale': 0.82 }],
-        'text-font': ['Noto Sans Bold'], 'text-size': 11.5,
-        'text-anchor': 'top', 'text-offset': [0, 0.45], 'text-max-width': 9,
-        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport',
-        'symbol-sort-key': ['get', 'rank'] },
-      paint: { 'icon-opacity': PEAK_OPACITY,
-               'text-color': '#4a3b2a', 'text-halo-color': '#fbf7f0', 'text-halo-width': 1.7,
-               'text-opacity': PEAK_OPACITY } },
+    peakLayer('world-peak', 0, ['<=', ['get', 'rank'], 3], PEAK_MAJOR),
+    peakLayer('world-peak-mid', 5.0, ['all', ['>', ['get', 'rank'], 3], ['<=', ['get', 'rank'], 5]], PEAK_MID),
+    peakLayer('world-peak-minor', 7.6, ['>', ['get', 'rank'], 5], PEAK_MINOR),
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'land',
