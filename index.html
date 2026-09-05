@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>bible-atlas2 — 3D 지형 프로토타입 v0.1</title>
 <link id="mlcss" href="https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
@@ -13,7 +13,7 @@
     --line: #d9d3c6;
     --accent: #4f6d8f;
   }
-  html, body { margin: 0; height: 100%; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); }
+  html, body { margin: 0; height: 100%; height: 100dvh; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: var(--ink); }
   /* 우주에서 시작해 지표로 내려오면 낮 하늘로 바뀐다 (updateBackdrop). */
   body { background: #04060d; }
   #map { position: absolute; inset: 0; }
@@ -68,14 +68,66 @@
     position: absolute; top: 14px; right: 60px; background: #fff3c4; border: 1px solid #e3cf7a;
     border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none;
   }
-  @media (max-width: 600px) { .panel { width: calc(100% - 28px); } }
+  /* 데스크톱에서는 열림/닫힘 버튼이 필요 없다. */
+  #panelToggle, #panelClose { display: none; }
+
+  /* 좁거나 낮은 화면 = 바텀시트.
+     기존에는 폭만 100% 로 늘리고 높이는 그대로여서 화면의 89% 가 패널에 가렸다. */
+  @media (max-width: 760px), (max-height: 500px) {
+    .panel {
+      top: auto; bottom: 0; left: 0; width: 100%;
+      max-height: 58dvh;
+      border-radius: 14px 14px 0 0;
+      border-left: 0; border-right: 0; border-bottom: 0;
+      padding: 14px 16px calc(12px + env(safe-area-inset-bottom));
+      box-shadow: 0 -2px 14px rgba(0,0,0,.20);
+      transform: translateY(101%);
+      transition: transform .24s ease;
+      -webkit-overflow-scrolling: touch;
+    }
+    .panel.open { transform: translateY(0); }
+
+    #panelToggle {
+      display: block; position: absolute;
+      top: calc(12px + env(safe-area-inset-top)); left: 12px;
+      padding: 9px 14px; font-size: 13px; font-weight: 600;
+      border-radius: 999px; background: var(--panel);
+      border: 1px solid var(--line); box-shadow: 0 1px 5px rgba(0,0,0,.16);
+    }
+    #panelClose {
+      display: block; position: absolute; top: 8px; right: 10px;
+      width: 34px; height: 34px; padding: 0; font-size: 16px; line-height: 1;
+      border-radius: 999px; border-color: transparent; background: transparent;
+      color: var(--ink-soft);
+    }
+    .panel h1 { padding-right: 40px; }
+
+    /* 손가락으로 누를 수 있는 크기로 키운다. */
+    .panel button { min-height: 40px; font-size: 13px; }
+    .row { margin: 10px 0; }
+    input[type=checkbox] { width: 18px; height: 18px; }
+    input[type=range] { height: 28px; }
+    .btns { gap: 8px; }
+    .swatches { flex-wrap: wrap; row-gap: 4px; }
+
+    /* 트랙패드 두 손가락 제스처는 터치 기기에 해당 없다. */
+    .desktop-only { display: none; }
+
+    /* 시트가 열리면 고도 표시는 가려지므로 숨긴다. */
+    body.sheet-open .readout { display: none; }
+    .readout { bottom: calc(10px + env(safe-area-inset-bottom)); font-size: 11px; max-width: 62vw; }
+    .status { right: 12px; top: calc(58px + env(safe-area-inset-top)); max-width: calc(100% - 24px); }
+  }
 </style>
 </head>
 <body>
 <canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
 
-<div class="panel" role="region" aria-label="지형 표시 설정">
+<button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ 지도 설정</button>
+
+<div class="panel" id="panel" role="region" aria-label="지형 표시 설정">
+  <button id="panelClose" aria-label="설정 닫기">✕</button>
   <h1>bible-atlas2 · 3D 지형</h1>
   <div class="sub">고대근동 · 이집트 · 가나안 · 바울 선교지 · 구형(globe)</div>
 
@@ -90,8 +142,8 @@
   <div class="row"><label><input type="checkbox" id="forest" checked /> 실제 지표 피복 (산림·경작지·사막)</label></div>
   <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
   <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
-  <div class="row"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
-  <div class="sub" style="margin:2px 0 4px">좌우 = 회전, 상하 = 기울기 · 핀치 = 확대/축소 · 한 손가락 드래그 = 이동</div>
+  <div class="row desktop-only"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
+  <div class="sub desktop-only" style="margin:2px 0 4px">좌우 = 회전, 상하 = 기울기 · 핀치 = 확대/축소 · 한 손가락 드래그 = 이동</div>
   <div class="row" style="margin-top:8px">
     <button id="viewLevant">가나안</button>
     <button id="viewAnatolia">소아시아</button>
@@ -225,6 +277,8 @@ if (!maplibregl) {
 }
 
 function initMap() {
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+
 // ---------- 데이터 소스 ----------
 // 육지 DEM: Mapterhorn (Terrarium 인코딩, 512px WebP, 무료·키 불필요, 바다는 0m로 고정)
 //   → 지형 3D는 이걸로만 세운다. 해저 깊이가 지형에 섞이면 해안선이 절벽처럼 꺼져 '깨짐'이 생긴다.
@@ -422,7 +476,8 @@ const map = new maplibregl.Map({
   center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
   maxPitch: 78, minZoom: 1, maxZoom: 14, renderWorldCopies: false, hash: true,
   attributionControl: { compact: true },
-  canvasContextAttributes: { antialias: true }   // 폴리곤·선 가장자리 계단 현상 완화
+  // 폴리곤·선 가장자리 계단 현상 완화. 다만 모바일 GPU 에서는 비용이 커서 터치 기기는 끈다.
+  canvasContextAttributes: { antialias: !TOUCH }
 });
 const syncSpace = () => {
   const z = map.getZoom();
@@ -432,6 +487,10 @@ const syncSpace = () => {
 syncSpace();
 map.on('move', syncSpace);
 map.on('zoom', syncSpace);
+
+// 3배 픽셀 폰에서 3D 지형 + 위성을 그대로 그리면 프레임이 떨어진다.
+// 2배로 낮추면 렌더 픽셀이 절반 이하가 되고 육안 차이는 거의 없다.
+if (TOUCH && (window.devicePixelRatio || 1) > 2) map.setPixelRatio(2);
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1.6 }), 'top-right');
@@ -457,6 +516,19 @@ map.getCanvasContainer().addEventListener('wheel', ev => {
 
 // ---------- UI ----------
 const $ = id => document.getElementById(id);
+
+// ---------- 패널 (모바일에서는 바텀시트) ----------
+// 데스크톱에서는 CSS 가 .open 을 무시하므로 패널이 늘 보인다.
+const panelEl = $('panel');
+const panelToggle = $('panelToggle');
+function setPanel(open) {
+  panelEl.classList.toggle('open', open);
+  document.body.classList.toggle('sheet-open', open);
+  panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  panelToggle.textContent = open ? '✕ 닫기' : '☰ 지도 설정';
+}
+panelToggle.addEventListener('click', () => setPanel(!panelEl.classList.contains('open')));
+$('panelClose').addEventListener('click', () => setPanel(false));
 const fmt = n => n.toLocaleString('ko-KR');
 
 function paintRampBar(snow) {
@@ -542,27 +614,57 @@ $('viewAll').onclick      = () => fly([36.5, 33.5], 4.6, -8, 50);
 $('viewGlobe').onclick    = () => fly([36.5, 30.0], 1.6, 0, 0);       // 구형 전체 보기
 
 // ---------- 고도 읽기 (실제 DEM 값 확인용) ----------
-map.on('mousemove', e => {
+function showElevation(e) {
   const z = typeof map.queryTerrainElevation === 'function' ? map.queryTerrainElevation(e.lngLat, { exaggerated: false }) : null;
   const el = z == null ? '—' : fmt(Math.round(z)) + ' m';
   $('readout').innerHTML =
     `고도 <b>${el}</b> &nbsp;·&nbsp; ${e.lngLat.lng.toFixed(3)}, ${e.lngLat.lat.toFixed(3)}`;
-});
+}
+map.on('mousemove', showElevation);
+map.on('click', showElevation);          // 터치에는 hover 가 없다
+if (TOUCH) $('readout').textContent = '지도를 탭하면 고도를 표시합니다';
 
 // ---------- 오류 표시 ----------
 let errHide = null;
 map.on('error', ev => {
+  // tiles/ 는 bake 산출물이라 없는 것이 정상이다. 그 404 응답(HTML)을 이미지로
+  // 디코드하려다 나는 실패까지 사용자에게 알릴 이유가 없다.
+  if (ev && ev.sourceId === 'baked') return;
+
   const e = (ev && ev.error) || {};
   const s = $('status');
   s.style.display = 'block';
-  s.textContent = '타일 로드 오류: ' + (e.message || '네트워크 확인');
-  // 외부 타일 서비스는 이따금 한 번씩 실패한다. 그런 일시적 실패까지 오류창을 계속
-  // 띄워두면 안 된다. 반면 스타일·표현식 오류는 고쳐야 하는 문제이므로 남겨 둔다.
+  s.dataset.source = (ev && ev.sourceId) || '';
+  const WHO = { terrain: '지형', land: '지형', bathy: '해저 지형', vector: '물·국경',
+                world: '전지구 위성', s2: '위성 영상' };
+  const who = WHO[ev && ev.sourceId] || '타일';
+  s.textContent = who + ' 로드 오류: ' + (e.message || '네트워크 확인');
+  // 타일 단위 오류(sourceId 가 붙는다)는 외부 서비스가 이따금 한 번씩 실패하는
+  // 것이므로 스스로 사라지게 둔다. sourceId 가 없는 스타일·표현식 오류는 고쳐야
+  // 하는 문제이므로 남겨 둔다.
   clearTimeout(errHide);
-  if (typeof e.status === 'number' || /ajax|network|fetch/i.test(e.name || '')) {
-    errHide = setTimeout(() => { s.style.display = 'none'; }, 6000);
-  }
+  if (ev && ev.sourceId) errHide = setTimeout(() => { s.style.display = 'none'; }, 6000);
 });
+
+// 저작권 표기는 compact 로 두되 접힌 상태에서 시작한다.
+// 좁은 화면에서 펼쳐진 채로 뜨면 6줄을 차지해 화면의 4분의 1을 먹고 패널까지 가린다.
+// MapLibre 는 소스 표기가 갱신될 때마다(styledata) 다시 펼치므로 그때마다 접어야 하고,
+// details 요소라 클래스와 open 속성을 함께 걷어야 한다.
+// 사용자가 직접 펼친 경우는 그대로 둔다 — 출처는 언제든 볼 수 있어야 한다.
+let attribOpenedByUser = false;
+document.addEventListener('click', e => {
+  if (e.target.closest && e.target.closest('.maplibregl-ctrl-attrib')) attribOpenedByUser = true;
+}, true);
+const NARROW = () => matchMedia('(max-width: 760px), (max-height: 500px)').matches;
+function collapseAttrib() {
+  if (attribOpenedByUser || !NARROW()) return;
+  const a = document.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact');
+  if (!a) return;
+  a.classList.remove('maplibregl-compact-show');
+  a.removeAttribute('open');
+}
+map.on('load', collapseAttrib);
+map.on('styledata', collapseAttrib);
 } // initMap
 </script>
 </body>
