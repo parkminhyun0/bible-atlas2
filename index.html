@@ -848,13 +848,13 @@ map.on('styleimagemissing', e => {
 
 const PLACE_SETS = {
   ntPlaces: { on: false, ids: ['nt-dot', 'nt-peak', 'nt-label'], label: '신약 269곳(붉은 점)' },
-  otPlaces: { on: false, ids: ['ot-dot', 'ot-peak', 'ot-label'], label: '구약 215곳(남색 점)' }
+  otPlaces: { on: false, ids: ['ot-dot', 'ot-peak', 'ot-label'], label: '구약 216곳(남색 점)' }
 };
 function syncPlaceNote() {
   const on = Object.values(PLACE_SETS).filter(s => s.on).map(s => s.label);
   $('placeNote').textContent = on.length
     ? on.join(' · ') + ' — 확대할수록 작은 지명까지 나타난다. 삼각형은 산, 이름만 있는 곳은 지역·바다다.'
-    : '신약 배경 269곳과 구약 배경 215곳. 각각 버튼으로 켠다.';
+    : '신약 배경 269곳과 구약 배경 216곳. 각각 버튼으로 켠다.';
 }
 for (const [btnId, set] of Object.entries(PLACE_SETS)) {
   $(btnId).addEventListener('click', () => {
