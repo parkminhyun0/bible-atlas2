@@ -246,22 +246,27 @@ const starOpacity = zoom => clamp01((5.5 - zoom) / 2);
 // 반투명 크로스페이드로 검정을 걷어내면 중간 줌에서 회색 스모그처럼 보인다.
 // 검정에서 옅은 하늘색으로 곧장 이으면 그 직선이 회색을 지나므로,
 // 고고도의 짙은 파랑을 경유하게 해서 고도를 낮추는 느낌을 낸다.
+// 지표 부근의 배경색. 태양이 정하는 하늘색을 그대로 따라간다(applySun 에서 갱신).
+// 예전에는 옅은 회백색으로 고정돼 있었다. 하늘이 그려지지 않는 각도에서 그 색이
+// 화면을 채워 '하얗게 변하는' 것처럼 보였고, 밤에도 밝은 채로 남았다.
+let groundSkyRGB = [176, 205, 228];
+
 const BACKDROP = [
   [5.8, [  4,   6,  13]],   // 우주
   [7.0, [ 26,  52,  92]],   // 고고도 짙은 하늘
-  [8.6, [139, 176, 214]],   // 상층 하늘
-  [10.0, [206, 224, 240]]   // 지표 부근 낮 하늘
+  [8.6, [139, 176, 214]]    // 상층 하늘
 ];
 function backdropColor(zoom) {
-  if (zoom <= BACKDROP[0][0]) return `rgb(${BACKDROP[0][1]})`;
-  for (let i = 1; i < BACKDROP.length; i++) {
-    const [z0, c0] = BACKDROP[i - 1], [z1, c1] = BACKDROP[i];
+  const stops = BACKDROP.concat([[10.0, groundSkyRGB]]);
+  if (zoom <= stops[0][0]) return `rgb(${stops[0][1]})`;
+  for (let i = 1; i < stops.length; i++) {
+    const [z0, c0] = stops[i - 1], [z1, c1] = stops[i];
     if (zoom <= z1) {
       const t = (zoom - z0) / (z1 - z0);
       return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * t)).join(',')})`;
     }
   }
-  return `rgb(${BACKDROP[BACKDROP.length - 1][1]})`;
+  return `rgb(${groundSkyRGB})`;
 }
 
 drawSpace();
@@ -360,7 +365,9 @@ const BASE_SKY = {
   // 1 로 밀어 지형은 끝까지 선명하게 두고 지평선 끝에서만 하늘과 만나게 한다.
   'fog-ground-blend': 1,
   'horizon-fog-blend': 1,
-  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 7, 0.75, 9, 1]
+  // MapLibre 문서도 globe 투영에서는 이 값을 보간하라고 안내한다.
+  // 지표에서 1 로 고정하면 대기 산란이 화면을 덮어 하얗게 뜰 수 있다.
+  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 7, 0.6, 10, 0.5]
 };
 
 // 지도 관습대로 북서쪽에서 빛을 주는 설정. 태양 시뮬레이션을 끄면 여기로 돌아온다.
@@ -635,8 +642,8 @@ const SKY_STOPS = [
   [-14, [  6,   9,  20], [ 14,  20,  38]],   // 밤
   [ -4, [ 22,  34,  64], [ 74,  62,  96]],   // 박명
   [  3, [ 70, 110, 166], [236, 158,  96]],   // 일출·일몰
-  [ 12, [ 66, 124, 186], [206, 222, 236]],   // 아침·저녁
-  [ 45, [ 48, 108, 190], [196, 220, 238]]    // 한낮
+  [ 12, [ 62, 118, 182], [178, 206, 228]],   // 아침·저녁
+  [ 45, [ 42, 100, 184], [166, 198, 224]]    // 한낮
 ];
 function skyByAltitude(alt) {
   if (alt <= SKY_STOPS[0][0]) return { zenith: SKY_STOPS[0][1], horizon: SKY_STOPS[0][2] };
@@ -674,6 +681,8 @@ function applySunNow() {
     hs('hillshade-shadow-color', ['literal', CARTO_LIGHT.sh]);
     hs('hillshade-exaggeration', CARTO_LIGHT.exag);
     map.setSky(BASE_SKY);
+    groundSkyRGB = [207, 224, 238];   // BASE_SKY 의 horizon-color
+    syncSpace();
     $('night').style.opacity = 0;
     $('sunNote').textContent = '지도 관습대로 북서쪽에서 빛을 준다 — 시간과 무관하다.';
     return;
@@ -700,6 +709,8 @@ function applySunNow() {
   hs('hillshade-exaggeration', 0.5 + 0.30 * (1 - clamp01(alt / 60)));
 
   const sky = skyByAltitude(alt);
+  groundSkyRGB = sky.horizon;   // 지표 배경색을 하늘과 일치시킨다
+  syncSpace();
   map.setSky(Object.assign({}, BASE_SKY, {
     'sky-color': rgbStr(sky.zenith),
     'horizon-color': rgbStr(sky.horizon),
