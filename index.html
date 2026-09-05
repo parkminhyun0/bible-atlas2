@@ -182,6 +182,7 @@
       <button id="ntPlaces" aria-pressed="false">신약 지명</button>
       <button id="otPlaces" aria-pressed="false">구약 지명</button>
     </div>
+    <div class="row" style="margin-top:8px"><label><input type="checkbox" id="occlude" checked /> 산에 가린 지명 숨기기</label></div>
     <div class="sub" id="placeNote" style="margin-top:7px"></div>
   </div>
 
@@ -354,9 +355,11 @@ function reliefRamp(snowLine) {
   // interpolate 는 입력값이 강한 오름차순이어야 하므로 이 filter 가 불변식을 강제한다.
   const base = [
     [-450, '#c9d3a8'],  // 사해 주변 저지
-    [  -1, '#cfd6a6'],
-    [   0, 'rgba(0,0,0,0)'],
-    [   1, '#cfd6a6'],
+    // 예전에는 0m 를 투명하게 두어 아래 바다색이 비치게 했다. 그런데 DEM 은
+    // '바다 0m' 와 '나일 삼각주 육지 0m'(실측 -0.2~+0.5m)를 구분하지 못해
+    // 삼각주가 통째로 바다처럼 칠해졌다. 고도색은 어디서나 불투명하게 두고,
+    // 바다는 OSM 해안선 폴리곤(sea)으로 그린다.
+    [    0, '#cfd6a6'],
     [ 150, '#d8d6a0'],
     [ 400, '#dac68f'],
     [ 800, '#c6a87a'],  // 채도를 낮춰 사막 주황이 아나톨리아 고원까지 번지지 않게 한다
@@ -381,8 +384,7 @@ const BATHY_RAMP = ['interpolate', ['linear'], ['elevation'],
    -500, '#3f88be',
    -150, '#6fb1d9',
     -30, '#a4d1e7',
-      0, '#c4e2ef',
-      1, 'rgba(0,0,0,0)'
+     -8, 'rgba(0,0,0,0)'   // 얕은 연안·육지는 건드리지 않는다
 ];
 
 // 하늘. 지표에서도 대기를 그려야 지평선 위가 '빈 배경'이 아니라 실제 하늘이 된다.
@@ -417,12 +419,14 @@ const CARTO_LIGHT = {
 // rank 1 은 늘, 2 는 z6 부터, 3 은 z8 부터 서서히 나타난다.
 // MapLibre 는 한 표현식 안에 줌 기반 보간을 하나만 허용한다. 그래서 줌 보간을
 // 바깥에 두고, 각 구간의 값에서 rank 로 갈라 준다.
+// 지형에 가린 지명은 feature-state 로 감춘다(updateOcclusion).
+const PLACE_VISIBLE = ['case', ['boolean', ['feature-state', 'hidden'], false], 0, 1];
 const PLACE_OPACITY = ['interpolate', ['linear'], ['zoom'],
-  5.5, ['case', ['<=', ['get', 'rank'], 1], 1, 0],
-  6.5, ['case', ['<=', ['get', 'rank'], 2], 1, 0],
-  7.5, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
-  8.5, ['case', ['<=', ['get', 'rank'], 4], 1, 0],
-  9.5, 1
+  5.5, ['*', PLACE_VISIBLE, ['case', ['<=', ['get', 'rank'], 1], 1, 0]],
+  6.5, ['*', PLACE_VISIBLE, ['case', ['<=', ['get', 'rank'], 2], 1, 0]],
+  7.5, ['*', PLACE_VISIBLE, ['case', ['<=', ['get', 'rank'], 3], 1, 0]],
+  8.5, ['*', PLACE_VISIBLE, ['case', ['<=', ['get', 'rank'], 4], 1, 0]],
+  9.5, PLACE_VISIBLE
 ];
 
 const style = {
@@ -455,19 +459,26 @@ const style = {
     { id: 'bg', type: 'background',
       paint: { 'background-color': ['interpolate', ['linear'], ['zoom'], 8, '#1e4f86', 11, '#39699b'] } },
 
-    // 1) 해저: 깊이별 색상 (실제 수심 데이터)
-    //    ETOPO1 은 1분각(약 1.8 km) 이라 확대하면 셀 하나가 거대한 블록이 되고,
-    //    해안에 걸친 셀의 결측값이 최대 수심 색(짙은 남색)으로 칠해져 톱니처럼 보였다.
-    //    넓게 볼 때만 쓰고, 확대하면 아래 바다 채움에 자리를 넘긴다.
+    // 2) 육지: 고도별 색상 (어디서나 불투명)
+    { id: 'relief', type: 'color-relief', source: 'land',
+      paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
+
+    // 2a) 바다. OSM 해안선 폴리곤으로 그린다 — DEM 은 '바다 0m' 와 '삼각주 육지 0m'
+    //     를 구분하지 못하기 때문이다. 실측: 이 폴리곤은 실제 바다를 96~100% 덮고
+    //     나일 삼각주는 정확히 배제한다(고도≤0 표본 73개 중 0개만 덮음).
+    //     Blue Marble 아래에 두므로 저줌 구형 뷰의 실제 위성 바다색은 그대로다.
+    { id: 'ocean-tint', type: 'fill', source: 'vector', 'source-layer': 'water',
+      filter: ['==', ['get', 'class'], 'ocean'],
+      paint: { 'fill-color': ['interpolate', ['linear'], ['zoom'], 8, '#2f6ba4', 11, '#39699b'],
+               'fill-antialias': true } },
+
+    // 2b) 깊은 바다 색조. -8m 위는 투명이라 얕은 연안과 육지에는 손대지 않는다.
+    //     ETOPO1 은 1분각이라 확대하면 셀이 블록으로 보이므로 z9→z11 에 걸쳐 걷는다.
     { id: 'bathy', type: 'color-relief', source: 'bathy',
       paint: { 'color-relief-color': BATHY_RAMP,
                'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 9, 1, 11, 0] } },
 
-    // 2) 육지: 고도별 색상 (0m = 투명 → 아래 해저색이 보임)
-    { id: 'relief', type: 'color-relief', source: 'land',
-      paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
-
-    // 2a) 전지구 자연색. 확대하면 고도색+음영기복에 자리를 넘긴다.
+    // 2c) 전지구 자연색. 확대하면 고도색+음영기복에 자리를 넘긴다.
     { id: 'world', type: 'raster', source: 'world',
       paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 1, 7.2, 0],
                'raster-resampling': 'linear', 'raster-fade-duration': 200 } },
@@ -502,13 +513,6 @@ const style = {
     // 2c) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
     { id: 'baked', type: 'raster', source: 'baked',
       paint: { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
-
-    // 3) 바다 색조 통일 (연한 덧칠, 깊이 색은 그대로 비침).
-    //    불투명하게 만들면 안 된다 — OSM 바다 폴리곤이 타일 단위로 비어 있는 곳이
-    //    있어서, 진하게 칠하면 그 경계가 사다리꼴 얼룩으로 드러난다.
-    { id: 'ocean-tint', type: 'fill', source: 'vector', 'source-layer': 'water',
-      filter: ['==', ['get', 'class'], 'ocean'],
-      paint: { 'fill-color': '#3f88be', 'fill-opacity': 0.22, 'fill-antialias': true } },
 
     // 4) 호수 (갈릴리·사해·반 호수 등)
     // 7) 하천 (나일·유프라테스·티그리스·요단)
@@ -858,9 +862,77 @@ for (const [btnId, set] of Object.entries(PLACE_SETS)) {
     for (const id of set.ids) map.setLayoutProperty(id, 'visibility', set.on ? 'visible' : 'none');
     $(btnId).setAttribute('aria-pressed', set.on ? 'true' : 'false');
     syncPlaceNote();
+    updateOcclusion();
   });
 }
 syncPlaceNote();
+
+// ---------- 지형 가림 ----------
+// MapLibre 는 구형 투영의 지평선 뒤만 가리고 지형 가림은 하지 않는다. 직접 판정한다.
+// 카메라에서 지명까지 시선을 그어, 중간 지형이 그 선을 넘으면 가려진 것으로 본다.
+const FOV = 0.6435011087932844;          // MapLibre 기본 화각
+function cameraPos() {
+  const c = map.getCenter(), z = map.getZoom();
+  const pitch = map.getPitch() * D2R, bearing = map.getBearing() * D2R;
+  const h = map.getCanvas().clientHeight / (window.devicePixelRatio || 1);
+  const mPerPx = 40075016.686 * Math.cos(c.lat * D2R) / (512 * Math.pow(2, z));
+  const dist = (0.5 * h / Math.tan(FOV / 2)) * mPerPx;     // 카메라~중심 거리(m)
+  const back = dist * Math.sin(pitch);                     // 중심에서 뒤로 물러난 수평거리
+  return {
+    lng: c.lng - back * Math.sin(bearing) / (111320 * Math.cos(c.lat * D2R)),
+    lat: c.lat - back * Math.cos(bearing) / 111320,
+    alt: (map.getCameraTargetElevation() || 0) + dist * Math.cos(pitch)
+  };
+}
+function losBlocked(cam, lng, lat) {
+  const target = map.queryTerrainElevation({ lng, lat }, { exaggerated: true });
+  if (target == null) return false;
+  for (let i = 1; i < 16; i++) {
+    const f = i / 16;
+    const g = map.queryTerrainElevation(
+      { lng: cam.lng + (lng - cam.lng) * f, lat: cam.lat + (lat - cam.lat) * f },
+      { exaggerated: true });
+    // 25m 여유 — DEM 잡음 때문에 제 위치가 스스로를 가리는 것을 막는다
+    if (g != null && g > cam.alt + (target - cam.alt) * f + 25) return true;
+  }
+  return false;
+}
+
+const placeCache = {};
+for (const [srcId, url] of [['ntplaces', NT_PLACES], ['otplaces', OT_PLACES]]) {
+  fetch(url).then(r => r.json()).then(g => {
+    placeCache[srcId] = g.features.map(f => ({
+      id: f.id, lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], hidden: false
+    }));
+    updateOcclusion();
+  }).catch(() => {});
+}
+
+function updateOcclusion() {
+  if (!styleReady) return;
+  // 눕혀서 가까이 볼 때만 의미가 있다. 위에서 내려다보면 가릴 지형이 없다.
+  const active = $('occlude').checked && map.getPitch() >= 30 && map.getZoom() >= 7;
+  const cam = active ? cameraPos() : null;
+  // getBounds() 는 크게 눕히면 먼 시야를 담지 못한다. 화면 투영으로 판정한다.
+  const cv = map.getCanvas();
+  const W = cv.clientWidth, H = cv.clientHeight;
+  const onScreen = (lng, lat) => {
+    const q = map.project([lng, lat]);
+    return q.x > -120 && q.x < W + 120 && q.y > -120 && q.y < H + 120;
+  };
+  for (const [srcId, list] of Object.entries(placeCache)) {
+    if (!list) continue;
+    for (const f of list) {
+      const hide = active && onScreen(f.lng, f.lat) && losBlocked(cam, f.lng, f.lat);
+      if (hide !== f.hidden) {
+        f.hidden = hide;
+        map.setFeatureState({ source: srcId, id: f.id }, { hidden: hide });
+      }
+    }
+  }
+}
+map.on('moveend', updateOcclusion);
+$('occlude').addEventListener('change', updateOcclusion);
 
 // ---------- 태양 위치 ----------
 // 저정밀 태양 위치(USNO 공식). 검증: 예루살렘(31.78N) 하지 정오 81.6°, 동지 34.8°,
@@ -999,9 +1071,9 @@ map.on('moveend', applySun);
 // isStyleLoaded() 는 '모든 소스가 로드됨'까지 요구한다. 위성 타일을 계속 받아오는
 // 실제 배포 환경에서는 영영 true 가 되지 않아 태양이 적용되지 않았다.
 // style.load 는 스타일 자체가 파싱된 시점에 발화하므로 이쪽이 맞다.
-map.on('style.load', () => { styleReady = true; applySun(); });
+map.on('style.load', () => { styleReady = true; applySun(); updateOcclusion(); });
 // 만약을 위한 보강 — 위 이벤트를 놓쳐도 첫 유휴 시점에 한 번 붙인다.
-map.on('idle', () => { if (!styleReady) { styleReady = true; applySun(); } });
+map.on('idle', () => { if (!styleReady) { styleReady = true; applySun(); updateOcclusion(); } });
 
 // ---------- 방위 기준 ----------
 // MapLibre 의 bearing 은 '화면 위쪽에 오는 나침반 방위'다 (0=북, 90=동, 180=남).
