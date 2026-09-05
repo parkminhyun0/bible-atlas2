@@ -658,6 +658,13 @@ let sunHour = 14;
 
 function applySun() {
   if (!styleReady) return;
+  try { applySunNow(); } catch (e) {
+    // 스타일이 아직 준비되지 않았다면 조용히 넘긴다. 다음 이벤트에서 다시 시도한다.
+    styleReady = false;
+  }
+}
+
+function applySunNow() {
   const hs = (k, v) => map.setPaintProperty('hillshade', k, v);
 
   if (!$('sunOn').checked) {
@@ -713,16 +720,12 @@ function applySun() {
 $('sunOn').addEventListener('change', applySun);
 $('sunHour').addEventListener('input', e => { sunHour = parseFloat(e.target.value); applySun(); });
 map.on('moveend', applySun);
-// 'load' 는 외부 소스 사정에 따라 발화가 늦거나 오지 않을 수 있다.
-// 스타일이 실제로 준비됐는지 확인해 한 번만 초기화한다.
-function markStyleReady() {
-  if (styleReady || !map.isStyleLoaded()) return;
-  styleReady = true;
-  applySun();
-}
-map.on('load', markStyleReady);
-map.on('styledata', markStyleReady);
-map.on('idle', markStyleReady);
+// isStyleLoaded() 는 '모든 소스가 로드됨'까지 요구한다. 위성 타일을 계속 받아오는
+// 실제 배포 환경에서는 영영 true 가 되지 않아 태양이 적용되지 않았다.
+// style.load 는 스타일 자체가 파싱된 시점에 발화하므로 이쪽이 맞다.
+map.on('style.load', () => { styleReady = true; applySun(); });
+// 만약을 위한 보강 — 위 이벤트를 놓쳐도 첫 유휴 시점에 한 번 붙인다.
+map.on('idle', () => { if (!styleReady) { styleReady = true; applySun(); } });
 
 // ---------- 방위 기준 ----------
 // MapLibre 의 bearing 은 '화면 위쪽에 오는 나침반 방위'다 (0=북, 90=동, 180=남).
