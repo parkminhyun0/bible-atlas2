@@ -141,7 +141,6 @@
   <div class="row"><label for="snow">설선 (텍스처 없는 곳의 고도색)</label><output id="snowOut">2,500 m</output></div>
   <input id="snow" type="range" min="1500" max="4500" step="50" value="2500" />
 
-  <div class="row"><label><input type="checkbox" id="sat" checked /> 위성 영상 (Sentinel-2, 확대 시)</label></div>
   <div class="row"><label><input type="checkbox" id="baked" checked /> 구운 지표 텍스처 (WorldCover)</label></div>
   <div class="row"><label><input type="checkbox" id="forest" checked /> 실제 지표 피복 (산림·경작지·사막)</label></div>
   <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
@@ -249,7 +248,8 @@ const starOpacity = zoom => clamp01((5.5 - zoom) / 2);
 // 지표 부근의 배경색. 태양이 정하는 하늘색을 그대로 따라간다(applySun 에서 갱신).
 // 예전에는 옅은 회백색으로 고정돼 있었다. 하늘이 그려지지 않는 각도에서 그 색이
 // 화면을 채워 '하얗게 변하는' 것처럼 보였고, 밤에도 밝은 채로 남았다.
-let groundSkyRGB = [176, 205, 228];
+let groundSkyRGB = [176, 205, 228];    // 지평선 쪽
+let groundZenithRGB = [64, 122, 190];  // 천정 쪽
 
 const BACKDROP = [
   [5.8, [  4,   6,  13]],   // 우주
@@ -310,9 +310,6 @@ const VECTOR_URL = 'https://tiles.openfreemap.org/planet';
 const SITE_ROOT = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
 const BAKED_TILES = SITE_ROOT + 'tiles/{z}/{x}/{y}.webp';
 const WORLD_TILES = SITE_ROOT + 'world/{z}/{x}/{y}.webp';
-// 확대했을 때의 실제 위성 영상 (Sentinel-2 10m 무운량 합성).
-// WMTS REST 라 경로가 {z}/{행}/{열} 순서다 — {y}/{x} 로 넣어야 한다.
-const S2_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -365,11 +362,11 @@ const BASE_SKY = {
   // 1 로 밀어 지형은 끝까지 선명하게 두고 지평선 끝에서만 하늘과 만나게 한다.
   'fog-ground-blend': 1,
   'horizon-fog-blend': 1,
-  // 지표로 내려올수록 낮춰야 한다. 카메라가 지면에 가까우면 대기 산란이 화면을
-  // 통째로 덮어 하얗게 날아간다. 사해(-430m)를 지형 과장 4배로 내려다본 화면에서
-  // 측정: 0.5 → 아주 밝은 픽셀 74.5%, 0.2 → 1.2%. 지형이 아예 보이지 않았다.
-  // 구형 뷰의 대기 후광에는 큰 값이 필요하므로 줌으로 보간한다.
-  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 6, 0.35, 9, 0.2]
+  // 지표에서는 완전히 끈다. 대기 산란이 지평선 거리에 해당하는 화면 높이에
+  // 뚜렷한 가로 경계선을 만들고(측정: 경계 강도 18.5 → 0 으로 두면 6.1),
+  // 가까운 땅을 하얗게 덮는다. 구형 뷰의 후광에는 필요하므로 저줌에만 남긴다.
+  // 지표의 하늘은 body 배경 그라데이션이 대신한다(syncSpace).
+  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 6, 0.25, 8, 0]
 };
 
 // 지도 관습대로 북서쪽에서 빛을 주는 설정. 태양 시뮬레이션을 끄면 여기로 돌아온다.
@@ -397,9 +394,6 @@ const style = {
     // 콩고 분지와 유럽까지 사막색이 된다. 저줌 구간만 실제 위성색으로 덮는다. (bake/world.py)
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
-    // 저장소의 Blue Marble 은 1.9 km/px 라 z5 가 한계다. 그 위로는 실제 위성 영상으로 잇는다.
-    s2:      { type: 'raster', tiles: [S2_TILES], tileSize: 256, minzoom: 5, maxzoom: 14,
-               attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2024</a> by EOX (modified Copernicus Sentinel data 2024)' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
     baked:   { type: 'raster', tiles: [BAKED_TILES], tileSize: 512, minzoom: 4, maxzoom: 10,
                bounds: [8, 20, 56, 46],
@@ -425,24 +419,22 @@ const style = {
     // 2b) 실제 지표 피복 (OSM landcover). 고도색만으로는 아나톨리아 고원과 요르단 사막이
     //     같은 색이 되어버린다. 아래 세 레이어가 그 구분을 실제 데이터로 되돌린다.
     //     구운 텍스처가 있으면 그 위에 덮이므로(2c) 중복 표현되지 않는다.
+    // 진하게 칠하면 얼룩처럼 보인다. 인쇄된 지형도처럼 고도색 위에 얹는 '색조'로 둔다.
     { id: 'farmland', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'farmland'],
-      paint: { 'fill-color': '#93a86a', 'fill-opacity': 0.38, 'fill-antialias': true } },
+      paint: { 'fill-color': '#9ab070', 'fill-opacity': 0.26, 'fill-antialias': true } },
 
     { id: 'sand', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'sand'],
-      paint: { 'fill-color': '#e3c893', 'fill-opacity': 0.5, 'fill-antialias': true } },
+      paint: { 'fill-color': '#e6cd9c', 'fill-opacity': 0.34, 'fill-antialias': true } },
 
     // 산림: 레바논·타우루스·폰투스·자그로스의 실제 수목 분포
     { id: 'forest', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'wood'],
-      paint: { 'fill-color': '#4a6b3d', 'fill-opacity': 0.45, 'fill-antialias': true } },
+      paint: { 'fill-color': '#557444', 'fill-opacity': 0.32, 'fill-antialias': true } },
 
-    // 호수·빙하는 위성 영상 '아래'에 둔다. 위성이 켜지면 실사가 자연스럽게 덮고,
-    // 꺼지면 그대로 드러난다. 예전에는 줌에 따라 투명도를 0 으로 떨어뜨렸는데,
-    // 위성을 끈 고도색 지도에서도 사라져 갈릴리·사해가 통째로 없어졌다.
-    // 런타임에 setPaintProperty 로 되돌리는 방법은 쓸 수 없다 — MapLibre 는 3D 지형에
-    // 덧입힌 텍스처를 캐시해서, 화면을 움직이기 전까지 변경이 반영되지 않는다.
+    // 호수·빙하. 줌에 따라 투명도를 떨어뜨리지 않는다 — 예전에 그렇게 했다가
+    // 갈릴리·사해가 확대하면 통째로 사라졌다.
     { id: 'lakes', type: 'fill', source: 'vector', 'source-layer': 'water',
       filter: ['==', ['get', 'class'], 'lake'],
       paint: { 'fill-color': '#7fb5dc', 'fill-antialias': true } },
@@ -450,12 +442,6 @@ const style = {
     { id: 'ice', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'ice'],
       paint: { 'fill-color': '#f4f7fa', 'fill-opacity': 0.9, 'fill-antialias': true } },
-
-    // 2b-2) 실제 위성 영상. 확대하면 여기가 화면을 넘겨받아 위성 형태가 계속 유지된다.
-    //       OSM 지표 피복 폴리곤 위에 놓아야 평평한 초록이 실사를 덮지 않는다.
-    { id: 's2', type: 'raster', source: 's2',
-      paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0, 7, 1],
-               'raster-resampling': 'linear', 'raster-fade-duration': 200 } },
 
     // 2c) 구운 지표 텍스처: 실제 토지피복(모래·암석·초지·수목·눈) + 음영. 물은 투명이라 해저색이 비친다.
     { id: 'baked', type: 'raster', source: 'baked',
@@ -517,7 +503,15 @@ const map = new maplibregl.Map({
 const syncSpace = () => {
   const z = map.getZoom();
   space.style.opacity = starOpacity(z);
-  document.body.style.backgroundColor = backdropColor(z);
+  const horizon = backdropColor(z);
+  document.body.style.backgroundColor = horizon;
+  // 지표에서는 천정→지평선 그라데이션으로 하늘을 만든다. MapLibre 의 대기(atmosphere)는
+  // 껐다 — 지평선 거리에 해당하는 화면 높이에 뚜렷한 가로 경계선을 만들고 가까운 땅을
+  // 하얗게 덮었기 때문이다. 캔버스가 지평선 위에서 투명하므로 이 배경이 그대로 하늘이 된다.
+  const zen = `rgb(${groundZenithRGB[0]},${groundZenithRGB[1]},${groundZenithRGB[2]})`;
+  document.body.style.backgroundImage = z >= 7
+    ? `linear-gradient(to bottom, ${zen} 0%, ${horizon} 62%, ${horizon} 100%)`
+    : 'none';
 };
 syncSpace();
 map.on('move', syncSpace);
@@ -595,8 +589,7 @@ $('forest').addEventListener('change', e => {
 });
 $('baked').addEventListener('change', e =>
   map.setLayoutProperty('baked', 'visibility', e.target.checked ? 'visible' : 'none'));
-$('sat').addEventListener('change', e =>
-  map.setLayoutProperty('s2', 'visibility', e.target.checked ? 'visible' : 'none'));
+
 $('shade').addEventListener('change', e =>
   map.setLayoutProperty('hillshade', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('borders').addEventListener('change', e =>
@@ -684,6 +677,7 @@ function applySunNow() {
     hs('hillshade-exaggeration', CARTO_LIGHT.exag);
     map.setSky(BASE_SKY);
     groundSkyRGB = [207, 224, 238];   // BASE_SKY 의 horizon-color
+    groundZenithRGB = [77, 143, 214];  // BASE_SKY 의 sky-color
     syncSpace();
     $('night').style.opacity = 0;
     $('sunNote').textContent = '지도 관습대로 북서쪽에서 빛을 준다 — 시간과 무관하다.';
@@ -713,7 +707,8 @@ function applySunNow() {
   hs('hillshade-exaggeration', 0.5 + 0.30 * (1 - clamp01(alt / 60)));
 
   const sky = skyByAltitude(alt);
-  groundSkyRGB = sky.horizon;   // 지표 배경색을 하늘과 일치시킨다
+  groundSkyRGB = sky.horizon;     // 지표 배경(하늘)을 태양에 맞춘다
+  groundZenithRGB = sky.zenith;
   syncSpace();
   map.setSky(Object.assign({}, BASE_SKY, {
     'sky-color': rgbStr(sky.zenith),
@@ -810,7 +805,7 @@ map.on('error', ev => {
   s.style.display = 'block';
   s.dataset.source = (ev && ev.sourceId) || '';
   const WHO = { terrain: '지형', land: '지형', bathy: '해저 지형', vector: '물·국경',
-                world: '전지구 위성', s2: '위성 영상' };
+                world: '전지구 자연색' };
   const who = WHO[ev && ev.sourceId] || '타일';
   s.textContent = who + ' 로드 오류: ' + (e.message || '네트워크 확인');
   // 타일 단위 오류(sourceId 가 붙는다)는 외부 서비스가 이따금 한 번씩 실패하는
