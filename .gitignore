@@ -7,6 +7,3 @@ __pycache__/
 
 # 전지구 베이스 원본(28MB JPEG). 타일만 커밋한다.
 bake/world-src/
-
-# DEM 타일 캐시 (경로 계산용, 재생성 가능)
-bake/dem-cache/

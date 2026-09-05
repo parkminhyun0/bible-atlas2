@@ -52,11 +52,6 @@
   .btns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btns button:disabled { color: var(--ink-soft); opacity: .5; cursor: default; border-style: dashed; }
   .btns button:disabled:hover { border-color: var(--line); }
-  .cert { margin-right: 10px; white-space: nowrap; }
-  .cd { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-        vertical-align: -1px; margin-right: 3px; border: 1.4px solid #2d4b8e; }
-  .cd-sure { background: #2d4b8e; }
-  .cd-approx { background: #fff; }
   .aspect-note { font-size: 11px; line-height: 1.55; color: var(--ink-soft); margin-top: 8px; min-height: 4.6em; }
   .aspect-note b { color: var(--ink); font-weight: 600; }
   .aspect-note bdi { font-size: 12.5px; }
@@ -78,47 +73,6 @@
     position: absolute; top: 14px; right: 60px; background: #fff3c4; border: 1px solid #e3cf7a;
     border-radius: 6px; padding: 6px 10px; font-size: 12px; display: none;
   }
-  /* 오른쪽 사건 패널 — 구약부터 신약까지 동선을 쌓아 간다. */
-  .events {
-    box-sizing: border-box;
-    position: absolute; top: 14px; right: 14px; width: 300px;
-    max-height: calc(100% - 28px); overflow-y: auto; overscroll-behavior: contain;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
-    padding: 12px 14px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    font-size: 13px; line-height: 1.45;
-    transition: transform .25s ease;
-  }
-  body.events-hidden .events { transform: translateX(calc(100% + 18px)); }
-  .events h2 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
-  .ev-book { font-size: 11px; color: var(--ink-soft); margin: 10px 0 5px;
-             padding-top: 8px; border-top: 1px solid var(--line); }
-  .ev-book:first-of-type { border-top: 0; padding-top: 0; margin-top: 8px; }
-  .ev {
-    display: block; width: 100%; text-align: left; font: inherit;
-    padding: 6px 8px; margin: 3px 0; border: 1px solid transparent;
-    border-radius: 4px; background: transparent; cursor: pointer; color: var(--ink);
-  }
-  .ev:hover { background: rgba(79,109,143,.08); border-color: var(--line); }
-  .ev[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .ev[aria-pressed="true"] .ev-meta { color: rgba(255,255,255,.82); }
-  .ev-who { font-weight: 600; font-size: 12.5px; }
-  .ev-meta { font-size: 11px; color: var(--ink-soft); line-height: 1.5; }
-  .ev-swatch { display: inline-block; width: 18px; height: 0;
-               border-top-width: 3px; border-top-style: solid; vertical-align: 3px; margin-right: 5px; }
-
-  #eventsHide {
-    position: absolute; top: 14px; right: 322px; z-index: 3;
-    width: 26px; height: 46px; padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; line-height: 1; color: var(--ink-soft);
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 6px 0 0 6px; border-right-color: transparent;
-    box-shadow: -1px 1px 4px rgba(0,0,0,.08);
-    transition: right .25s ease;
-  }
-  body.events-hidden #eventsHide { right: 0; border-right-color: var(--line); }
-  #eventsHide:hover { color: var(--accent); }
-
   /* 데스크톱: 패널을 왼쪽 화면 밖으로 밀어 넣는다. */
   .panel { transition: transform .25s ease; }
   body.panel-hidden .panel { transform: translateX(calc(-100% - 18px)); }
@@ -138,7 +92,7 @@
   #panelHide:hover { color: var(--accent); }
 
   /* 모바일에서는 바텀시트라 이 손잡이가 필요 없다. */
-  #panelToggle, #panelClose, #eventsToggle { display: none; }
+  #panelToggle, #panelClose { display: none; }
 
   /* 좁거나 낮은 화면 = 바텀시트.
      기존에는 폭만 100% 로 늘리고 높이는 그대로여서 화면의 89% 가 패널에 가렸다. */
@@ -156,22 +110,7 @@
     }
     .panel.open { transform: translateY(0); }
 
-    #panelHide, #eventsHide { display: none; }
-    .events {
-      top: auto; bottom: 0; right: 0; left: 0; width: 100%;
-      max-height: 58dvh; border-radius: 14px 14px 0 0;
-      border-left: 0; border-right: 0; border-bottom: 0;
-      padding: 14px 16px calc(12px + env(safe-area-inset-bottom));
-      transform: translateY(101%);
-    }
-    body.events-open .events { transform: translateY(0); }
-    #eventsToggle {
-      display: block; position: absolute;
-      top: calc(12px + env(safe-area-inset-top)); right: 12px;
-      padding: 9px 14px; font-size: 13px; font-weight: 600;
-      border-radius: 999px; background: var(--panel);
-      border: 1px solid var(--line); box-shadow: 0 1px 5px rgba(0,0,0,.16);
-    }
+    #panelHide { display: none; }
     #panelToggle {
       display: block; position: absolute;
       top: calc(12px + env(safe-area-inset-top)); left: 12px;
@@ -244,12 +183,6 @@
       <button id="otPlaces" aria-pressed="false">구약 지명</button>
     </div>
     <div class="row" style="margin-top:8px"><label><input type="checkbox" id="occlude" checked /> 산에 가린 지명 숨기기</label></div>
-    <div class="sub" style="margin-top:6px; line-height:1.6">
-      <span class="cert"><i class="cd cd-sure"></i>확정</span>
-      <span class="cert"><i class="cd cd-approx"></i>유력</span>
-      <span class="cert"><i class="cd cd-approx"></i>추정<b>?</b></span>
-      <br><span style="opacity:.75">Barrington Atlas · Pleiades 표기</span>
-    </div>
     <div class="sub" id="placeNote" style="margin-top:7px"></div>
   </div>
 
@@ -283,21 +216,6 @@
     </div>
   </div>
 </div>
-
-<button id="eventsToggle" aria-expanded="false" aria-controls="events">사건 동선</button>
-<button id="eventsHide" aria-expanded="true" aria-controls="events" aria-label="사건 패널 숨기기" title="사건 패널 숨기기">▶</button>
-
-<aside class="events" id="events" role="region" aria-label="사건 동선">
-  <h2>사건 동선</h2>
-  <div class="sub">인물이 실제로 걸었을 길. 직선이 아니라 지형이 허락하는 최소 노력 경로로 그린다.</div>
-  <div class="sub" style="margin-top:6px">
-    <span class="cert"><i class="ev-swatch" style="border-top-style:solid;border-color:#9d2f1f"></i>본문 명시</span>
-    <span class="cert"><i class="ev-swatch" style="border-top-style:dashed;border-color:#9d2f1f"></i>추정</span>
-    <span class="cert"><i class="ev-swatch" style="border-top-style:dotted;border-color:#9d2f1f"></i>가설</span>
-  </div>
-  <div class="ev-book">창세기</div>
-  <div id="evList"></div>
-</aside>
 
 <div class="readout" id="readout">마우스를 지도 위에 올리면 고도를 표시합니다</div>
 <div class="status" id="status"></div>
@@ -426,7 +344,6 @@ const BAKED_TILES = SITE_ROOT + 'tiles/{z}/{x}/{y}.webp';
 const WORLD_TILES = SITE_ROOT + 'world/{z}/{x}/{y}.webp';
 const NT_PLACES = SITE_ROOT + 'data/nt-places.geojson';
 const OT_PLACES = SITE_ROOT + 'data/ot-places.geojson';
-const GENESIS_ROUTES = SITE_ROOT + 'data/genesis-routes.geojson';
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -505,20 +422,6 @@ const CARTO_LIGHT = {
 // rank 1 은 늘, 2 는 z6 부터, 3 은 z8 부터 서서히 나타난다.
 // MapLibre 는 한 표현식 안에 줌 기반 보간을 하나만 허용한다. 그래서 줌 보간을
 // 바깥에 두고, 각 구간의 값에서 rank 로 갈라 준다.
-// 고른 동선만 보인다. 전부 겹쳐 그리면 아무것도 읽히지 않는다.
-const ROUTE_OPACITY = ['case', ['boolean', ['feature-state', 'on'], false], 1, 0];
-
-// Barrington Atlas · Pleiades 의 관행을 따른다.
-//   known       확정        ● 속 채운 점
-//   approximate 유력하나 미확정 ○ 빈 점
-//   tentative   추정        ○ 빈 점 + 이름 뒤 물음표
-const IS_SURE = ['==', ['get', 'certainty'], 'known'];
-const dotFill = c => ['case', IS_SURE, c, '#ffffff'];
-const dotStroke = c => ['case', IS_SURE, '#ffffff', c];
-// 이름 뒤 물음표는 '추정' 에만 붙인다.
-const PLACE_LABEL = ['concat', ['get', 'ko'],
-  ['case', ['==', ['get', 'certainty'], 'tentative'], '?', '']];
-
 // 지형에 가린 지명은 feature-state 로 감춘다(updateOcclusion).
 const PLACE_VISIBLE = ['case', ['boolean', ['feature-state', 'hidden'], false], 0, 1];
 const PLACE_OPACITY = ['interpolate', ['linear'], ['zoom'],
@@ -545,9 +448,6 @@ const style = {
     // 콩고 분지와 유럽까지 사막색이 된다. 저줌 구간만 실제 위성색으로 덮는다. (bake/world.py)
     ntplaces: { type: 'geojson', data: NT_PLACES },
     otplaces: { type: 'geojson', data: OT_PLACES },
-    // promoteId 로 properties.id 를 피처 id 로 올린다.
-    // 이걸 빼면 setFeatureState 가 어떤 피처와도 맞지 않아 선이 영영 그려지지 않는다.
-    routes:   { type: 'geojson', data: GENESIS_ROUTES, promoteId: 'id' },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
     // 구운 지표 텍스처 (bake/bake.py 산출물). 저장소의 tiles/ 폴더에서 상대경로로 읽는다.
@@ -650,25 +550,6 @@ const style = {
         'hillshade-accent-color': '#585a60'
       } },
 
-    // 9b) 사건 동선. 확실성을 선 모양으로 나눈다 —
-    //     실선 본문 명시 · 파선 추정 · 점선 가설. Itiner-e 의 3단계를 따른 것이다.
-    { id: 'route-casing', type: 'line', source: 'routes',
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': 'rgba(255,255,255,0.9)',
-               'line-width': ['interpolate', ['linear'], ['zoom'], 4, 6, 10, 9],
-               'line-opacity': ROUTE_OPACITY } },
-    { id: 'route-line', type: 'line', source: 'routes',
-      layout: { visibility: 'none', 'line-cap': 'butt', 'line-join': 'round' },
-      paint: {
-        'line-color': '#9d2f1f',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 4, 2.8, 10, 4.4],
-        'line-opacity': ROUTE_OPACITY,
-        'line-dasharray': ['case',
-          ['==', ['get', 'certainty'], 'attested'], ['literal', [1, 0]],
-          ['==', ['get', 'certainty'], 'inferred'], ['literal', [2.4, 1.6]],
-          ['literal', [0.6, 1.8]]]
-      } },
-
     // 10) 신약 지명 — 붉은 점
     //     circle-pitch-alignment: viewport 라야 지도를 기울여도 점이 타원으로 눌리지 않는다.
     { id: 'nt-dot', type: 'circle', source: 'ntplaces',
@@ -678,9 +559,9 @@ const style = {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
-        'circle-color': dotFill('#d92b2b'),
-        'circle-stroke-color': dotStroke('#d92b2b'),
-        'circle-stroke-width': ['case', IS_SURE, 1.3, 1.7],
+        'circle-color': '#d92b2b',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.3,
         'circle-pitch-alignment': 'viewport',
         // 기본값 'map' 은 원근을 적용해 가까운 점을 크게 그린다. 글자는 고정 크기이므로
         // 점만 커지면 둘이 어긋나 보인다. 화면 기준으로 맞춰 늘 같은 크기로 둔다.
@@ -714,7 +595,7 @@ const style = {
     { id: 'nt-label', type: 'symbol', source: 'ntplaces',
       layout: {
         visibility: 'none',
-        'text-field': PLACE_LABEL,
+        'text-field': ['get', 'ko'],
         'text-font': ['Noto Sans Bold'],
         'text-size': 12.5,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
@@ -752,9 +633,9 @@ const style = {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
-        'circle-color': dotFill('#2d4b8e'),
-        'circle-stroke-color': dotStroke('#2d4b8e'),
-        'circle-stroke-width': ['case', IS_SURE, 1.3, 1.7],
+        'circle-color': '#2d4b8e',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.3,
         'circle-pitch-alignment': 'viewport',
         // 기본값 'map' 은 원근을 적용해 가까운 점을 크게 그린다. 글자는 고정 크기이므로
         // 점만 커지면 둘이 어긋나 보인다. 화면 기준으로 맞춰 늘 같은 크기로 둔다.
@@ -781,7 +662,7 @@ const style = {
     { id: 'ot-label', type: 'symbol', source: 'otplaces',
       layout: {
         visibility: 'none',
-        'text-field': PLACE_LABEL,
+        'text-field': ['get', 'ko'],
         'text-font': ['Noto Sans Bold'],
         'text-size': 12.5,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
@@ -1053,98 +934,6 @@ function updateOcclusion() {
 }
 map.on('moveend', updateOcclusion);
 $('occlude').addEventListener('change', updateOcclusion);
-
-// ---------- 지명 클릭 ----------
-// 위치가 확정되지 않은 곳은 왜 그런지 알 수 있어야 한다. 근거를 함께 보여준다.
-const CERT_TEXT = { known: '위치 확정', approximate: '유력하나 미확정', tentative: '추정' };
-const placePopup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 10 });
-for (const layer of ['nt-dot', 'ot-dot', 'nt-peak', 'ot-peak']) {
-  map.on('click', layer, e => {
-    const f = e.features && e.features[0];
-    if (!f) return;
-    const p = f.properties;
-    const cert = CERT_TEXT[p.certainty] || '';
-    placePopup.setLngLat(f.geometry.coordinates)
-      .setHTML(
-        `<div style="font:600 13px/1.4 system-ui;color:#1e1c18">${p.ko}</div>` +
-        `<div style="font:11px/1.5 system-ui;color:#6a655b;margin-top:2px">${p.en || ''}</div>` +
-        (cert ? `<div style="font:11px/1.5 system-ui;color:#6a655b;margin-top:4px">${cert}</div>` : '') +
-        (p.note ? `<div style="font:11.5px/1.6 system-ui;color:#2b2a26;margin-top:6px;padding-top:6px;border-top:1px solid #d9d3c6">${p.note}</div>` : '')
-      )
-      .addTo(map);
-  });
-  map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
-}
-
-// ---------- 사건 동선 ----------
-const eventsEl = $('events');
-const CERT_LINE = { attested: '본문 명시', inferred: '추정', hypothetical: '가설' };
-let routeFeatures = [], activeRoute = null;
-
-fetch(GENESIS_ROUTES).then(r => r.json()).then(g => {
-  routeFeatures = g.features;
-  const list = $('evList');
-  for (const f of routeFeatures) {
-    const p = f.properties;
-    const b = document.createElement('button');
-    b.className = 'ev';
-    b.type = 'button';
-    b.dataset.id = p.id;
-    b.setAttribute('aria-pressed', 'false');
-    const style = p.certainty === 'attested' ? 'solid' : p.certainty === 'inferred' ? 'dashed' : 'dotted';
-    b.innerHTML =
-      `<div class="ev-who"><i class="ev-swatch" style="border-top-style:${style};border-color:#9d2f1f"></i>${p.who}</div>` +
-      `<div class="ev-meta">${p.title} · ${p.ref}</div>` +
-      `<div class="ev-meta">${p.km.toLocaleString('ko-KR')} km` +
-      (p.walk_h ? ` · 도보 ${p.walk_h.toLocaleString('ko-KR')}시간` : '') +
-      ` · ${CERT_LINE[p.certainty]}</div>`;
-    b.addEventListener('click', () => selectRoute(p.id === activeRoute ? null : p.id));
-    list.appendChild(b);
-  }
-});
-
-function selectRoute(id) {
-  if (!styleReady) return;
-  // 이전 선택을 끄고 새로 켠다. 한 번에 하나만 보여야 경로가 읽힌다.
-  for (const f of routeFeatures) {
-    map.setFeatureState({ source: 'routes', id: f.properties.id }, { on: f.properties.id === id });
-  }
-  activeRoute = id;
-  const vis = id ? 'visible' : 'none';
-  map.setLayoutProperty('route-casing', 'visibility', vis);
-  map.setLayoutProperty('route-line', 'visibility', vis);
-  for (const b of eventsEl.querySelectorAll('.ev')) {
-    b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false');
-  }
-  if (!id) return;
-  const f = routeFeatures.find(x => x.properties.id === id);
-  if (!f) return;
-  const cs = f.geometry.coordinates;
-  const b = cs.reduce((acc, c) => [Math.min(acc[0], c[0]), Math.min(acc[1], c[1]),
-                                   Math.max(acc[2], c[0]), Math.max(acc[3], c[1])],
-                      [180, 90, -180, -90]);
-  map.fitBounds([[b[0], b[1]], [b[2], b[3]]],
-                { padding: { top: 70, bottom: 70, left: 320, right: 340 },
-                  duration: 1400, pitch: 40 });
-}
-
-// 오른쪽 패널 열고 닫기
-const eventsHide = $('eventsHide');
-eventsHide.addEventListener('click', () => {
-  const hidden = document.body.classList.toggle('events-hidden');
-  eventsHide.textContent = hidden ? '◀' : '▶';
-  const label = hidden ? '사건 패널 열기' : '사건 패널 숨기기';
-  eventsHide.setAttribute('aria-label', label);
-  eventsHide.setAttribute('aria-expanded', hidden ? 'false' : 'true');
-  eventsHide.title = label;
-});
-const eventsToggle = $('eventsToggle');
-eventsToggle.addEventListener('click', () => {
-  const open = document.body.classList.toggle('events-open');
-  eventsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  eventsToggle.textContent = open ? '✕ 닫기' : '사건 동선';
-});
 
 // ---------- 태양 위치 ----------
 // 저정밀 태양 위치(USNO 공식). 검증: 예루살렘(31.78N) 하지 정오 81.6°, 동지 34.8°,
