@@ -1005,14 +1005,14 @@ map.on('styleimagemissing', e => {
 });
 
 const PLACE_SETS = {
-  ntPlaces: { on: false, ids: ['nt-dot', 'nt-peak', 'nt-label'], label: '신약 269곳(붉은 점)' },
-  otPlaces: { on: false, ids: ['ot-dot', 'ot-peak', 'ot-label'], label: '구약 216곳(남색 점)' }
+  ntPlaces: { on: false, ids: ['nt-dot', 'nt-peak', 'nt-label'], label: '신약 280곳(붉은 점)' },
+  otPlaces: { on: false, ids: ['ot-dot', 'ot-peak', 'ot-label'], label: '구약 231곳(남색 점)' }
 };
 function syncPlaceNote() {
   const on = Object.values(PLACE_SETS).filter(s => s.on).map(s => s.label);
   $('placeNote').textContent = on.length
     ? on.join(' · ') + ' — 확대할수록 작은 지명까지 나타난다. 삼각형은 산, 이름만 있는 곳은 지역·바다다.'
-    : '신약 배경 269곳과 구약 배경 216곳. 각각 버튼으로 켠다.';
+    : '신약 배경 280곳과 구약 배경 231곳. 각각 버튼으로 켠다.';
 }
 for (const [btnId, set] of Object.entries(PLACE_SETS)) {
   $(btnId).addEventListener('click', () => {
@@ -1294,7 +1294,9 @@ window.map = map;   // 브라우저 콘솔·자동 검증에서 지도를 만질
 // ---------- 지명 설명 팝업 ----------
 // MapLibre 의 Popup 은 remove() 하면 DOM 이 바로 사라져 '들어가는' 연출이 안 된다.
 // 그래서 열고 닫는 것을 직접 관리하고, 닫을 때는 클래스를 떼어 축소가 끝난 뒤 지운다.
-const PLACE_LAYERS = ['nt-dot', 'nt-peak', 'ot-dot', 'ot-peak'];
+// 라벨도 대상에 넣는다. 강·호수·지역은 점을 찍지 않으므로(면이라 점이 어울리지
+// 않는다) 라벨을 누르지 못하면 설명을 열 방법이 아예 없다.
+const PLACE_LAYERS = ['nt-dot', 'nt-peak', 'nt-label', 'ot-dot', 'ot-peak', 'ot-label'];
 let placePopup = null, placeClosing = null, placeHit = false;
 
 function closePlacePopup() {
