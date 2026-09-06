@@ -96,6 +96,47 @@
 
   /* 좁거나 낮은 화면 = 바텀시트.
      기존에는 폭만 100% 로 늘리고 높이는 그대로여서 화면의 89% 가 패널에 가렸다. */
+
+  /* ---------- 지명 검색 ---------- */
+  /* 오른쪽 위에는 MapLibre 의 확대·나침반 버튼이 있으므로 그 왼쪽에 자리를 잡는다. */
+  #search {
+    position: absolute; top: 14px; right: 58px; width: 244px; z-index: 3;
+    font-size: 13px;
+  }
+  #searchInput {
+    box-sizing: border-box; width: 100%; height: 34px; padding: 0 30px 0 11px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08); color: var(--ink);
+    font: inherit; outline: none;
+  }
+  #searchInput:focus { border-color: var(--accent); }
+  #searchInput::placeholder { color: var(--ink-soft); }
+  /* type=search 의 기본 지우기 단추를 끈다. 그대로 두면 ✕ 가 두 개 나란히 보인다. */
+  #searchInput::-webkit-search-cancel-button, #searchInput::-webkit-search-decoration { display: none; }
+  #searchClear {
+    position: absolute; top: 0; right: 0; width: 30px; height: 34px; padding: 0;
+    border: 0; background: none; color: var(--ink-soft); font-size: 15px; line-height: 1;
+    cursor: pointer;
+  }
+  #searchList {
+    margin: 4px 0 0; padding: 4px; list-style: none;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
+    max-height: min(58vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+  }
+  #searchList:empty { display: none; }
+  #searchList li {
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 6px 8px; border-radius: 4px; cursor: pointer;
+  }
+  #searchList li.on, #searchList li:hover { background: rgba(79, 109, 143, .14); }
+  #searchList .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #searchList .kind {
+    flex: none; font-size: 11px; color: var(--ink-soft);
+    border: 1px solid var(--line); border-radius: 999px; padding: 1px 6px;
+  }
+  #searchList .none { display: block; padding: 7px 8px; color: var(--ink-soft); cursor: default; }
+
   @media (max-width: 760px), (max-height: 500px) {
     .panel {
       top: auto; bottom: 0; left: 0; width: 100%;
@@ -136,6 +177,10 @@
 
     /* 트랙패드 두 손가락 제스처는 터치 기기에 해당 없다. */
     .desktop-only { display: none; }
+
+
+    /* 좁은 화면에서는 검색창을 위쪽 가로로 펼친다. 오른쪽 버튼과 겹치지 않게 비워 둔다. */
+    #search { left: 12px; right: 58px; width: auto; top: calc(12px + env(safe-area-inset-top)); }
 
     /* 시트가 열리면 고도 표시는 가려지므로 숨긴다. */
     body.sheet-open .readout { display: none; }
@@ -199,6 +244,14 @@
 <canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
 <div id="night" aria-hidden="true"></div>
+
+<div id="search" role="search">
+  <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
+         placeholder="지명 검색 (예: 가버나움, 헤르몬)"
+         aria-label="지명 검색" aria-expanded="false" aria-controls="searchList" />
+  <button id="searchClear" type="button" aria-label="검색어 지우기" hidden>✕</button>
+  <ul id="searchList" role="listbox" aria-label="검색 결과"></ul>
+</div>
 
 <button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ 지도 설정</button>
 <button id="panelHide" aria-expanded="true" aria-controls="panel" aria-label="설정 패널 숨기기" title="설정 패널 숨기기">◀</button>
@@ -1394,6 +1447,144 @@ function openPlacePopup(feature, lngLat) {
   // 한 프레임 뒤에 켜야 축소 상태에서 시작하는 전이가 실제로 재생된다.
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
+
+// ---------- 지명 검색 ----------
+// 지도가 이미 읽어 둔 자료를 그대로 다시 읽어 색인을 만든다. 첫 타자를 칠 때 한 번만
+// 받는다 — 처음부터 받으면 쓰지도 않을 1 MB 를 지도가 뜨기 전에 내려받게 된다.
+const SEARCH_SETS = [
+  { url: OT_PLACES,  kind: '구약',  zoom: 11, popup: 'ot' },
+  { url: NT_PLACES,  kind: '신약',  zoom: 11, popup: 'nt' },
+  { url: PEAKS,      kind: '산',    zoom: 10, popup: 'peak' },
+  { url: RANGES,     kind: '산맥',  zoom: 6 },
+  { url: BIG_RIVERS, kind: '강',    zoom: 6 },
+  { url: LOC_RIVERS, kind: '하천',  zoom: 10 }
+];
+
+let searchIndex = null, searchLoading = null;
+
+// 붙여 쓰든 띄어 쓰든, 괄호를 넣든 빼든 같은 것으로 친다.
+const searchKey = (s) => (s || '').toLowerCase().replace(/[()\[\]·,.\-–—'"]/g, '').replace(/\s+/g, '');
+
+function centerOf(geom) {
+  const pts = [];
+  const walk = (c) => Array.isArray(c[0]) ? c.forEach(walk) : pts.push(c);
+  walk(geom.coordinates);
+  if (!pts.length) return null;
+  if (geom.type === 'Point') return pts[0];
+  // 선·면은 가운데 꼭짓점으로 충분하다. 무게중심은 굽은 강에서 물 밖으로 나간다.
+  return pts[Math.floor(pts.length / 2)];
+}
+
+function loadSearch() {
+  if (searchIndex) return Promise.resolve(searchIndex);
+  if (!searchLoading) {
+    searchLoading = Promise.all(SEARCH_SETS.map(set =>
+      fetch(set.url).then(r => r.json()).then(d => ({ set, d })).catch(() => null)
+    )).then(list => {
+      const rows = [];
+      for (const item of list) {
+        if (!item) continue;
+        for (const f of item.d.features || []) {
+          const c = centerOf(f.geometry);
+          if (!c) continue;
+          const p = f.properties || {};
+          rows.push({ ko: p.ko, en: p.en || '', kind: item.set.kind, zoom: item.set.zoom,
+                      popup: item.set.popup, at: c, k: searchKey(p.ko), ke: searchKey(p.en) });
+        }
+      }
+      return (searchIndex = rows);
+    });
+  }
+  return searchLoading;
+}
+
+function searchHits(q) {
+  const k = searchKey(q);
+  if (!k) return [];
+  const out = [];
+  for (const r of searchIndex) {
+    const i = r.k.indexOf(k);
+    const j = r.ke ? r.ke.indexOf(k) : -1;
+    if (i < 0 && j < 0) continue;
+    // 앞에서 맞을수록, 이름이 짧을수록 먼저 보여준다.
+    const score = (i === 0 ? 0 : j === 0 ? 1 : i > 0 ? 2 : 3) * 1000 + r.ko.length;
+    out.push({ r, score });
+  }
+  return out.sort((a, b) => a.score - b.score).slice(0, 30).map(x => x.r);
+}
+
+const searchBox = $('search'), searchInput = $('searchInput'),
+      searchList = $('searchList'), searchClear = $('searchClear');
+let searchRows = [], searchCursor = -1;
+
+function drawSearch() {
+  searchList.innerHTML = searchRows.length
+    ? searchRows.map((r, i) =>
+        `<li role="option" data-i="${i}"${i === searchCursor ? ' class="on" aria-selected="true"' : ''}>` +
+        `<span class="nm">${esc(r.ko)}</span><span class="kind">${esc(r.kind)}</span></li>`).join('')
+    : (searchInput.value.trim() ? '<li class="none">찾는 지명이 없습니다</li>' : '');
+  searchInput.setAttribute('aria-expanded', searchRows.length ? 'true' : 'false');
+}
+
+function closeSearch() {
+  searchRows = []; searchCursor = -1; drawSearch();
+}
+
+function gotoHit(r) {
+  closeSearch();
+  searchInput.blur();
+  map.flyTo({ center: r.at, zoom: r.zoom, duration: 1600 });
+  if (!r.popup) return;
+  // 검색해서 갔는데 그 지명이 꺼져 있으면 아무것도 안 보인다. 해당 지명 묶음을 켠다.
+  const btn = { ot: 'otPlaces', nt: 'ntPlaces' }[r.popup];
+  if (btn && !PLACE_SETS[btn].on) $(btn).click();
+  // 지명·산은 날아간 뒤 설명 팝업까지 열어 준다. 화면에 그려진 다음이라야 집을 수 있다.
+  const layers = { ot: ['ot-dot', 'ot-peak', 'ot-label'], nt: ['nt-dot', 'nt-peak', 'nt-label'],
+                   peak: ['world-peak', 'world-peak-mid', 'world-peak-minor'] }[r.popup];
+  const open = () => {
+    const found = map.queryRenderedFeatures({ layers: layers.filter(l => map.getLayer(l)) })
+      .find(f => f.properties.ko === r.ko);
+    if (found) openPlacePopup(found, { lng: r.at[0], lat: r.at[1] });
+  };
+  map.once('moveend', () => setTimeout(open, 350));
+}
+
+searchInput.addEventListener('input', async () => {
+  const q = searchInput.value;
+  searchClear.hidden = !q;
+  if (!q.trim()) return closeSearch();
+  await loadSearch();
+  if (searchInput.value !== q) return;      // 그 사이 더 쳤으면 이 결과는 버린다
+  searchRows = searchHits(q);
+  searchCursor = searchRows.length ? 0 : -1;
+  drawSearch();
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { searchInput.value = ''; searchClear.hidden = true; return closeSearch(); }
+  if (!searchRows.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    searchCursor = (searchCursor + (e.key === 'ArrowDown' ? 1 : -1) + searchRows.length) % searchRows.length;
+    drawSearch();
+    searchList.children[searchCursor]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && searchRows[searchCursor]) {
+    e.preventDefault();
+    gotoHit(searchRows[searchCursor]);
+  }
+});
+
+searchList.addEventListener('click', e => {
+  const li = e.target.closest('li[data-i]');
+  if (li) gotoHit(searchRows[+li.dataset.i]);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = ''; searchClear.hidden = true; closeSearch(); searchInput.focus();
+});
+
+// 바깥을 누르면 목록을 접는다. 지도를 눌러 팝업을 닫는 동작과 부딪히지 않게 캡처하지 않는다.
+document.addEventListener('click', e => { if (!searchBox.contains(e.target)) closeSearch(); });
 
 // ---------- 성경 본문 보기 ----------
 // 참조에 손을 올리면(모바일은 한 번 누르면) 개역한글 본문을 팝업 안에서 펼친다.
