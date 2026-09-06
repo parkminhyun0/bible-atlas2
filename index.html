@@ -282,7 +282,9 @@
   <input id="snow" type="range" min="1500" max="4500" step="50" value="2500" />
 
   <div class="row"><label><input type="checkbox" id="baked" checked /> 구운 지표 텍스처 (WorldCover)</label></div>
-  <div class="row"><label><input type="checkbox" id="forest" checked /> 실제 지표 피복 (산림·경작지·사막)</label></div>
+  <div class="row"><label><input type="checkbox" id="forest" /> 현대 토지 이용 (조림지·경작지·과수원)</label></div>
+  <div class="sub" style="margin:-2px 0 6px">OSM 자료라 오늘날의 조림지·과수원이다. 그린 사람이 많은 곳만 촘촘해
+  국경에서 끊긴다(상갈릴리 36% / 남레바논 10%).</div>
   <div class="row"><label><input type="checkbox" id="shade" checked /> 음영기복 (hillshade)</label></div>
   <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
   <div class="row desktop-only"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
@@ -683,17 +685,26 @@ const style = {
     //     같은 색이 되어버린다. 아래 세 레이어가 그 구분을 실제 데이터로 되돌린다.
     //     구운 텍스처가 있으면 그 위에 덮이므로(2c) 중복 표현되지 않는다.
     // 진하게 칠하면 얼룩처럼 보인다. 인쇄된 지형도처럼 고도색 위에 얹는 '색조'로 둔다.
+    // 아래 세 레이어(경작지·모래·산림)는 OSM 의 오늘날 토지 이용이라 기본으로 꺼 둔다.
+    //   - 있는 분류의 일부만 칠한다. 상갈릴리 한 화면 기준 관목 220개·초지 184개는
+    //     칠하지 않아, 이어진 지표가 아니라 섬처럼 뜬 조각만 남아 얼룩으로 보인다.
+    //   - OSM 매핑 밀도를 보게 된다. 국경을 사이에 두고 8km 만에 산림 표본이
+    //     36.4%(이스라엘) → 9.9%(레바논) 로 꺾인다. 식생은 국경에서 끊기지 않는다.
+    //   - wood 의 대부분이 wood/forest, 곧 20세기 조림지다. farmland 에는 과수원이 섞여 있다.
     { id: 'farmland', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'farmland'],
+      layout: { visibility: 'none' },
       paint: { 'fill-color': '#9ab070', 'fill-opacity': 0.26, 'fill-antialias': true } },
 
     { id: 'sand', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'sand'],
+      layout: { visibility: 'none' },
       paint: { 'fill-color': '#e6cd9c', 'fill-opacity': 0.34, 'fill-antialias': true } },
 
     // 산림: 레바논·타우루스·폰투스·자그로스의 실제 수목 분포
     { id: 'forest', type: 'fill', source: 'vector', 'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'wood'],
+      layout: { visibility: 'none' },
       paint: { 'fill-color': '#557444', 'fill-opacity': 0.32, 'fill-antialias': true } },
 
     // 호수·빙하. 줌에 따라 투명도를 떨어뜨리지 않는다 — 예전에 그렇게 했다가
