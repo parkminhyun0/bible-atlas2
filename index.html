@@ -10,6 +10,8 @@
     --ink: #2b2a26;
     --ink-soft: #6a655b;
     --panel: rgba(250, 248, 243, 0.92);
+    /* 검색 결과처럼 아래를 덮어야 하는 것에는 같은 색의 불투명 판을 쓴다. */
+    --panel-solid: #faf8f3;
     --line: #d9d3c6;
     --accent: #4f6d8f;
   }
@@ -105,7 +107,7 @@
   }
   #searchInput {
     box-sizing: border-box; width: 100%; height: 34px; padding: 0 30px 0 11px;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, .08); color: var(--ink);
     font: inherit; outline: none;
   }
@@ -120,7 +122,7 @@
   }
   #searchList {
     margin: 4px 0 0; padding: 4px; list-style: none;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: 6px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
     max-height: min(58vh, 420px); overflow-y: auto; overscroll-behavior: contain;
   }
@@ -179,12 +181,24 @@
     .desktop-only { display: none; }
 
 
-    /* 좁은 화면에서는 검색창을 위쪽 가로로 펼친다. 오른쪽 버튼과 겹치지 않게 비워 둔다. */
-    #search { left: 12px; right: 58px; width: auto; top: calc(12px + env(safe-area-inset-top)); }
+    /* 좁은 화면에서는 검색창을 아래로 내린다. 위쪽 왼편은 '지도 설정' 버튼 자리다. */
+    #search {
+      top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
+      left: 12px; right: 12px; width: auto;
+    }
+    /* 아래에 있으니 결과는 위로 펼친다. 목록을 흐름에서 빼야 입력창이 제자리에 남는다. */
+    #searchList {
+      position: absolute; bottom: 100%; left: 0; right: 0;
+      margin: 0 0 5px; max-height: min(46dvh, 340px);
+    }
+    #searchClear { top: auto; bottom: 0; }
+    /* 시트가 올라오면 검색창을 덮으므로 같이 숨긴다. */
+    body.sheet-open #search { display: none; }
 
     /* 시트가 열리면 고도 표시는 가려지므로 숨긴다. */
     body.sheet-open .readout { display: none; }
-    .readout { bottom: calc(10px + env(safe-area-inset-bottom)); font-size: 11px; max-width: 62vw; }
+    /* 검색창이 아래를 차지하므로 고도 표시를 그 위로 올린다. */
+    .readout { bottom: calc(56px + env(safe-area-inset-bottom)); font-size: 11px; max-width: 62vw; }
     .status { right: 12px; top: calc(58px + env(safe-area-inset-top)); max-width: calc(100% - 24px); }
   }
 
