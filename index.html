@@ -166,6 +166,7 @@
 .pp h3 { margin: 0 0 6px; font-size: 14px; line-height: 1.35; color: var(--ink, #16202c); }
 .pp .en { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: var(--ink-soft, #6b7785); }
 .pp p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink, #16202c); }
+.pp .meta { margin: 0 0 7px; font-size: 11.5px; color: var(--ink-soft, #6b7785); }
 .pp .refs.note { color: var(--ink-soft, #6b7785); font-style: italic; }
 .pp .refs {
   margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, .1);
@@ -1296,7 +1297,8 @@ window.map = map;   // 브라우저 콘솔·자동 검증에서 지도를 만질
 // 그래서 열고 닫는 것을 직접 관리하고, 닫을 때는 클래스를 떼어 축소가 끝난 뒤 지운다.
 // 라벨도 대상에 넣는다. 강·호수·지역은 점을 찍지 않으므로(면이라 점이 어울리지
 // 않는다) 라벨을 누르지 못하면 설명을 열 방법이 아예 없다.
-const PLACE_LAYERS = ['nt-dot', 'nt-peak', 'nt-label', 'ot-dot', 'ot-peak', 'ot-label'];
+const PLACE_LAYERS = ['nt-dot', 'nt-peak', 'nt-label', 'ot-dot', 'ot-peak', 'ot-label',
+                      'world-peak', 'world-peak-mid', 'world-peak-minor'];
 let placePopup = null, placeClosing = null, placeHit = false;
 
 function closePlacePopup() {
@@ -1314,11 +1316,15 @@ function esc(v) {
 
 function openPlacePopup(feature, lngLat) {
   const p = feature.properties || {};
-  if (!p.desc) return;
+  // 세계의 산 627곳 가운데 설명을 쓴 것은 이름난 87곳뿐이다. 나머지는 원본이 주는
+  // 사실(해발·어느 나라)만이라도 보여준다 — 눌렀는데 아무 일도 없으면 고장으로 보인다.
+  if (!p.desc && !p.elev && !p.where) return;
   closePlacePopup();
+  const meta = [p.elev, p.where].filter(Boolean).join(' · ');
   const html =
     `<div class="pp"><h3>${esc(p.ko)}${p.en ? `<span class="en">${esc(p.en)}</span>` : ''}</h3>` +
-    `<p>${esc(p.desc)}</p>` +
+    (meta ? `<div class="meta">${esc(meta)}</div>` : '') +
+    (p.desc ? `<p>${esc(p.desc)}</p>` : '') +
     (p.refs ? `<div class="refs${/^성경/.test(p.refs) ? ' note' : ''}">${esc(p.refs)}</div>` : '') + '</div>';
   const pop = new maplibregl.Popup({
     className: 'place-popup', closeButton: false, closeOnClick: false,
