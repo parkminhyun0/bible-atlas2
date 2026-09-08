@@ -8,7 +8,7 @@
 - 지형: Mapterhorn(Copernicus DEM 기반) · 수심: Mapzen/AWS Terrain Tiles(ETOPO1)
 - 전지구 자연색: NASA Blue Marble Next Generation (2004-08), z0–5 (`bake/world.py`)
 - 물·국경: OpenFreeMap(OpenStreetMap) · 현대 토지 이용은 선택형 참고 레이어(기본 꺼짐)
-- 엔진: MapLibre GL JS 6 (globe 투영, 3D terrain, color-relief, 다중 광원 음영)
+- 엔진: MapLibre GL JS 6 (globe 투영, 3D terrain, color-relief, 고정 판독광 기반 다중 광원 음영)
 - 배경: 줌에 따라 우주(별) → 고고도 하늘 → 낮 하늘로 이어진다
 
 ## 구조
@@ -30,6 +30,7 @@ world/            전지구 자연색 타일 z0–5 (14 MB, 커밋됨)
 - 한 손가락 드래그: 이동 · 두 손가락 좌우/상하: 회전/기울기 · 핀치: 확대/축소
 - 패널: 실제 지형 1.0×(최대 1.5× 판독 강조), 고도색 설선·현대 토지 이용·음영·국경 표시
 - 고도색과 설선 표시는 실제 식생·적설 상태가 아니라 높낮이를 읽기 위한 지도 표현이다.
+- 태양·시간 보기는 하늘색과 태양 위치 정보만 바꾸며, 능선·계곡 판독용 북서광은 고정한다.
 - 현대 토지 이용(OSM landcover: 조림지·경작지·과수원)은 **기본으로 꺼 둔다.** 세 가지
   이유다. ① 있는 분류의 일부만 칠해(관목 220·초지 184 미채색) 이어진 지표가 아니라
   섬처럼 뜬 조각이 남는다. ② OSM 매핑 밀도를 보게 된다 — 국경을 사이에 두고 8km 만에
