@@ -1,0 +1,140 @@
+{
+  "schema": "bible-atlas2/judea-c30-evidence/1",
+  "generated": "2026-09-09",
+  "period": {
+    "label": "서기 30년경 (예수님의 공생애)",
+    "note": "당시 하나의 통일된 이스라엘 국가는 없었다. 로마 직할 유대 속주와 헤롯 가문의 두 영지로 나뉘어 있었으므로 '서기 30년 이스라엘 국토'라고 부르지 않는다."
+  },
+  "display_name": "서기 30년경 유대·갈릴리 전체 성경 지리권",
+  "display_caveat": "역사 지도를 바탕으로 복원한 추정 범위",
+  "sources": [
+    {
+      "id": "awmc-herods-kingdom",
+      "title": "AWMC geodata — Cultural-Data/political_shading/herod/herods_kingdom.geojson",
+      "maker": "Ancient World Mapping Center (UNC Chapel Hill) · Ryan Horne, Gabe Moss",
+      "url": "https://github.com/AWMC/geodata/blob/master/Cultural-Data/political_shading/herod/herods_kingdom.geojson",
+      "retrieved": "2026-09-09",
+      "license": "ODbL-1.0 (Open Data Commons Open Database License)",
+      "derived_from": "Barrington Atlas of the Greek and Roman World + AWMC의 OpenStreetMap 수정본",
+      "applied": "바깥 경계 전체",
+      "uncertainty": [
+        "기원전 4년 헤롯 사망 시점의 왕국 범위다. 서기 30년의 세 통치 영역 합과 거의 같지만 완전히 같지는 않다.",
+        "폴리곤이 사해 수면(약 605㎢)을 제외한다 — 육지 면적이다.",
+        "요단강 동안(베레아 서쪽 가장자리)이 실제보다 동쪽으로 그려져 리비아스 같은 지점이 경계 밖으로 떨어진다.",
+        "외곽선이 286점으로 성기다. 엔게디·욥바가 선 위에 놓인다."
+      ]
+    },
+    {
+      "id": "ohm-provincia-iudaea",
+      "title": "OpenHistoricalMap relation 2849199 — Provincia Iudaea (start_date 0006, end_date 0132)",
+      "maker": "OpenHistoricalMap 기여자",
+      "url": "https://www.openhistoricalmap.org/relation/2849199",
+      "retrieved": "2026-09-09",
+      "license": "ODbL-1.0",
+      "applied": "교차 검증용(면적 대조). 경계 자체는 채택하지 않았다.",
+      "uncertainty": [
+        "서기 6~132년을 한 폴리곤으로 그려, 갈릴리를 포함하되 베레아·빌립 영지를 제외한다. 곧 서기 44년 이후 상태에 가깝고 서기 30년 상태가 아니다."
+      ]
+    },
+    {
+      "id": "josephus-bj",
+      "title": "Flavius Josephus, 『유대 전쟁사』 3.35–58 (갈릴리·사마리아·유대·베레아의 경계 기술)",
+      "license": "public domain (고전 원전)",
+      "applied": "내부 경계선의 근거"
+    },
+    {
+      "id": "josephus-aj",
+      "title": "Flavius Josephus, 『유대 고대사』 17.317–320 (헤롯 사후 영토 분할), 18.27–28 (빌립 영지)",
+      "license": "public domain (고전 원전)",
+      "applied": "통치 영역 구분·서기 4년 분리 도시의 근거"
+    },
+    {
+      "id": "physical-geography",
+      "title": "요단 지구대·이스르엘 골짜기·야르묵강 (현재 지도 DEM·수계)",
+      "license": "n/a",
+      "applied": "내부 경계선을 실제 지형에 맞춰 그리는 데 사용"
+    }
+  ],
+  "area": {
+    "method": [
+      {
+        "id": "epsg6933",
+        "desc": "EPSG:6933 (WGS84 람베르트 정적 원통, 표준위선 30°N) 투영 후 평면 신발끈. 정적 도법이라 투영 넓이가 곧 타원체 넓이다."
+      },
+      {
+        "id": "authalic-sphere",
+        "desc": "WGS84 등적 반지름(6,371,007.181 m) 구면 위의 구면 다각형 넓이 (Chamberlain–Duquette)."
+      },
+      {
+        "id": "grid",
+        "desc": "0.002° 격자 적분 — 통치 영역별 분류를 겸한 세 번째 검산."
+      }
+    ],
+    "outer_km2": {
+      "epsg6933": 23282.9,
+      "authalic_sphere": 23298.4,
+      "grid": 23028,
+      "spread_pct_between_polygon_methods": 0.067,
+      "note": "격자 적분은 경계 셀을 버려 약 1.1% 낮게 나온다 — 정상."
+    },
+    "calibration": {
+      "desc": "1°×1° (위도 30~31, 경도 35~36) 검산",
+      "epsg6933": 10642.4,
+      "sphere": 10653.3,
+      "expected": "약 10,645"
+    },
+    "cross_check": {
+      "ohm_provincia_iudaea_km2": 16085.1,
+      "reasoning": "OHM(요단 서편만) 16,085㎢ 와 AWMC(전체) 23,283㎢ 의 차이 7,198㎢ 는 베레아+빌립 영지의 예상 규모(대략 7,000~8,000㎢)와 맞는다. 서로 다른 두 자료가 어긋나지 않는다."
+    },
+    "adjustments_for_ad30": [
+      {
+        "item": "가사·가다라·히포스",
+        "effect": "-",
+        "note": "기원전 4년 수리아 속주로 이관 (요세푸스 BJ 2.97; AJ 17.320). 바깥 경계 안에 있으나 세 통치자의 영역이 아니다. 대략 수백 ㎢."
+      },
+      {
+        "item": "살로메의 얌니아·아소도·파사엘리스",
+        "effect": "?",
+        "note": "서기 10년 리비아를 거쳐 황실 영지로. 유대 속주 행정권 안에서 다뤄졌다."
+      },
+      {
+        "item": "사해 수면 약 605㎢",
+        "effect": "+",
+        "note": "원자료가 제외한다. '지리권'에 물을 포함할지는 표기 방식의 문제다."
+      },
+      {
+        "item": "요단 동안 누락분",
+        "effect": "+",
+        "note": "원자료의 베레아 서쪽선이 강에 닿지 않는다. 대략 300~500㎢."
+      }
+    ],
+    "headline": {
+      "central_km2": 23300,
+      "range_km2": [
+        22500,
+        24500
+      ],
+      "display": "복원 추정 면적: 약 23,000㎢ (범위 22,500–24,500㎢)",
+      "caveat": "경계 불확실성으로 인해 정확한 국토 통계가 아닌 역사 지리 추정치입니다."
+    }
+  },
+  "extent": {
+    "north_south_km": 250,
+    "east_west_max_km": 167,
+    "note": "위도 31.14~33.39. 남북으로 길고 동서로 좁다."
+  },
+  "regions_km2": {
+    "judaea": 12331,
+    "galilee": 2194,
+    "peraea": 2825,
+    "philip": 5678,
+    "note": "0.002° 격자 분류값. 내부 경계선의 확실성이 낮으므로 이 배분은 개략값이다."
+  },
+  "explicitly_not_used": [
+    "현대 이스라엘 국경",
+    "현대 이스라엘 면적 22,072㎢",
+    "재사용 허가가 확인되지 않은 역사 지도 이미지",
+    "출처 없는 면적 숫자"
+  ]
+}

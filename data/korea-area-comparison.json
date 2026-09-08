@@ -1,0 +1,107 @@
+{
+  "schema": "bible-atlas2/korea-area-comparison/1",
+  "generated": "2026-09-09",
+  "source_official": {
+    "title": "행정안전부 「지방자치단체 행정구역 및 주민등록 인구」 (2019년 2월 기준)",
+    "via": "ko.wikipedia.org 「대한민국의 행정 구역」 표 인용 — 2차 출처",
+    "url": "https://ko.wikipedia.org/wiki/대한민국의_행정_구역",
+    "retrieved": "2026-09-09",
+    "uncertainty": "원자료(KOSIS·국토교통부 지적통계)를 직접 받지 못해 2차 출처를 인용했다. 대구(군위 편입)와 경북의 기준 시점이 서로 달라 합계가 최신 국토면적 100,443㎢ 와 0.06% 차이 난다."
+  },
+  "source_polygon": {
+    "title": "Natural Earth 1:10m Admin 1 – States, Provinces",
+    "url": "https://github.com/nvkelso/natural-earth-vector",
+    "license": "public domain (CC0)",
+    "retrieved": "2026-09-09",
+    "uncertainty": "1:10m 일반화본이라 섬과 해안이 뭉개진다. 폴리곤을 재면 전남 11,470㎢·경남 10,132㎢·광주 133㎢ 로 통계보다 작다. 그리기에만 쓰고 숫자는 통계를 쓴다."
+  },
+  "official_areas_km2": {
+    "서울특별시": 605.2,
+    "부산광역시": 769.89,
+    "대구광역시": 1499.5,
+    "인천광역시": 1062.6,
+    "광주광역시": 501.24,
+    "대전광역시": 539.35,
+    "울산광역시": 1060.79,
+    "세종특별자치시": 464.87,
+    "경기도": 10183.46,
+    "강원특별자치도": 16875.03,
+    "충청북도": 7407.29,
+    "충청남도": 8226.14,
+    "전북특별자치도": 8069.05,
+    "전라남도": 12318.79,
+    "경상북도": 18424.1,
+    "경상남도": 10539.56,
+    "제주특별자치도": 1849.15
+  },
+  "korea_total_km2": 100387.4,
+  "target_km2": 23300.0,
+  "selection": {
+    "regions": [
+      "전라남도",
+      "광주광역시",
+      "경상남도"
+    ],
+    "sum_km2": 23359.59,
+    "error_pct": 0.26,
+    "contiguous": true,
+    "note": "전남·경남은 서로 접한다. 광주는 전남 안의 광역시라 함께 넣는다. 부산·울산은 경남에서 분리된 광역시라 이 영역의 동쪽 끝에서 빠진다.",
+    "extent": {
+      "north_south_km": 209,
+      "east_west_max_km": 267,
+      "note": "Natural Earth 폴리곤 기준. 성경 지리권(남북 250 · 동서 167 km)과 정반대로 옆으로 넓다."
+    }
+  },
+  "alternatives": [
+    {
+      "regions": [
+        "강원특별자치도",
+        "충청북도"
+      ],
+      "sum_km2": 24282.32,
+      "error_pct": 4.22
+    },
+    {
+      "regions": [
+        "전북특별자치도",
+        "충청남도",
+        "충청북도"
+      ],
+      "sum_km2": 23702.48,
+      "error_pct": 1.73
+    },
+    {
+      "regions": [
+        "경상북도",
+        "대구광역시",
+        "울산광역시",
+        "부산광역시"
+      ],
+      "sum_km2": 21753.28,
+      "error_pct": -6.64
+    }
+  ],
+  "feel": {
+    "share_of_korea_pct": 23.2,
+    "times_seoul": 38.5,
+    "times_jeju": 12.6,
+    "sentence": "대한민국 국토의 약 23%. 서울특별시의 약 38배, 제주특별자치도의 약 13배."
+  },
+  "labels": {
+    "official_statistic": [
+      "official_areas_km2",
+      "korea_total_km2"
+    ],
+    "calculated": [
+      "selection.sum_km2",
+      "selection.error_pct",
+      "feel"
+    ],
+    "reconstructed_estimate": [
+      "target_km2"
+    ],
+    "educational": [
+      "feel.sentence"
+    ]
+  }
+}
