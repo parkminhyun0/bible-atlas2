@@ -319,7 +319,7 @@
       <button id="ntPlaces" aria-pressed="false">신약 지명</button>
       <button id="otPlaces" aria-pressed="false">구약 지명</button>
     </div>
-    <div class="row" style="margin-top:8px"><label><input type="checkbox" id="occlude" checked /> 산에 가린 지명 숨기기</label></div>
+    <div class="row" style="margin-top:8px"><label><input type="checkbox" id="occlude" checked /> <span id="occludeLabel">산에 가린 지명 숨기기</span></label></div>
     <div class="sub" id="placeNote" style="margin-top:7px"></div>
   </div>
 
@@ -471,7 +471,9 @@ const memory = navigator.deviceMemory || 0;
 const cores = navigator.hardwareConcurrency || 0;
 const saveData = Boolean(navigator.connection && navigator.connection.saveData);
 const LOW_POWER = TOUCH && (saveData || (memory > 0 && memory <= 4) || (cores > 0 && cores <= 4));
-const motionMs = ms => REDUCED_MOTION ? 0 : ms;
+// 긴 flyTo 애니메이션은 모바일 GPU를 계속 최고 부하로 유지한다. 짧게 끝내되
+// 데스크톱의 공간 이동 감각은 그대로 보존한다.
+const motionMs = ms => REDUCED_MOTION ? 0 : (TOUCH ? Math.min(ms, 700) : ms);
 
 // ---------- 데이터 소스 ----------
 // 육지 DEM: Mapterhorn (Terrarium 인코딩, 512px WebP, 무료·키 불필요, 바다는 0m로 고정)
@@ -1024,9 +1026,9 @@ syncSpace();
 map.on('move', syncSpace);
 map.on('zoom', syncSpace);
 
-// 고밀도 모바일 화면은 실제 CSS 크기보다 훨씬 많은 픽셀을 그린다. 일반 터치는 2배,
-// 데이터 절약 또는 메모리·코어가 적은 기기는 1.5배로 제한해 발열과 프레임 저하를 줄인다.
-const pixelRatioCap = LOW_POWER ? 1.5 : 2;
+// 고밀도 모바일 화면은 실제 CSS 크기보다 훨씬 많은 픽셀을 그린다. 3D 지형은
+// 픽셀 수가 곧 GPU 부하이므로 일반 터치는 1.5배, 저전력 신호에서는 1.25배로 제한한다.
+const pixelRatioCap = LOW_POWER ? 1.25 : 1.5;
 if (TOUCH && (window.devicePixelRatio || 1) > pixelRatioCap) map.setPixelRatio(pixelRatioCap);
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
@@ -1173,6 +1175,13 @@ for (const [btnId, set] of Object.entries(PLACE_SETS)) {
 }
 syncPlaceNote();
 
+// 지형 가림은 지명 하나마다 DEM 시선 검사를 반복하는 고비용 보조 기능이다.
+// 모바일에서는 기본 해제해 지도 이동을 우선하고, 필요할 때 사용자가 직접 켤 수 있게 한다.
+if (TOUCH) {
+  $('occlude').checked = false;
+  $('occludeLabel').textContent = '산에 가린 지명 숨기기 (고성능)';
+}
+
 // ---------- 지형 가림 ----------
 // MapLibre 는 구형 투영의 지평선 뒤만 가리고 지형 가림은 하지 않는다. 직접 판정한다.
 // 카메라에서 지명까지 시선을 그어, 중간 지형이 그 선을 넘으면 가려진 것으로 본다.
@@ -1218,6 +1227,12 @@ function updateOcclusion() {
   if (!styleReady) return;
   // 눕혀서 가까이 볼 때만 의미가 있다. 위에서 내려다보면 가릴 지형이 없다.
   const active = $('occlude').checked && map.getPitch() >= 30 && map.getZoom() >= 7;
+  const sourceEnabled = {
+    ntplaces: PLACE_SETS.ntPlaces.on,
+    otplaces: PLACE_SETS.otPlaces.on
+  };
+  // 지명 레이어가 모두 꺼져 있으면 DEM 계산 자체를 하지 않는다.
+  if (active && !sourceEnabled.ntplaces && !sourceEnabled.otplaces) return;
   const cam = active ? cameraPos() : null;
   // getBounds() 는 크게 눕히면 먼 시야를 담지 못한다. 화면 투영으로 판정한다.
   const cv = map.getCanvas();
@@ -1228,6 +1243,16 @@ function updateOcclusion() {
   };
   for (const [srcId, list] of Object.entries(placeCache)) {
     if (!list) continue;
+    // 꺼진 지명 묶음은 가림 판정이 필요 없다. 이전 상태만 초기화한다.
+    if (active && !sourceEnabled[srcId]) {
+      for (const f of list) {
+        if (f.hidden) {
+          f.hidden = false;
+          map.setFeatureState({ source: srcId, id: f.id }, { hidden: false });
+        }
+      }
+      continue;
+    }
     for (const f of list) {
       const hide = active && onScreen(f.lng, f.lat) && losBlocked(cam, f.lng, f.lat);
       if (hide !== f.hidden) {
