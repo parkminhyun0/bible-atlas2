@@ -630,7 +630,11 @@ const peakLayer = (id, minzoom, filter, opacity, maxzoom) => ({
     'text-field': ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'elev'], { 'font-scale': 0.82 }],
     'text-font': ['Noto Sans Bold'],
     // 이름난 봉우리일수록 크게. 줌 보간을 쓰지 않아 다른 식과 충돌하지 않는다.
-    'text-size': ['case', ['<=', ['get', 'rank'], 2], 12.5, ['<=', ['get', 'rank'], 4], 11.5, 10.5],
+    // 지명과 같은 이유로 줌에 따라 키운다. 이름난 봉우리일수록 크게 하던 기준은 유지한다.
+    'text-size': ['interpolate', ['linear'], ['zoom'],
+      5, ['case', ['<=', ['get', 'rank'], 2], 12.5, ['<=', ['get', 'rank'], 4], 11.5, 10.5],
+      12, ['case', ['<=', ['get', 'rank'], 2], 15, ['<=', ['get', 'rank'], 4], 14, 13],
+      16, ['case', ['<=', ['get', 'rank'], 2], 21, ['<=', ['get', 'rank'], 4], 19, 17]],
     'text-anchor': 'top', 'text-offset': [0, 0.45], 'text-max-width': 9,
     'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport',
     'symbol-sort-key': ['get', 'rank']
@@ -647,6 +651,17 @@ const WORLD_LABEL_LINE = ['interpolate', ['linear'], ['zoom'],
   5.0, ['case', ['<=', ['get', 'rank'], 4], 1, 0],
   6.0, 1
 ];
+
+// 지명 글자·점·산 아이콘은 줌에 따라 함께 커진다. 고정 크기로 두면 지면까지 내려갔을 때
+// 산 하나가 화면을 채우는데 이름은 12.5px 그대로라 읽히지 않는다. 크기가 변하면 글자가
+// 떨린다는 걱정이 있었는데, MapLibre 는 줌 사이를 보간해 그리므로 실제로는 매끄럽다.
+const PLACE_TEXT_SIZE = ['interpolate', ['linear'], ['zoom'],
+  5, 11.5, 9, 13, 12, 15.5, 15, 19, 17, 23];
+const PLACE_DOT_SIZE = ['interpolate', ['linear'], ['zoom'],
+  4, 2.6, 8, 3.8, 13, 5, 15, 6.5, 17, 8.5];
+const PLACE_ICON_SIZE = ['interpolate', ['linear'], ['zoom'],
+  5, 0.85, 9, 1, 13, 1.25, 15, 1.5, 17, 1.9];
+const PLACE_HALO = ['interpolate', ['linear'], ['zoom'], 9, 1.6, 15, 2.2, 17, 2.6];
 
 const style = {
   version: 8,
@@ -867,7 +882,7 @@ const style = {
       filter: ['!', ['in', ['get', 'kind'], ['literal', ['water', 'region', 'mountain']]]],
       layout: { visibility: 'none' },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
+        'circle-radius': PLACE_DOT_SIZE,
         'circle-color': '#d92b2b',
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 1.3,
@@ -885,6 +900,7 @@ const style = {
       layout: {
         visibility: 'none',
         'icon-image': 'peak',
+        'icon-size': PLACE_ICON_SIZE,
         'icon-anchor': 'bottom',        // 산 밑변이 좌표에 놓인다
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
@@ -900,13 +916,14 @@ const style = {
     //     - variable-anchor 를 쓰지 않는다. 쓰면 라벨이 점 주위를 옮겨 다닌다.
     //     - pitch/rotation-alignment: viewport 라야 지도를 눕히거나 돌려도 라벨이
     //       지면에 눕지 않고 늘 화면과 나란히 서서 읽힌다.
-    //     - text-size 를 고정한다. 줌마다 크기가 변하면 글자가 떨리며 뭉개진다.
+    //     - text-size 는 줌에 따라 키운다(PLACE_TEXT_SIZE). 고정하면 지면 시점에서
+    //       산 하나가 화면을 채우는데 이름만 12.5px 라 읽히지 않는다.
     { id: 'nt-label', type: 'symbol', source: 'ntplaces',
       layout: {
         visibility: 'none',
         'text-field': ['get', 'ko'],
         'text-font': ['Noto Sans Bold'],
-        'text-size': 12.5,
+        'text-size': PLACE_TEXT_SIZE,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
         'text-anchor': ['case',
           ['in', ['get', 'kind'], ['literal', ['water', 'region']]], 'center', 'top'],
@@ -928,7 +945,7 @@ const style = {
           ['==', ['get', 'kind'], 'region'], '#6b5230',
           '#1e1c18'],
         'text-halo-color': 'rgba(255,255,255,0.95)',
-        'text-halo-width': 1.7,
+        'text-halo-width': PLACE_HALO,
         'text-halo-blur': 0.2,
         'text-opacity': PLACE_OPACITY
       } },
@@ -941,7 +958,7 @@ const style = {
       filter: ['!', ['in', ['get', 'kind'], ['literal', ['water', 'region', 'mountain']]]],
       layout: { visibility: 'none' },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.6, 8, 3.8, 13, 5],
+        'circle-radius': PLACE_DOT_SIZE,
         'circle-color': '#2d4b8e',
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 1.3,
@@ -959,6 +976,7 @@ const style = {
       layout: {
         visibility: 'none',
         'icon-image': 'peak',
+        'icon-size': PLACE_ICON_SIZE,
         'icon-anchor': 'bottom',        // 산 밑변이 좌표에 놓인다
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
@@ -973,7 +991,7 @@ const style = {
         visibility: 'none',
         'text-field': ['get', 'ko'],
         'text-font': ['Noto Sans Bold'],
-        'text-size': 12.5,
+        'text-size': PLACE_TEXT_SIZE,
         // 물·지역 이름은 그 한가운데, 나머지는 점(또는 산 아이콘) 아래.
         'text-anchor': ['case',
           ['in', ['get', 'kind'], ['literal', ['water', 'region']]], 'center', 'top'],
@@ -995,7 +1013,7 @@ const style = {
           ['==', ['get', 'kind'], 'region'], '#6b5230',
           '#1e1c18'],
         'text-halo-color': 'rgba(255,255,255,0.95)',
-        'text-halo-width': 1.7,
+        'text-halo-width': PLACE_HALO,
         'text-halo-blur': 0.2,
         'text-opacity': PLACE_OPACITY
       } }
@@ -1622,6 +1640,11 @@ searchInput.addEventListener('input', async () => {
   await loadSearch();
   if (searchInput.value !== q) return;      // 그 사이 더 쳤으면 이 결과는 버린다
   searchRows = searchHits(q);
+  // 한 글자도 안 맞으면 뒤에서부터 잘라 다시 찾는다. 한글 입력기에서 마지막 글자가
+  // 겹쳐 들어가는 일이 잦다 — '베들레헴헴' 으로는 아무것도 안 나오지만 '베들레헴' 은 나온다.
+  for (let cut = q.trim().length - 1; !searchRows.length && cut >= 2; cut--) {
+    searchRows = searchHits(q.trim().slice(0, cut));
+  }
   searchCursor = searchRows.length ? 0 : -1;
   drawSearch();
 });
