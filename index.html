@@ -102,9 +102,15 @@
 
 
   /* ---------- 3D 단면 모형 ---------- */
-  #solid { position: fixed; inset: 0; z-index: 20; background: rgba(12, 14, 20, .82);
+  #solid { position: fixed; inset: 0; z-index: 20; background: rgba(16, 18, 24, .74);
+           backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
            display: flex; align-items: center; justify-content: center; }
   #solid[hidden] { display: none; }
+  /* 어두운 막 아래로 밝은 패널이 비치면 색 덩어리가 화면을 가린 것처럼 보인다. */
+  body.solid-open .panel, body.solid-open #panelHide, body.solid-open #panelToggle,
+  body.solid-open #search, body.solid-open #profile, body.solid-open .readout,
+  body.solid-open .maplibregl-ctrl-top-right, body.solid-open .maplibregl-ctrl-bottom-right
+  { display: none !important; }
   #solidBox { position: relative; width: min(1040px, 94vw); max-height: 92vh;
               background: var(--panel-solid); border-radius: 12px; padding: 14px 16px 12px;
               box-shadow: 0 12px 40px rgba(0,0,0,.45); display: flex; flex-direction: column; }
@@ -344,7 +350,6 @@
     <canvas id="solidCanvas"></canvas>
     <div id="solidCtl">
       <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
-      <label><input id="solidSpin" type="checkbox" checked /> 자동 회전</label>
       <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다</span>
     </div>
   </div>
@@ -1740,7 +1745,7 @@ const SOLID_ROUTE = {
   // 유다 지역 동서 횡단. 지중해에서 시작해 해안 평야·세펠라·유다 산지·유대 광야·
   // 사해를 지나 모압 고원까지. 예루살렘 위도(31.78)를 지난다.
   a: [34.45, 31.78], b: [36.05, 31.78],
-  halfWidthKm: 15, nx: 150, ny: 30
+  halfWidthKm: 30, nx: 260, ny: 54
 };
 const SOLID_SEA = 0;              // 지중해 수면
 const SOLID_DEAD_SEA = -430;      // 사해 수면. 이 DEM 에서 호수 바닥이 -432 로 평평하다.
@@ -1758,7 +1763,8 @@ const SOLID_ZONES = [
 ];
 
 const solidBox = $('solid'), solidCanvas = $('solidCanvas');
-let solidGrid = null, solidYaw = -0.30, solidPitch = 0.62, solidScale = 1, solidSpin = true, solidRaf = 0;
+let solidGrid = null, solidYaw = -0.30, solidPitch = 0.62, solidScale = 1;
+let solidTexture = null;
 
 // 땅의 고도색. 지도의 고도 램프와 같은 계열로 맞춘다.
 function solidColor(m) {
@@ -1771,6 +1777,59 @@ function solidColor(m) {
       return c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
     }
   }
+}
+
+// 지도가 실제로 그린 지형 그림을 그대로 떠서 단면 표면에 입힌다. 고도만으로 색을
+// 만들면 계단처럼 끊기는데, 지도 그림에는 음영기복·물·색이 이미 어우러져 있다.
+// 화면 밖에 같은 스타일의 지도를 하나 더 띄워 위에서 내려다본 그림을 읽는다
+// (본 지도의 캔버스는 preserveDrawingBuffer 가 꺼져 있어 되읽을 수 없다).
+async function captureTexture(bounds, nx, ny, pts) {
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-12000px;top:0;width:1400px;height:560px;';
+  document.body.appendChild(holder);
+  try {
+    const st = JSON.parse(JSON.stringify(map.getStyle()));
+    // 라벨은 그림에 구워지면 안 된다. 단면 경로선도 뺀다.
+    st.layers = st.layers.filter(l => l.type !== 'symbol' && !l.id.startsWith('profile'));
+    delete st.terrain;
+    const m2 = new maplibregl.Map({
+      container: holder, style: st, interactive: false, attributionControl: false,
+      fadeDuration: 0, renderWorldCopies: false,
+      canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true }
+    });
+    await new Promise(r => m2.once('load', r));
+    m2.fitBounds(bounds, { padding: 0, animate: false });
+    await new Promise(r => { const t = setTimeout(r, 12000); m2.once('idle', () => { clearTimeout(t); r(); }); });
+    const gl = m2.getCanvas();
+    const buf = document.createElement('canvas');
+    buf.width = gl.width; buf.height = gl.height;
+    const bctx = buf.getContext('2d');
+    bctx.drawImage(gl, 0, 0);
+    const img = bctx.getImageData(0, 0, buf.width, buf.height);
+    // 격자점마다 그림 위 좌표를 미리 구해 둔다. 그려질 때마다 project 하면 느리다.
+    const scale = gl.width / gl.clientWidth;
+    const uv = new Float32Array(nx * ny * 2);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const q = m2.project(pts[j * nx + i]);
+      uv[(j * nx + i) * 2] = q.x * scale;
+      uv[(j * nx + i) * 2 + 1] = q.y * scale;
+    }
+    m2.remove();
+    return { img, uv, w: buf.width, h: buf.height };
+  } catch (e) {
+    console.warn('단면 표면 그림을 뜨지 못했다:', e);
+    return null;
+  } finally {
+    holder.remove();
+  }
+}
+
+function texColor(t, i, j, nx) {
+  if (!t) return null;
+  const x = Math.round(t.uv[(j * nx + i) * 2]), y = Math.round(t.uv[(j * nx + i) * 2 + 1]);
+  if (x < 0 || y < 0 || x >= t.w || y >= t.h) return null;
+  const o = (y * t.w + x) * 4;
+  return [t.img.data[o], t.img.data[o + 1], t.img.data[o + 2]];
 }
 
 // 회랑 격자를 뜬다. DEM 은 화면에 올라온 타일에서만 읽히므로 먼저 그 범위를 비춘다.
@@ -1788,7 +1847,7 @@ async function sampleCorridor() {
                    [Math.max(a[0], b[0]) + pad / kx, Math.max(a[1], b[1]) + pad / ky]],
                   { padding: 30, pitch: 0, bearing: 0, duration: 700 });
   });
-  const grid = [], lons = [];
+  const grid = [], lons = [], pts = [];
   let lo = Infinity, hi = -Infinity, miss = 0;
   for (let j = 0; j < ny; j++) {
     const w = (j / (ny - 1) - 0.5) * 2 * halfWidthKm;
@@ -1798,6 +1857,7 @@ async function sampleCorridor() {
       const lng = a[0] + (b[0] - a[0]) * t + px * w;
       const lat = a[1] + (b[1] - a[1]) * t + py * w;
       if (j === 0) lons.push(a[0] + (b[0] - a[0]) * t);
+      pts.push([lng, lat]);
       let e = map.queryTerrainElevation({ lng, lat }, { exaggerated: false });
       if (e == null) { e = SOLID_SEA; miss++; }
       lo = Math.min(lo, e); hi = Math.max(hi, e);
@@ -1805,7 +1865,9 @@ async function sampleCorridor() {
     }
     grid.push(row);
   }
-  return { grid, lons, lo, hi, lenKm: len, widthKm: halfWidthKm * 2, miss, nx, ny };
+  const bounds = [[Math.min(a[0], b[0]) - pad / kx, Math.min(a[1], b[1]) - pad / ky],
+                  [Math.max(a[0], b[0]) + pad / kx, Math.max(a[1], b[1]) + pad / ky]];
+  return { grid, lons, pts, bounds, lo, hi, lenKm: len, widthKm: halfWidthKm * 2, miss, nx, ny };
 }
 
 function drawSolid() {
@@ -1843,8 +1905,10 @@ function drawSolid() {
   const L = [-0.55, -0.5, 0.67];
   const faces = [];
   const push = (pts, color, depthBias = 0) => {
-    let d = 0; for (const p of pts) d += p[2];
-    faces.push({ pts, color, d: d / pts.length + depthBias });
+    // 무게중심이 아니라 가장 먼 꼭짓점으로 정렬한다. 벽은 바닥까지 뻗어 z 범위가
+    // 넓은데, 무게중심을 쓰면 먼 쪽 벽이 가까운 지형보다 나중에 그려져 덮어 버린다.
+    let d = -Infinity; for (const p of pts) d = Math.max(d, p[2]);
+    faces.push({ pts, color, d: d + depthBias });
   };
 
   // 1) 지표면
@@ -1854,8 +1918,11 @@ function drawSolid() {
     const vy = Y(j + 1) - Y(j), vz = (e01 - e00) / 1000 * exag;
     const n = [-uz * vy, -ux * vz, ux * vy];
     const nl = Math.hypot(n[0], n[1], n[2]) || 1;
-    const lam = Math.max(0.22, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
-    const c = solidColor((e00 + e10 + e01 + e11) / 4);
+    const dot = (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl;
+    const c = texColor(solidTexture, i, j, nx) || solidColor((e00 + e10 + e01 + e11) / 4);
+    // 지도 그림에는 음영기복이 이미 들어 있다. 여기서 또 세게 깎으면 새까매지므로
+    // 입체감이 살 만큼만 곱한다(그림이 없을 때는 원래대로 세게 깎는다).
+    const lam = solidTexture ? 0.78 + 0.34 * Math.max(0, dot) : Math.max(0.22, dot);
     push([S(X(i), Y(j), zOf(e00)), S(X(i + 1), Y(j), zOf(e10)),
           S(X(i + 1), Y(j + 1), zOf(e11)), S(X(i), Y(j + 1), zOf(e01))],
          `rgb(${Math.round(c[0] * lam)},${Math.round(c[1] * lam)},${Math.round(c[2] * lam)})`);
@@ -1864,19 +1931,25 @@ function drawSolid() {
   // 2) 자른 면(옆벽). 단면도의 핵심이라 흙빛으로 칠하고 면마다 밝기를 달리한다.
   const wall = (shade) => `rgb(${Math.round(196 * shade)},${Math.round(160 * shade)},${Math.round(112 * shade)})`;
   const zb = zOf(base);
+  // 카메라를 등진 벽은 덩어리 안쪽이라 보이지 않는다. 그리면 지형을 덮기만 한다.
+  // 바깥 방향 법선의 깊이 성분이 양수일 때만(=이쪽을 향할 때만) 그린다.
+  const seeS = -cz * sy > 0, seeN = cz * sy > 0, seeW = -sz * sy > 0, seeE = sz * sy > 0;
   for (let i = 0; i < nx - 1; i++) {                       // 남·북 벽
-    for (const [j, shade] of [[0, 0.82], [ny - 1, 0.62]]) {
+    for (const [j, shade, show] of [[0, 0.82, seeS], [ny - 1, 0.62, seeN]]) {
+      if (!show) continue;
       push([S(X(i), Y(j), zb), S(X(i + 1), Y(j), zb),
             S(X(i + 1), Y(j), zOf(grid[j][i + 1])), S(X(i), Y(j), zOf(grid[j][i]))], wall(shade));
     }
   }
   for (let j = 0; j < ny - 1; j++) {                        // 동·서 벽
-    for (const [i, shade] of [[0, 0.72], [nx - 1, 0.9]]) {
+    for (const [i, shade, show] of [[0, 0.72, seeW], [nx - 1, 0.9, seeE]]) {
+      if (!show) continue;
       push([S(X(i), Y(j), zb), S(X(i), Y(j + 1), zb),
             S(X(i), Y(j + 1), zOf(grid[j + 1][i])), S(X(i), Y(j), zOf(grid[j][i]))], wall(shade));
     }
   }
-  push([S(0, 0, zb), S(lenKm, 0, zb), S(lenKm, widthKm, zb), S(0, widthKm, zb)], wall(0.45));
+  // 바닥은 위에서 내려다보는 한 보이지 않는다. 맨 뒤로 보내 혹시라도 덮지 않게 한다.
+  push([S(0, 0, zb), S(lenKm, 0, zb), S(lenKm, widthKm, zb), S(0, widthKm, zb)], wall(0.45), -1e6);
 
   // 3) 물. 지표가 수면보다 낮은 칸에만 수면을 덮는다. 호수 바닥을 파랗게 칠하는 것과
   //    달리, 평평한 면이 덮여야 물로 보인다.
@@ -1927,18 +2000,16 @@ function drawSolid() {
   }
 }
 
-function solidLoop() {
-  if (solidSpin) { solidYaw += 0.0038; drawSolid(); }
-  solidRaf = requestAnimationFrame(solidLoop);
-}
-
 async function openSolid() {
   solidBox.hidden = false;
+  document.body.classList.add('solid-open');
   $('solidSub').textContent = '지형 자료를 읽는 중…';
   solidGrid = null;
   drawSolid();
   const g = await sampleCorridor();
   solidGrid = g;
+  $('solidSub').textContent = '지형 그림을 뜨는 중…';
+  solidTexture = await captureTexture(g.bounds, g.nx, g.ny, g.pts);
   const mid = g.grid[Math.floor(g.ny / 2)];
   const fmt = v => Math.round(v).toLocaleString('ko-KR');
   $('solidSub').innerHTML =
@@ -1947,13 +2018,11 @@ async function openSolid() {
     `유다 산지에서 사해까지 <b>${fmt(Math.max(...mid) - SOLID_DEAD_SEA)} m</b> 를 떨어진다` +
     (g.miss ? ` · 자료 없는 칸 ${g.miss}개는 해수면으로 뒀다` : '');
   drawSolid();
-  cancelAnimationFrame(solidRaf);
-  solidLoop();
 }
 
 function closeSolid() {
   solidBox.hidden = true;
-  cancelAnimationFrame(solidRaf); solidRaf = 0;
+  document.body.classList.remove('solid-open');
 }
 
 // 브라우저 콘솔·자동 검증에서 모형을 만질 수 있게 한다(window.map 과 같은 목적).
@@ -1963,7 +2032,6 @@ window.solid = {
     if (yaw != null) solidYaw = yaw;
     if (pitch != null) solidPitch = pitch;
     if (scale != null) solidScale = scale;
-    solidSpin = false; $('solidSpin').checked = false;
     drawSolid();
   }
 };
@@ -1976,7 +2044,6 @@ $('solidExag').addEventListener('input', e => {
   $('solidExagOut').textContent = e.target.value + '×';
   drawSolid();
 });
-$('solidSpin').addEventListener('change', e => { solidSpin = e.target.checked; });
 
 // 끌어서 돌리기 — 좌우는 방위, 상하는 기울기.
 let solidDrag = null;
@@ -1984,7 +2051,6 @@ const solidDown = e => {
   solidDrag = { x: e.clientX ?? e.touches[0].clientX, y: e.clientY ?? e.touches[0].clientY,
                 yaw: solidYaw, pitch: solidPitch };
   solidCanvas.classList.add('drag');
-  $('solidSpin').checked = false; solidSpin = false;
 };
 const solidMove = e => {
   if (!solidDrag) return;
