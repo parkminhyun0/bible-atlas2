@@ -99,6 +99,31 @@
   /* 좁거나 낮은 화면 = 바텀시트.
      기존에는 폭만 100% 로 늘리고 높이는 그대로여서 화면의 89% 가 패널에 가렸다. */
 
+
+  /* ---------- 고도 단면도 ---------- */
+  #profile {
+    /* 왼쪽 설정 패널(280px) 오른쪽에 놓는다. 패널을 접으면 왼쪽 끝으로 붙는다. */
+    position: absolute; left: 310px; bottom: 14px; width: 420px; max-width: calc(100% - 324px);
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .16); padding: 10px 12px 8px; z-index: 4;
+  }
+  #profile[hidden] { display: none; }
+  body.panel-hidden #profile { left: 14px; max-width: calc(100% - 28px); }
+  #profile h2 { margin: 0 0 2px; font-size: 12.5px; font-weight: 600; }
+  #profile .sum { margin: 0 0 6px; font-size: 11.5px; color: var(--ink-soft); }
+  #profile .sum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  #profileClose {
+    position: absolute; top: 6px; right: 8px; width: 26px; height: 26px; padding: 0;
+    border: 0; background: none; color: var(--ink-soft); font-size: 14px; line-height: 1; cursor: pointer;
+  }
+  #profileChart { display: block; width: 100%; height: 118px; }
+  #profileChart .area { fill: rgba(79, 109, 143, .18); }
+  #profileChart .line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  #profileChart .axis { stroke: var(--line); stroke-width: 1; }
+  #profileChart text { font-size: 9.5px; fill: var(--ink-soft); }
+  #profileChart .cursor { stroke: #b3452f; stroke-width: 1.2; }
+  #profileHint { font-size: 11.5px; color: var(--ink-soft); }
+
   /* ---------- 지명 검색 ---------- */
   /* 오른쪽 위에는 MapLibre 의 확대·나침반 버튼이 있으므로 그 왼쪽에 자리를 잡는다. */
   #search {
@@ -198,6 +223,15 @@
     /* 시트가 올라오면 검색창을 덮으므로 같이 숨긴다. */
     body.sheet-open #search { display: none; }
 
+
+    /* 단면도는 검색창 위로 올린다. 데스크톱 max-width(패널 자리 확보용)는 여기서 푼다. */
+    #profile { left: 12px; right: 12px; width: auto; max-width: none;
+               bottom: calc(58px + env(safe-area-inset-bottom)); }
+    /* 좁은 화면에서는 단면도와 고도 표시가 같은 자리를 다툰다. 단면도가 이긴다. */
+    body.profile-open .readout { display: none; }
+    #profileChart { height: 96px; }
+    body.sheet-open #profile { display: none; }
+
     /* 시트가 열리면 고도 표시는 가려지므로 숨긴다. */
     body.sheet-open .readout { display: none; }
     /* 검색창이 아래를 차지하므로 고도 표시를 그 위로 올린다. */
@@ -275,6 +309,14 @@
 <div id="map"></div>
 <div id="night" aria-hidden="true"></div>
 
+<div id="profile" hidden role="region" aria-label="고도 단면도">
+  <button id="profileClose" type="button" aria-label="단면도 닫기">✕</button>
+  <h2 id="profileTitle">고도 단면도</h2>
+  <p class="sum" id="profileSum"></p>
+  <svg id="profileChart" role="img" aria-label="고도 단면 그래프"></svg>
+  <div id="profileHint"></div>
+</div>
+
 <div id="search" role="search">
   <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
          placeholder="지명 검색 (예: 가버나움, 헤르몬)"
@@ -323,6 +365,18 @@
     <div class="sub" id="placeNote" style="margin-top:7px"></div>
   </div>
 
+
+  <div class="aspect">
+    <div class="aspect-h">고도 단면도</div>
+    <div class="row"><button id="profilePick" aria-pressed="false">지도에서 두 지점 찍기</button></div>
+    <div class="btns" role="group" aria-label="성경 노정 예시">
+      <button class="profile-preset" data-a="여리고" data-b="예루살렘">여리고 → 예루살렘</button>
+      <button class="profile-preset" data-a="가버나움" data-b="나사렛">가버나움 → 나사렛</button>
+    </div>
+    <div class="sub" id="profileNote" style="margin-top:7px">두 지점을 잇는 <b>직선</b> 구간의 실제 DEM
+      높낮이다. 옛 길을 따라간 것이 아니라 단면을 자른 것이다. '예루살렘에서 여리고로
+      내려간다'(눅 10:30) 같은 표현이 왜 그런지 한눈에 보인다.</div>
+  </div>
   <div class="aspect">
     <div class="aspect-h">태양 · 시간대</div>
     <div class="row"><label><input type="checkbox" id="sunOn" /> 태양·하늘 시간 변화 보기</label></div>
@@ -684,6 +738,7 @@ const style = {
     worldpts: { type: 'geojson', data: WORLD_PTS },
     peaks:    { type: 'geojson', data: PEAKS },
     dssouth:  { type: 'geojson', data: DS_SOUTH },
+    profileline: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     lrivers:  { type: 'geojson', data: LOC_RIVERS },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
@@ -852,6 +907,17 @@ const style = {
     peakLayer('world-peak', 0, ['<=', ['get', 'rank'], 3], PEAK_MAJOR),
     peakLayer('world-peak-mid', 5.0, ['all', ['>', ['get', 'rank'], 3], ['<=', ['get', 'rank'], 5]], PEAK_MID, 14),
     peakLayer('world-peak-minor', 7.6, ['>', ['get', 'rank'], 5], PEAK_MINOR, 15),
+
+    // 10) 고도 단면도의 경로선과 양 끝점. 평소에는 빈 소스라 아무것도 그리지 않는다.
+    { id: 'profile-line', type: 'line', source: 'profileline',
+      layout: { 'line-cap': 'round' },
+      paint: { 'line-color': '#b3452f', 'line-width': 2.4, 'line-opacity': 0.9 } },
+    { id: 'profile-pt', type: 'circle', source: 'profileline',
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: { 'circle-radius': ['case', ['==', ['get', 'role'], 'cursor'], 5, 4.5],
+               'circle-color': ['case', ['==', ['get', 'role'], 'cursor'], '#b3452f', '#ffffff'],
+               'circle-stroke-color': '#b3452f', 'circle-stroke-width': 2,
+               'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'land',
@@ -1532,6 +1598,171 @@ function openPlacePopup(feature, lngLat) {
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
 
+// ---------- 고도 단면도 ----------
+// 두 지점을 잇는 선을 따라 실제 DEM 고도를 훑어 그린다. '예루살렘에서 여리고로
+// 내려간다'(눅 10:30) 같은 표현이 왜 그런지 한 장으로 보이게 하는 것이 목적이다.
+const PROFILE_N = 180;               // 표본 수. 200 정도면 20km 구간에서 100m 간격이다.
+const profileBox = $('profile'), profileChart = $('profileChart');
+let profilePicking = false, profilePts = [];
+
+const hav = (a, b) => {           // km
+  const p = Math.PI / 180, R = 6371;
+  return 2 * R * Math.asin(Math.sqrt(
+    Math.sin((b[1] - a[1]) * p / 2) ** 2 +
+    Math.cos(a[1] * p) * Math.cos(b[1] * p) * Math.sin((b[0] - a[0]) * p / 2) ** 2));
+};
+
+function drawProfileGeometry(cursor) {
+  const src = map.getSource('profileline');
+  if (!src) return;
+  const feats = profilePts.map((c, i) => ({
+    type: 'Feature', properties: { role: i === 0 ? 'a' : 'b' },
+    geometry: { type: 'Point', coordinates: c }
+  }));
+  if (profilePts.length === 2) {
+    feats.push({ type: 'Feature', properties: {},
+                 geometry: { type: 'LineString', coordinates: profilePts } });
+  }
+  if (cursor) feats.push({ type: 'Feature', properties: { role: 'cursor' },
+                           geometry: { type: 'Point', coordinates: cursor } });
+  src.setData({ type: 'FeatureCollection', features: feats });
+}
+
+// DEM 은 화면에 올라온 타일에서만 읽힌다. 두 점이 화면 밖이면 값이 비므로 먼저 맞춘다.
+function fitToRoute() {
+  const [a, b] = profilePts;
+  return new Promise(resolve => {
+    map.once('idle', () => resolve());
+    map.fitBounds([[Math.min(a[0], b[0]), Math.min(a[1], b[1])],
+                   [Math.max(a[0], b[0]), Math.max(a[1], b[1])]],
+                  { padding: 90, pitch: 0, bearing: 0, duration: 900 });
+  });
+}
+
+function sampleRoute() {
+  const [a, b] = profilePts;
+  const out = [];
+  for (let i = 0; i <= PROFILE_N; i++) {
+    const t = i / PROFILE_N;
+    const lng = a[0] + (b[0] - a[0]) * t, lat = a[1] + (b[1] - a[1]) * t;
+    const e = map.queryTerrainElevation({ lng, lat }, { exaggerated: false });
+    out.push({ km: hav(a, [lng, lat]), m: e == null ? null : e, lng, lat });
+  }
+  return out;
+}
+
+function renderProfile(pts, title) {
+  const good = pts.filter(p => p.m != null);
+  if (good.length < 5) {
+    profileBox.hidden = false;
+    $('profileTitle').textContent = title;
+    $('profileSum').textContent = '';
+    profileChart.innerHTML = '';
+    $('profileHint').textContent = '이 구간의 고도 자료를 읽지 못했습니다. 조금 확대한 뒤 다시 시도해 주세요.';
+    return;
+  }
+  const W = 396, H = 118, L = 34, R = 6, T = 8, B = 16;
+  const xs = good.map(p => p.km), ys = good.map(p => p.m);
+  const kmMax = xs[xs.length - 1] || 1;
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (hi - lo < 40) { const mid = (hi + lo) / 2; lo = mid - 20; hi = mid + 20; }
+  const X = km => L + (W - L - R) * (km / kmMax);
+  const Y = m => T + (H - T - B) * (1 - (m - lo) / (hi - lo));
+  const d = good.map((p, i) => `${i ? 'L' : 'M'}${X(p.km).toFixed(1)},${Y(p.m).toFixed(1)}`).join('');
+  const area = `${d}L${X(kmMax).toFixed(1)},${(H - B).toFixed(1)}L${X(0).toFixed(1)},${(H - B).toFixed(1)}Z`;
+  const fmtM = v => Math.round(v).toLocaleString('ko-KR');
+  profileChart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  profileChart.innerHTML =
+    `<path class="area" d="${area}"/><path class="line" d="${d}"/>` +
+    `<line class="axis" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/>` +
+    `<line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/>` +
+    `<text x="2" y="${T + 8}">${fmtM(hi)}m</text>` +
+    `<text x="2" y="${H - B}">${fmtM(lo)}m</text>` +
+    `<text x="${L + 2}" y="${H - 3}">0</text>` +
+    `<text x="${W - R}" y="${H - 3}" text-anchor="end">${kmMax.toFixed(1)}km</text>` +
+    `<g id="profileCursor"></g>`;
+
+  // 오르내린 양은 눈으로 세기 어렵다. 1m 미만 잔떨림은 DEM 잡음이라 버린다.
+  let up = 0, down = 0;
+  for (let i = 1; i < good.length; i++) {
+    const dz = good[i].m - good[i - 1].m;
+    if (dz > 1) up += dz; else if (dz < -1) down += -dz;
+  }
+  const a = good[0].m, b = good[good.length - 1].m;
+  profileBox.hidden = false;
+  document.body.classList.add('profile-open');
+  $('profileTitle').textContent = title;
+  $('profileSum').innerHTML =
+    `거리 <b>${kmMax.toFixed(1)} km</b> · 시작 <b>${fmtM(a)} m</b> → 끝 <b>${fmtM(b)} m</b> ` +
+    `(<b>${b - a >= 0 ? '+' : ''}${fmtM(b - a)} m</b>) · 총 오름 <b>${fmtM(up)} m</b> · 총 내림 <b>${fmtM(down)} m</b>`;
+  $('profileHint').textContent = '그래프 위에 손을 올리면 그 지점이 지도에 표시된다.';
+
+  // 그래프 ↔ 지도 연결
+  const move = ev => {
+    const r = profileChart.getBoundingClientRect();
+    const x = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left) / r.width * W;
+    const km = Math.max(0, Math.min(kmMax, (x - L) / (W - L - R) * kmMax));
+    let best = good[0];
+    for (const p of good) if (Math.abs(p.km - km) < Math.abs(best.km - km)) best = p;
+    const g = profileChart.querySelector('#profileCursor');
+    if (g) g.innerHTML = `<line class="cursor" x1="${X(best.km)}" y1="${T}" x2="${X(best.km)}" y2="${H - B}"/>`;
+    drawProfileGeometry([best.lng, best.lat]);
+    $('profileHint').textContent = `${best.km.toFixed(1)} km 지점 · ${fmtM(best.m)} m`;
+  };
+  profileChart.onmousemove = move;
+  profileChart.ontouchmove = e => { e.preventDefault(); move(e); };
+  profileChart.onmouseleave = () => {
+    const g = profileChart.querySelector('#profileCursor');
+    if (g) g.innerHTML = '';
+    drawProfileGeometry(null);
+  };
+}
+
+async function runProfile(title) {
+  drawProfileGeometry(null);
+  await fitToRoute();
+  renderProfile(sampleRoute(), title);
+}
+
+function setProfilePicking(on) {
+  profilePicking = on;
+  $('profilePick').setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('profilePick').textContent = on ? '취소 (두 지점 찍는 중)' : '지도에서 두 지점 찍기';
+  map.getCanvas().style.cursor = on ? 'crosshair' : '';
+  if (on) { profilePts = []; drawProfileGeometry(null); }
+}
+
+$('profilePick').addEventListener('click', () => setProfilePicking(!profilePicking));
+$('profileClose').addEventListener('click', () => {
+  profileBox.hidden = true; document.body.classList.remove('profile-open');
+  profilePts = []; drawProfileGeometry(null); setProfilePicking(false);
+});
+
+map.on('click', async e => {
+  if (!profilePicking) return;
+  profilePts.push([+e.lngLat.lng.toFixed(5), +e.lngLat.lat.toFixed(5)]);
+  drawProfileGeometry(null);
+  if (profilePts.length === 1) {
+    $('profilePick').textContent = '끝 지점을 찍으세요';
+    return;
+  }
+  setProfilePicking(false);
+  await runProfile('찍은 두 지점');
+});
+
+// 성경 노정 예시 — 지명 좌표는 검색 색인에서 그대로 가져온다.
+for (const btn of document.querySelectorAll('.profile-preset')) {
+  btn.addEventListener('click', async () => {
+    await loadSearch();
+    const find = n => (searchIndex.find(r => r.ko === n && (r.popup === 'nt' || r.popup === 'ot')) || {}).at;
+    const a = find(btn.dataset.a), b = find(btn.dataset.b);
+    if (!a || !b) return;
+    setProfilePicking(false);
+    profilePts = [a, b];
+    await runProfile(`${btn.dataset.a} → ${btn.dataset.b}`);
+  });
+}
+
 // ---------- 지명 검색 ----------
 // 지도가 이미 읽어 둔 자료를 그대로 다시 읽어 색인을 만든다. 첫 타자를 칠 때 한 번만
 // 받는다 — 처음부터 받으면 쓰지도 않을 1 MB 를 지도가 뜨기 전에 내려받게 된다.
@@ -1753,6 +1984,8 @@ map.on('click', () => {
   if (placeHit) { placeHit = false; return; }
   closePlacePopup();
 });
+// 단면도 지점을 찍는 중에는 지명 팝업을 열지 않는다.
+for (const id of PLACE_LAYERS) map.on('click', id, () => { if (profilePicking) closePlacePopup(); });
 
 // ---------- 오류 표시 ----------
 let errHide = null;
