@@ -126,11 +126,35 @@
   #solidCtl label { display: flex; align-items: center; gap: 6px; }
   #solidCtl input[type=range] { width: 130px; }
   #solidInfo { margin-left: auto; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  #terrainCompare { position: fixed; inset: 0; z-index: 21; background: rgba(16, 18, 24, .76);
+                    display: flex; align-items: center; justify-content: center; }
+  #terrainCompare[hidden] { display: none; }
+  #compareBox { position: relative; width: min(1080px, 96vw); max-height: 94dvh; overflow-y: auto;
+                box-sizing: border-box; background: var(--panel-solid); border-radius: 14px;
+                padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+  #compareBox h2 { margin: 0 42px 3px 0; font-size: 16px; }
+  #compareClose { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; padding: 0;
+                  border: 0; background: transparent; font-size: 18px; }
+  .compare-lead { margin: 0 0 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
+  .compare-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px; }
+  .compare-tabs button { min-height: 42px; }
+  .compare-tabs button[aria-pressed="true"] { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .compare-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 0; }
+  .compare-card { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+                  font-size: 11.5px; line-height: 1.55; background: #fff; }
+  .compare-card b { display: block; margin-bottom: 2px; font-size: 12.5px; }
+  .compare-caution { grid-column: 1 / -1; color: var(--ink-soft); background: #f5f1e8; }
   @media (max-width: 760px) {
     #solidBox { width: 96vw; padding: 12px 12px 10px; }
     #solidCanvas { height: 46vh; }
     #solidCtl { font-size: 11.5px; gap: 10px; }
     #solidInfo { margin-left: 0; width: 100%; }
+    #compareBox { width: 100vw; max-height: 100dvh; min-height: 100dvh; border-radius: 0;
+                  padding: calc(14px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)); }
+    .compare-tabs { grid-template-columns: 1fr; }
+    .compare-tabs button { min-height: 44px; }
+    .compare-facts { grid-template-columns: 1fr; }
+    .compare-caution { grid-column: auto; }
   }
 
   /* ---------- 고도 단면도 ---------- */
@@ -347,11 +371,33 @@
     <button id="solidClose" type="button" aria-label="닫기">✕</button>
     <h2 id="solidTitle">유다 지역 지형 단면</h2>
     <p class="sub" id="solidSub"></p>
-    <canvas id="solidCanvas"></canvas>
-    <div id="solidCtl">
-      <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
-      <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="solidSpeedOut">0.35×</output></label>
-      <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다. 위로 끌면 아래에서 지층을 올려다봅니다</span>
+    <div id="solidStage">
+      <canvas id="solidCanvas"></canvas>
+      <div id="solidCtl">
+        <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
+        <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="solidSpeedOut">0.35×</output></label>
+        <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다. 위로 끌면 아래에서 지층을 올려다봅니다</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="terrainCompare" hidden role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+  <div id="compareBox">
+    <button id="compareClose" type="button" aria-label="비교 창 닫기">✕</button>
+    <h2 id="compareTitle">서기 30년경 팔레스타인 · 한국 3D 지형 비교</h2>
+    <p class="compare-lead">예루살렘과 태백 도심권은 같은 32×24km 범위로 맞추고, 광역 유다 지형은 별도 범위로 봅니다. 실제 고도 1.0×가 기본입니다.</p>
+    <div class="compare-tabs" role="group" aria-label="비교할 지형 선택">
+      <button type="button" class="compare-tab" data-terrain="judea" aria-pressed="true">복음서 남부 무대</button>
+      <button type="button" class="compare-tab" data-terrain="jerusalem" aria-pressed="false">예루살렘 도심권</button>
+      <button type="button" class="compare-tab" data-terrain="taebaek" aria-pressed="false">태백 도심권</button>
+    </div>
+    <p class="compare-lead" id="compareSub" aria-live="polite"></p>
+    <div id="compareStageMount"></div>
+    <div class="compare-facts">
+      <div class="compare-card"><b>예루살렘 ↔ 태백</b><span id="compareElevation">각 지형을 선택하면 DEM 실측 고도를 표시합니다.</span></div>
+      <div class="compare-card"><b>서기 30년경의 영토</b>하나의 통일된 이스라엘 국토가 아니라 로마 직할 유대와 헤롯 가문의 영지들로 나뉘어 있었습니다.</div>
+      <div class="compare-card compare-caution"><b>면적 해석 주의</b>이 화면은 동일 축척의 지형 비교입니다. 고대 경계 면적은 검증된 복원 폴리곤을 계산한 뒤 ‘추정 면적’으로 별도 표시합니다.</div>
     </div>
   </div>
 </div>
@@ -426,6 +472,7 @@
       <button class="profile-preset" data-a="여리고" data-b="예루살렘">여리고 → 예루살렘</button>
       <button class="profile-preset" data-a="가버나움" data-b="나사렛">가버나움 → 나사렛</button>
       <button id="solidOpen" type="button">유다 지역 단면 (3D)</button>
+      <button id="compareOpen" type="button">1세기 · 한국 지형 비교 (3D)</button>
     </div>
     <div class="sub" id="profileNote" style="margin-top:7px">두 지점을 잇는 <b>직선</b> 구간의 실제 DEM
       높낮이다. 옛 길을 따라간 것이 아니라 단면을 자른 것이다. '예루살렘에서 여리고로
@@ -1742,32 +1789,47 @@ $('slope').addEventListener('change', e => {
 // 옆면(자른 면)과 바닥이 보이고, 그 안에 지중해와 사해가 물로 채워지며, 해수면이
 // 기준선으로 그어진다. 그래서 표면 격자에 벽면·바닥·수면을 더해 한 덩어리로 세운다.
 // 라이브러리는 쓰지 않는다 — 회전 행렬로 투영하고 사각형을 뒤에서부터 칠하면 된다.
-const SOLID_ROUTE = {
+const SOLID_PROFILES = {
+  judea: {
   // 유다 지역 동서 횡단. 지중해에서 시작해 해안 평야·세펠라·유다 산지·유대 광야·
   // 사해를 지나 모압 고원까지. 예루살렘 위도(31.78)를 지난다.
-  a: [34.45, 31.78], b: [36.05, 31.78],
-  halfWidthKm: 45, nx: 280, ny: 76
+    title: '복음서 남부 무대 · 유다 지역', a: [34.45, 31.78], b: [36.05, 31.78],
+    halfWidthKm: 45, nx: 280, ny: 76, water: 'judea', places: true,
+    zones: [
+      { lon: 34.52, name: '대해 (지중해)', sea: true }, { lon: 34.78, name: '해안 평야' },
+      { lon: 34.97, name: '세펠라' }, { lon: 35.21, name: '유다 산지' },
+      { lon: 35.38, name: '유대 광야' }, { lon: 35.52, name: '사해', sea: true },
+      { lon: 35.86, name: '모압 고원' }
+    ]
+  },
+  // 두 도심권은 같은 32 km × 24 km 회랑으로 잘라 체감 크기를 맞춘다.
+  jerusalem: {
+    title: '예루살렘 도심권', a: [35.044, 31.778], b: [35.383, 31.778],
+    halfWidthKm: 12, nx: 180, ny: 70, places: true,
+    zones: [{ lon: 35.214, name: '예루살렘 도심' }]
+  },
+  taebaek: {
+    title: '태백 도심권', a: [128.806, 37.164], b: [129.166, 37.164],
+    halfWidthKm: 12, nx: 180, ny: 70, places: false,
+    zones: [{ lon: 128.986, name: '태백 도심' }]
+  }
 };
+let solidProfileKey = 'judea';
+let solidRoute = SOLID_PROFILES.judea;
 const SOLID_SEA = 0;              // 지중해 수면
 const SOLID_DEAD_SEA = -430;      // 사해 수면. 이 DEM 에서 호수 바닥이 -432 로 평평하다.
 // 단면 위에 세울 지대 이름. 실측 고도로 경계를 확인했다(위도 31.78 기준):
 // 해안 평야 33~101m · 세펠라 173~262m · 유다 산지 460~781m · 유대 광야 224~-17m
 // · 사해 -220~-432m · 모압 고원 740~830m
-const SOLID_ZONES = [
-  { lon: 34.52, name: '대해 (지중해)', sea: true },
-  { lon: 34.78, name: '해안 평야' },
-  { lon: 34.97, name: '세펠라' },
-  { lon: 35.21, name: '유다 산지' },
-  { lon: 35.38, name: '유대 광야' },
-  { lon: 35.52, name: '사해', sea: true },
-  { lon: 35.86, name: '모압 고원' }
-];
-
 const solidBox = $('solid'), solidCanvas = $('solidCanvas');
+const solidStage = $('solidStage'), solidStageHome = $('solidBox'), terrainCompare = $('terrainCompare');
 let solidGrid = null, solidYaw = -0.30, solidPitch = 0.62, solidScale = 1;
 // 끄는 만큼 도는 정도. 1 이면 예전 속도인데 너무 빨라서 기본을 0.35 로 둔다.
 let solidSpeed = 0.35;
 let solidTexture = null;
+let solidLoadToken = 0;
+const compareElevations = {};
+let compareReturnFocus = null;
 
 // 땅의 고도색. 지도의 고도 램프와 같은 계열로 맞춘다.
 function solidColor(m) {
@@ -1787,7 +1849,7 @@ function solidColor(m) {
 // 화면 밖에 같은 스타일의 지도를 하나 더 띄워 위에서 내려다본 그림을 읽는다
 // (본 지도의 캔버스는 preserveDrawingBuffer 가 꺼져 있어 되읽을 수 없다).
 // 그림은 크게 뜬다 — 작게 뜨면 고도색 램프와 DEM 이 성기게 잡혀 네모가 드러난다.
-const SOLID_TEX_W = 2600;
+const SOLID_TEX_W = TOUCH ? 1400 : 2600;
 async function captureTexture(bounds, nx, ny, pts) {
   const holder = document.createElement('div');
   const th = Math.round(SOLID_TEX_W * 0.42);
@@ -1844,7 +1906,7 @@ function texColor(t, i, j, nx) {
 
 // 회랑 격자를 뜬다. DEM 은 화면에 올라온 타일에서만 읽히므로 먼저 그 범위를 비춘다.
 async function sampleCorridor() {
-  const { a, b, halfWidthKm, nx, ny } = SOLID_ROUTE;
+  const { a, b, halfWidthKm, nx, ny } = solidRoute;
   const midLat = (a[1] + b[1]) / 2;
   const kx = 111.32 * Math.cos(midLat * Math.PI / 180), ky = 110.57;
   const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky;
@@ -1884,7 +1946,8 @@ async function sampleCorridor() {
 let solidPlaces = null;
 async function loadSolidPlaces(g) {
   await loadSearch();
-  const { a, b, halfWidthKm } = SOLID_ROUTE;
+  if (!solidRoute.places) return [];
+  const { a, b, halfWidthKm } = solidRoute;
   const midLat = (a[1] + b[1]) / 2;
   const kx = 111.32 * Math.cos(midLat * Math.PI / 180), ky = 110.57;
   const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky;
@@ -2062,8 +2125,10 @@ function drawSolid(fast) {
             S(X(i2), Y(j2), zOf(lvl)), S(X(i), Y(j2), zOf(lvl))], color, 0.004);
     }
   };
-  waterFace(SOLID_SEA, (m, lon) => m <= SOLID_SEA + 1 && lon < 34.7, 'rgba(96,146,190,0.94)');
-  waterFace(SOLID_DEAD_SEA, m => m <= SOLID_DEAD_SEA + 6, 'rgba(86,132,176,0.95)');
+  if (solidRoute.water === 'judea') {
+    waterFace(SOLID_SEA, (m, lon) => m <= SOLID_SEA + 1 && lon < 34.7, 'rgba(96,146,190,0.94)');
+    waterFace(SOLID_DEAD_SEA, m => m <= SOLID_DEAD_SEA + 6, 'rgba(86,132,176,0.95)');
+  }
 
   faces.sort((A, B) => A.d - B.d);
   for (const f of faces) {
@@ -2132,7 +2197,7 @@ function drawSolid(fast) {
       ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] - (big ? 11 : 6), q[1]); ctx.stroke();
     }
     // 이름표는 겹치면 지운다. 해수면과 사해 바닥을 가장 먼저 자리 잡게 한다.
-    const wanted = [0, SOLID_DEAD_SEA];
+    const wanted = solidRoute.water === 'judea' ? [0, SOLID_DEAD_SEA] : [0];
     for (let m = 1000; m >= tMin; m -= 500) if (!wanted.includes(m)) wanted.push(m);
     for (let m = 1500; m <= tMax; m += 500) if (!wanted.includes(m)) wanted.push(m);
     const placed = [];
@@ -2166,7 +2231,7 @@ function drawSolid(fast) {
   }
 
   // 9) 지대 이름. 지명 이름표가 자리를 잡은 뒤에 남는 곳에만 적는다.
-  if (topVisible) for (const z of SOLID_ZONES) {
+  if (topVisible) for (const z of solidRoute.zones) {
     let i = 0, best = Infinity;
     for (let t = 0; t < nx; t++) { const d = Math.abs(lons[t] - z.lon); if (d < best) { best = d; i = t; } }
     const jm = Math.floor(ny / 2);
@@ -2180,32 +2245,77 @@ function drawSolid(fast) {
 
 }
 
+async function loadSolidProfile(key, subEl) {
+  const token = ++solidLoadToken;
+  solidProfileKey = key;
+  solidRoute = SOLID_PROFILES[key];
+  subEl.textContent = '지형 자료를 읽는 중…';
+  solidGrid = null; solidPlaces = null; solidTexture = null;
+  drawSolid(true);
+  const g = await sampleCorridor();
+  if (token !== solidLoadToken) return;
+  solidGrid = g;
+  drawSolid(true);
+  subEl.textContent = '지형 그림을 뜨는 중…';
+  solidTexture = await captureTexture(g.bounds, g.nx, g.ny, g.pts);
+  if (token !== solidLoadToken) return;
+  solidPlaces = await loadSolidPlaces(g);
+  if (token !== solidLoadToken) return;
+  const mid = g.grid[Math.floor(g.ny / 2)];
+  const fmt = v => Math.round(v).toLocaleString('ko-KR');
+  const centerM = mid[Math.floor(g.nx / 2)];
+  compareElevations[key] = Math.round(centerM);
+  subEl.innerHTML = `${solidRoute.title} · 표시 범위 <b>${g.lenKm.toFixed(0)} km × ${g.widthKm} km</b> · ` +
+    `중심 <b>${fmt(centerM)} m</b> · 최저 <b>${fmt(g.lo)} m</b> · 최고 <b>${fmt(g.hi)} m</b>` +
+    (solidRoute.water === 'judea' ? ` · 사해 수면 <b>${fmt(SOLID_DEAD_SEA)} m</b>` : '') +
+    (g.miss ? ` · 자료 없는 칸 ${g.miss}개` : '');
+  if (key === 'jerusalem' || key === 'taebaek') {
+    const je = compareElevations.jerusalem, ta = compareElevations.taebaek;
+    $('compareElevation').textContent = je != null && ta != null
+      ? `동일 좌표 격자의 중심 표본: 예루살렘 ${fmt(je)}m · 태백 ${fmt(ta)}m. 두 도시는 모두 고지대이지만 지형의 폭과 경사는 다릅니다.`
+      : `${solidRoute.title} 중심 DEM 표본은 ${fmt(centerM)}m입니다. 다른 도심권도 선택하면 나란히 표시합니다.`;
+  }
+  drawSolid(false);
+}
+
 async function openSolid() {
   solidBox.hidden = false;
   document.body.classList.add('solid-open');
-  $('solidSub').textContent = '지형 자료를 읽는 중…';
-  solidGrid = null; solidPlaces = null;
-  drawSolid(true);
-  const g = await sampleCorridor();
-  solidGrid = g;
-  drawSolid(true);
-  $('solidSub').textContent = '지형 그림을 뜨는 중…';
-  solidTexture = await captureTexture(g.bounds, g.nx, g.ny, g.pts);
-  solidPlaces = await loadSolidPlaces(g);
-  const mid = g.grid[Math.floor(g.ny / 2)];
-  const fmt = v => Math.round(v).toLocaleString('ko-KR');
-  $('solidSub').innerHTML =
-    `유다 지역 동서 단면 (예루살렘 위도) · 길이 <b>${g.lenKm.toFixed(0)} km</b> · 폭 <b>${g.widthKm} km</b> · ` +
-    `가장 높은 곳 <b>${fmt(g.hi)} m</b> · 사해 <b>${fmt(SOLID_DEAD_SEA)} m</b> · ` +
-    `유다 산지에서 사해까지 <b>${fmt(Math.max(...mid) - SOLID_DEAD_SEA)} m</b> 를 떨어진다` +
-    (g.miss ? ` · 자료 없는 칸 ${g.miss}개는 해수면으로 뒀다` : '');
-  drawSolid(false);
+  if (solidStage.parentElement !== solidStageHome) solidStageHome.appendChild(solidStage);
+  $('solidExag').value = '6'; $('solidExagOut').textContent = '6×';
+  await loadSolidProfile('judea', $('solidSub'));
 }
 
 function closeSolid() {
   solidBox.hidden = true;
   document.body.classList.remove('solid-open');
   solidVel = 0; cancelAnimationFrame(solidRaf); solidRaf = 0;
+}
+
+async function selectCompareTerrain(key) {
+  for (const btn of document.querySelectorAll('.compare-tab'))
+    btn.setAttribute('aria-pressed', btn.dataset.terrain === key ? 'true' : 'false');
+  await loadSolidProfile(key, $('compareSub'));
+}
+
+async function openTerrainCompare() {
+  compareReturnFocus = document.activeElement;
+  terrainCompare.hidden = false;
+  document.body.classList.add('solid-open');
+  $('compareStageMount').appendChild(solidStage);
+  $('solidExag').value = '1'; $('solidExagOut').textContent = '1×';
+  solidYaw = -0.30; solidPitch = 0.62; solidScale = 1;
+  $('compareClose').focus();
+  await selectCompareTerrain('judea');
+}
+
+function closeTerrainCompare() {
+  solidLoadToken++;
+  terrainCompare.hidden = true;
+  solidStageHome.appendChild(solidStage);
+  document.body.classList.remove('solid-open');
+  solidVel = 0; cancelAnimationFrame(solidRaf); solidRaf = 0;
+  if (compareReturnFocus && compareReturnFocus.focus) compareReturnFocus.focus();
 }
 
 // 브라우저 콘솔·자동 검증에서 모형을 만질 수 있게 한다(window.map 과 같은 목적).
@@ -2223,8 +2333,17 @@ window.solid = {
 
 $('solidOpen').addEventListener('click', openSolid);
 $('solidClose').addEventListener('click', closeSolid);
+$('compareOpen').addEventListener('click', openTerrainCompare);
+$('compareClose').addEventListener('click', closeTerrainCompare);
+for (const btn of document.querySelectorAll('.compare-tab'))
+  btn.addEventListener('click', () => selectCompareTerrain(btn.dataset.terrain));
+terrainCompare.addEventListener('click', e => { if (e.target === terrainCompare) closeTerrainCompare(); });
 solidBox.addEventListener('click', e => { if (e.target === solidBox) closeSolid(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !solidBox.hidden) closeSolid(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!terrainCompare.hidden) closeTerrainCompare();
+  else if (!solidBox.hidden) closeSolid();
+});
 $('solidSpeed').addEventListener('input', e => {
   solidSpeed = parseFloat(e.target.value);
   $('solidSpeedOut').textContent = solidSpeed.toFixed(2).replace(/0$/, '') + '×';
