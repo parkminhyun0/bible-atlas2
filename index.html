@@ -100,6 +100,33 @@
      기존에는 폭만 100% 로 늘리고 높이는 그대로여서 화면의 89% 가 패널에 가렸다. */
 
 
+
+  /* ---------- 3D 단면 모형 ---------- */
+  #solid { position: fixed; inset: 0; z-index: 20; background: rgba(12, 14, 20, .82);
+           display: flex; align-items: center; justify-content: center; }
+  #solid[hidden] { display: none; }
+  #solidBox { position: relative; width: min(1040px, 94vw); max-height: 92vh;
+              background: var(--panel-solid); border-radius: 12px; padding: 14px 16px 12px;
+              box-shadow: 0 12px 40px rgba(0,0,0,.45); display: flex; flex-direction: column; }
+  #solidBox h2 { margin: 0 0 2px; font-size: 15px; }
+  #solidBox .sub { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); }
+  #solidCanvas { display: block; width: 100%; height: min(56vh, 460px);
+                 border-radius: 8px; background: linear-gradient(#dfe9f4, #f3ece0);
+                 cursor: grab; touch-action: none; }
+  #solidCanvas.drag { cursor: grabbing; }
+  #solidClose { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; padding: 0;
+                border: 0; background: none; color: var(--ink-soft); font-size: 17px; cursor: pointer; }
+  #solidCtl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 9px; font-size: 12px; }
+  #solidCtl label { display: flex; align-items: center; gap: 6px; }
+  #solidCtl input[type=range] { width: 130px; }
+  #solidInfo { margin-left: auto; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  @media (max-width: 760px) {
+    #solidBox { width: 96vw; padding: 12px 12px 10px; }
+    #solidCanvas { height: 46vh; }
+    #solidCtl { font-size: 11.5px; gap: 10px; }
+    #solidInfo { margin-left: 0; width: 100%; }
+  }
+
   /* ---------- 고도 단면도 ---------- */
   #profile {
     /* 왼쪽 설정 패널(280px) 오른쪽에 놓는다. 패널을 접으면 왼쪽 끝으로 붙는다. */
@@ -309,6 +336,20 @@
 <div id="map"></div>
 <div id="night" aria-hidden="true"></div>
 
+<div id="solid" hidden role="dialog" aria-modal="true" aria-labelledby="solidTitle">
+  <div id="solidBox">
+    <button id="solidClose" type="button" aria-label="닫기">✕</button>
+    <h2 id="solidTitle">3D 지형 단면</h2>
+    <p class="sub" id="solidSub"></p>
+    <canvas id="solidCanvas"></canvas>
+    <div id="solidCtl">
+      <label>높이 과장 <input id="solidExag" type="range" min="1" max="8" step="0.5" value="3" /><output id="solidExagOut">3×</output></label>
+      <label><input id="solidSpin" type="checkbox" checked /> 자동 회전</label>
+      <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다</span>
+    </div>
+  </div>
+</div>
+
 <div id="profile" hidden role="region" aria-label="고도 단면도">
   <button id="profileClose" type="button" aria-label="단면도 닫기">✕</button>
   <h2 id="profileTitle">고도 단면도</h2>
@@ -378,6 +419,7 @@
     <div class="btns" role="group" aria-label="성경 노정 예시">
       <button class="profile-preset" data-a="여리고" data-b="예루살렘">여리고 → 예루살렘</button>
       <button class="profile-preset" data-a="가버나움" data-b="나사렛">가버나움 → 나사렛</button>
+      <button id="solidOpen" type="button">힌놈 골짜기 → 사해 (3D)</button>
     </div>
     <div class="sub" id="profileNote" style="margin-top:7px">두 지점을 잇는 <b>직선</b> 구간의 실제 DEM
       높낮이다. 옛 길을 따라간 것이 아니라 단면을 자른 것이다. '예루살렘에서 여리고로
@@ -1688,6 +1730,239 @@ $('slope').addEventListener('change', e => {
   map.setPaintProperty('hillshade', 'hillshade-method',
                        e.target.checked ? 'combined' : 'multidirectional');
 });
+
+// ---------- 3D 지형 단면 모형 ----------
+// 힌놈 골짜기에서 사해까지, 폭을 가진 띠(회랑)의 실제 DEM 고도를 격자로 떠서
+// 입체로 세운다. 라이브러리는 쓰지 않는다 — 높이맵 하나를 돌려 보는 데 three.js 를
+// 통째로 받을 이유가 없고, 캔버스에 사각형을 뒤에서부터 칠하면 그만이다.
+const SOLID_ROUTE = {
+  a: [35.2285, 31.7700],   // 힌놈 골짜기 (예루살렘 남쪽)
+  b: [35.5150, 31.7550],   // 사해 안까지 (수면이 보이게)
+  halfWidthKm: 3.2,        // 축 좌우로 이만큼씩 (총 6.4km 폭의 띠)
+  nx: 132, ny: 30          // 격자. 사각형 약 3,900개 — 캔버스로 감당된다.
+};
+const SOLID_DEAD_SEA = -430;      // 사해 수면. 이 아래는 물로 칠한다.
+
+const solidBox = $('solid'), solidCanvas = $('solidCanvas');
+let solidGrid = null, solidYaw = -0.62, solidPitch = 0.52, solidScale = 1, solidSpin = true, solidRaf = 0;
+
+// 고도색. 지도의 고도 램프와 같은 계열로 맞춘다.
+function solidColor(m) {
+  if (m <= SOLID_DEAD_SEA) return [88, 130, 170];
+  const stops = [[-430, [184, 198, 162]], [0, [200, 210, 162]], [150, [213, 210, 160]],
+                 [400, [215, 194, 143]], [800, [195, 167, 127]], [1300, [165, 142, 120]]];
+  for (let i = 1; i < stops.length; i++) {
+    if (m <= stops[i][0] || i === stops.length - 1) {
+      const [e0, c0] = stops[i - 1], [e1, c1] = stops[i];
+      const t = Math.max(0, Math.min(1, (m - e0) / (e1 - e0)));
+      return c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
+    }
+  }
+}
+
+// 회랑 격자를 뜬다. DEM 은 화면에 올라온 타일에서만 읽히므로 먼저 그 범위를 비춘다.
+async function sampleCorridor() {
+  const { a, b, halfWidthKm, nx, ny } = SOLID_ROUTE;
+  const midLat = (a[1] + b[1]) / 2;
+  const kx = 111.32 * Math.cos(midLat * Math.PI / 180);   // 경도 1도의 km
+  const ky = 110.57;
+  // 축에 수직인 단위벡터(도 단위)
+  const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky;
+  const len = Math.hypot(dx, dy);
+  const px = -dy / len / kx, py = dx / len / ky;           // 수직 방향(도)
+  const pad = halfWidthKm;
+  await new Promise(res => {
+    map.once('idle', res);
+    map.fitBounds([[Math.min(a[0], b[0]) - pad / kx, Math.min(a[1], b[1]) - pad / ky],
+                   [Math.max(a[0], b[0]) + pad / kx, Math.max(a[1], b[1]) + pad / ky]],
+                  { padding: 40, pitch: 0, bearing: 0, duration: 700 });
+  });
+  const grid = [];
+  let lo = Infinity, hi = -Infinity, miss = 0;
+  for (let j = 0; j < ny; j++) {
+    const w = (j / (ny - 1) - 0.5) * 2 * halfWidthKm;      // -halfWidth … +halfWidth
+    const row = [];
+    for (let i = 0; i < nx; i++) {
+      const t = i / (nx - 1);
+      const lng = a[0] + (b[0] - a[0]) * t + px * w;
+      const lat = a[1] + (b[1] - a[1]) * t + py * w;
+      let e = map.queryTerrainElevation({ lng, lat }, { exaggerated: false });
+      if (e == null) { e = SOLID_DEAD_SEA; miss++; }
+      // 호수 바닥을 그대로 세우면 물이 아니라 구덩이로 보인다. 수면에서 자른다.
+      if (e < SOLID_DEAD_SEA) e = SOLID_DEAD_SEA;
+      lo = Math.min(lo, e); hi = Math.max(hi, e);
+      row.push(e);
+    }
+    grid.push(row);
+  }
+  return { grid, lo, hi, lenKm: len, widthKm: halfWidthKm * 2, miss, nx, ny };
+}
+
+function drawSolid() {
+  if (!solidGrid) return;
+  const cv = solidCanvas, ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const { grid, lo, hi, lenKm, widthKm, nx, ny } = solidGrid;
+  const exag = parseFloat($('solidExag').value);
+  // 모형 좌표를 km 로 맞춘다. 고도는 m 라 1000 으로 나누고 과장 배율을 곱한다.
+  const zOf = m => (m - lo) / 1000 * exag;
+  const cy = Math.sin(solidPitch), sy = Math.cos(solidPitch);
+  const cz = Math.cos(solidYaw), sz = Math.sin(solidYaw);
+  const zMid = zOf((lo + hi) / 2);
+  const project = (x, y, z) => {
+    const X = x - lenKm / 2, Y = y - widthKm / 2, Z = z - zMid;
+    const rx = X * cz - Y * sz, ry = X * sz + Y * cz;       // yaw
+    const sx = rx;                                          // 화면 x
+    const syy = ry * cy - Z * sy;                           // 화면 y (기울기)
+    const depth = ry * sy + Z * cy;
+    return [sx, syy, depth];
+  };
+  // 화면에 꽉 차게 배율을 잡는다. 돌리면 겉보기 크기가 달라지므로, 여덟 모서리를
+  // 실제로 투영해 그 경계에 맞춘다. 고정 배율로는 돌릴 때마다 작아지거나 잘린다.
+  let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+  for (const cx of [0, lenKm]) for (const cyy of [0, widthKm]) for (const cz2 of [zOf(lo), zOf(hi)]) {
+    const q = project(cx, cyy, cz2);
+    bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]);
+    by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]);
+  }
+  const k = Math.min(W * 0.94 / (bx1 - bx0 || 1), H * 0.9 / (by1 - by0 || 1)) * solidScale;
+  const ox = W / 2 - (bx0 + bx1) / 2 * k, oy = H / 2 - (by0 + by1) / 2 * k;
+
+  // 빛은 왼쪽 위에서. 사각형 법선과의 각도로 밝기를 정한다.
+  const L = [-0.55, -0.5, 0.67];
+  const quads = [];
+  for (let j = 0; j < ny - 1; j++) {
+    for (let i = 0; i < nx - 1; i++) {
+      const x0 = (i / (nx - 1)) * lenKm, x1 = ((i + 1) / (nx - 1)) * lenKm;
+      const y0 = (j / (ny - 1)) * widthKm, y1 = ((j + 1) / (ny - 1)) * widthKm;
+      const e00 = grid[j][i], e10 = grid[j][i + 1], e01 = grid[j + 1][i], e11 = grid[j + 1][i + 1];
+      const p = [project(x0, y0, zOf(e00)), project(x1, y0, zOf(e10)),
+                 project(x1, y1, zOf(e11)), project(x0, y1, zOf(e01))];
+      // 법선(모형 좌표 기준). 경사가 급할수록 어두워진다.
+      const ux = x1 - x0, uz = (e10 - e00) / 1000 * exag;
+      const vy = y1 - y0, vz = (e01 - e00) / 1000 * exag;
+      const n = [-uz * vy, -ux * vz, ux * vy];
+      const nl = Math.hypot(n[0], n[1], n[2]) || 1;
+      const lam = Math.max(0.18, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
+      const mAvg = (e00 + e10 + e01 + e11) / 4;
+      const water = mAvg <= SOLID_DEAD_SEA + 0.5;
+      const c = solidColor(mAvg);
+      quads.push({ p, d: (p[0][2] + p[1][2] + p[2][2] + p[3][2]) / 4,
+                   c: water ? `rgb(${c[0]},${c[1]},${c[2]})`
+                            : `rgb(${Math.round(c[0] * lam)},${Math.round(c[1] * lam)},${Math.round(c[2] * lam)})` });
+    }
+  }
+  quads.sort((A, B) => A.d - B.d);          // 뒤에서부터 칠한다(화가 알고리즘)
+  const put = (x, y, z, text) => {
+    const q = project(x, y, z);
+    ctx.font = '600 12.5px "Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const X = ox + q[0] * k, Y = oy + q[1] * k;
+    ctx.lineWidth = 3.4; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.strokeText(text, X, Y);
+    ctx.fillStyle = '#3b3327'; ctx.fillText(text, X, Y);
+  };
+  for (const q of quads) {
+    ctx.beginPath();
+    ctx.moveTo(ox + q.p[0][0] * k, oy + q.p[0][1] * k);
+    for (let t = 1; t < 4; t++) ctx.lineTo(ox + q.p[t][0] * k, oy + q.p[t][1] * k);
+    ctx.closePath();
+    ctx.fillStyle = q.c;
+    ctx.fill();
+    // 사각형 사이 실틈을 메운다. 선을 같은 색으로 한 번 더 긋는 것이 가장 싸다.
+    ctx.strokeStyle = q.c; ctx.lineWidth = 0.7; ctx.stroke();
+  }
+  // 돌리다 보면 어느 쪽이 어디인지 잃는다. 양 끝에 이름을 세워 둔다.
+  const midW = widthKm / 2;
+  put(0, midW, zOf(grid[Math.floor(ny / 2)][0]) + 0.22, '힌놈 골짜기 (예루살렘)');
+  put(lenKm, midW, zOf(grid[Math.floor(ny / 2)][nx - 1]) + 0.22, '사해');
+}
+
+function solidLoop() {
+  if (solidSpin) { solidYaw += 0.0045; drawSolid(); }
+  solidRaf = requestAnimationFrame(solidLoop);
+}
+
+async function openSolid() {
+  solidBox.hidden = false;
+  $('solidSub').textContent = '지형 자료를 읽는 중…';
+  solidGrid = null;
+  drawSolid();
+  const g = await sampleCorridor();
+  solidGrid = g;
+  const drop = g.grid[Math.floor(g.ny / 2)];
+  $('solidSub').innerHTML =
+    `힌놈 골짜기 → 사해 · 길이 <b>${g.lenKm.toFixed(1)} km</b> · 폭 <b>${g.widthKm.toFixed(1)} km</b> · ` +
+    `가장 높은 곳 <b>${Math.round(g.hi).toLocaleString('ko-KR')} m</b> · ` +
+    `가장 낮은 곳 <b>${Math.round(g.lo).toLocaleString('ko-KR')} m</b> · ` +
+    `시작 <b>${Math.round(drop[0]).toLocaleString('ko-KR')} m</b> → 끝 <b>${Math.round(drop[drop.length - 1]).toLocaleString('ko-KR')} m</b>` +
+    (g.miss ? ` · 자료 없는 칸 ${g.miss}개는 사해 수면으로 뒀다` : '');
+  drawSolid();
+  cancelAnimationFrame(solidRaf);
+  solidLoop();
+}
+
+function closeSolid() {
+  solidBox.hidden = true;
+  cancelAnimationFrame(solidRaf); solidRaf = 0;
+}
+
+// 브라우저 콘솔·자동 검증에서 모형을 만질 수 있게 한다(window.map 과 같은 목적).
+window.solid = {
+  get grid() { return solidGrid; },
+  view(yaw, pitch, scale) {
+    if (yaw != null) solidYaw = yaw;
+    if (pitch != null) solidPitch = pitch;
+    if (scale != null) solidScale = scale;
+    solidSpin = false; $('solidSpin').checked = false;
+    drawSolid();
+  }
+};
+
+$('solidOpen').addEventListener('click', openSolid);
+$('solidClose').addEventListener('click', closeSolid);
+solidBox.addEventListener('click', e => { if (e.target === solidBox) closeSolid(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !solidBox.hidden) closeSolid(); });
+$('solidExag').addEventListener('input', e => {
+  $('solidExagOut').textContent = e.target.value + '×';
+  drawSolid();
+});
+$('solidSpin').addEventListener('change', e => { solidSpin = e.target.checked; });
+
+// 끌어서 돌리기 — 좌우는 방위, 상하는 기울기.
+let solidDrag = null;
+const solidDown = e => {
+  solidDrag = { x: e.clientX ?? e.touches[0].clientX, y: e.clientY ?? e.touches[0].clientY,
+                yaw: solidYaw, pitch: solidPitch };
+  solidCanvas.classList.add('drag');
+  $('solidSpin').checked = false; solidSpin = false;
+};
+const solidMove = e => {
+  if (!solidDrag) return;
+  const x = e.clientX ?? e.touches[0].clientX, y = e.clientY ?? e.touches[0].clientY;
+  solidYaw = solidDrag.yaw + (x - solidDrag.x) * 0.008;
+  // 완전히 눕거나 뒤집히면 읽을 수 없다. 5°~85° 로 묶는다.
+  solidPitch = Math.max(0.09, Math.min(1.48, solidDrag.pitch + (y - solidDrag.y) * 0.006));
+  drawSolid();
+  if (e.cancelable) e.preventDefault();
+};
+const solidUp = () => { solidDrag = null; solidCanvas.classList.remove('drag'); };
+solidCanvas.addEventListener('mousedown', solidDown);
+window.addEventListener('mousemove', solidMove);
+window.addEventListener('mouseup', solidUp);
+solidCanvas.addEventListener('touchstart', solidDown, { passive: true });
+solidCanvas.addEventListener('touchmove', solidMove, { passive: false });
+solidCanvas.addEventListener('touchend', solidUp);
+solidCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  solidScale = Math.max(0.5, Math.min(3, solidScale * (e.deltaY > 0 ? 0.92 : 1.08)));
+  drawSolid();
+}, { passive: false });
+window.addEventListener('resize', () => { if (!solidBox.hidden) drawSolid(); });
 
 // ---------- 고도 단면도 ----------
 // 두 지점을 잇는 선을 따라 실제 DEM 고도를 훑어 그린다. '예루살렘에서 여리고로
