@@ -350,7 +350,8 @@
     <canvas id="solidCanvas"></canvas>
     <div id="solidCtl">
       <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
-      <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다</span>
+      <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.2" max="2" step="0.1" value="0.6" /><output id="solidSpeedOut">0.6×</output></label>
+      <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다. 위로 끌면 아래에서 지층을 올려다봅니다</span>
     </div>
   </div>
 </div>
@@ -1749,9 +1750,6 @@ const SOLID_ROUTE = {
 };
 const SOLID_SEA = 0;              // 지중해 수면
 const SOLID_DEAD_SEA = -430;      // 사해 수면. 이 DEM 에서 호수 바닥이 -432 로 평평하다.
-// 등고선을 그을 높이. 사해(-400)에서 유다 산지(1,000)까지 200m 간격이면 촘촘하지도
-// 성글지도 않다.
-const SOLID_CONTOURS = [-400, -200, 0, 200, 400, 600, 800, 1000];
 // 단면 위에 세울 지대 이름. 실측 고도로 경계를 확인했다(위도 31.78 기준):
 // 해안 평야 33~101m · 세펠라 173~262m · 유다 산지 460~781m · 유대 광야 224~-17m
 // · 사해 -220~-432m · 모압 고원 740~830m
@@ -1767,6 +1765,8 @@ const SOLID_ZONES = [
 
 const solidBox = $('solid'), solidCanvas = $('solidCanvas');
 let solidGrid = null, solidYaw = -0.30, solidPitch = 0.62, solidScale = 1;
+// 끄는 만큼 도는 정도. 1 이면 예전 속도인데 너무 빨라서 기본을 0.6 으로 둔다.
+let solidSpeed = 0.6;
 let solidTexture = null;
 
 // 땅의 고도색. 지도의 고도 램프와 같은 계열로 맞춘다.
@@ -1876,26 +1876,6 @@ async function sampleCorridor() {
   return { grid, lons, pts, bounds, lo, hi, lenKm: len, widthKm: halfWidthKm * 2, miss, nx, ny };
 }
 
-// 격자에서 등고선을 딴다(마칭 스퀘어). 사각형 하나마다 두 변을 잇는 선분을 낸다.
-function contourSegments(grid, nx, ny, level) {
-  const segs = [];
-  const ix = (v, a, b) => (v - a) / (b - a);
-  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
-    const v = [grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]];
-    let code = 0;
-    for (let k = 0; k < 4; k++) if (v[k] >= level) code |= 1 << k;
-    if (code === 0 || code === 15) continue;
-    // 각 변에서 등고선이 지나는 지점 (격자 좌표)
-    const e = [];
-    if ((code & 1) !== (code & 2) >> 1) e.push([i + ix(level, v[0], v[1]), j]);
-    if ((code & 2) >> 1 !== (code & 4) >> 2) e.push([i + 1, j + ix(level, v[1], v[2])]);
-    if ((code & 4) >> 2 !== (code & 8) >> 3) e.push([i + ix(level, v[3], v[2]), j + 1]);
-    if ((code & 8) >> 3 !== (code & 1)) e.push([i, j + ix(level, v[0], v[3])]);
-    for (let k = 0; k + 1 < e.length; k += 2) segs.push([e[k], e[k + 1]]);
-  }
-  return segs;
-}
-
 // 단면 위에 찍을 주요 지명. 회랑 안에 드는 것만 골라 붉은 점으로 표시한다.
 let solidPlaces = null;
 async function loadSolidPlaces(g) {
@@ -1915,12 +1895,20 @@ async function loadSolidPlaces(g) {
     const across = -ex * uy + ey * ux;          // 축에서 떨어진 거리(km)
     if (along < 2 || along > len - 2 || Math.abs(across) > halfWidthKm - 2) continue;
     seen.add(r.ko);
-    out.push({ ko: r.ko.replace(/\s*\(.*\)\s*$/, ''), x: along, y: across + halfWidthKm, at: r.at });
+    out.push({ ko: r.ko.replace(/\s*\(.*\)\s*$/, ''), rank: r.rank || 9,
+               x: along, y: across + halfWidthKm, at: r.at });
   }
-  // 이름이 겹치지 않게 축 방향으로 성글게 고른다. 151km 에 열댓 개면 읽힌다.
-  out.sort((p, q) => p.x - q.x);
+  // 중요한 지명부터 고른다. 축 순서로 훑으면 예루살렘 같은 1등급이 옆의 작은
+  // 지명에 밀려 빠진다(실제로 빠졌다). 등급이 같으면 축 가운데에 가까운 것을 먼저.
+  const mid = len / 2;
+  out.sort((p, q) => (p.rank - q.rank) || (Math.abs(p.x - mid) - Math.abs(q.x - mid)));
   const keep = [];
-  for (const p of out) if (!keep.length || p.x - keep[keep.length - 1].x > 12) keep.push(p);
+  for (const p of out) {
+    if (keep.some(q => Math.abs(q.x - p.x) < 11 && Math.abs(q.y - p.y) < 22)) continue;
+    keep.push(p);
+    if (keep.length >= 18) break;
+  }
+  keep.sort((p, q) => p.x - q.x);
   // 표면 높이를 격자에서 읽어 둔다.
   for (const p of keep) {
     const i = Math.max(0, Math.min(g.nx - 1, Math.round(p.x / g.lenKm * (g.nx - 1))));
@@ -2022,22 +2010,43 @@ function drawSolid(fast) {
   // 2) 자른 면(옆벽)과 바닥. 카메라를 등진 벽은 덩어리 안쪽이라 그리지 않는다.
   const wall = (shade) => `rgb(${Math.round(196 * shade)},${Math.round(160 * shade)},${Math.round(112 * shade)})`;
   const zb = zOf(base);
+  // 자른 면은 한 덩어리 갈색이면 두께가 읽히지 않는다. 300 m 마다 색을 조금씩
+  // 바꿔 결이 보이게 한다. 실제 암석 지층이 아니라 깊이를 읽는 눈금이다.
+  const BAND = 300;
+  const bandTint = m => 1 - 0.055 * (Math.floor((m - base) / BAND) % 3);
+  // 바닥부터 지표까지를 300 m 띠로 잘라 그린다.
+  const wallStrip = (m0, m1, at, shade) => {
+    for (let m = Math.floor(m0 / BAND) * BAND; m < m1; m += BAND) {
+      const lo2 = Math.max(m0, m), hi2 = Math.min(m1, m + BAND);
+      if (hi2 - lo2 < 1) continue;
+      push(at(zOf(lo2), zOf(hi2)), wall(shade * bandTint(lo2)));
+    }
+  };
   const seeS = -cz * sy > 0, seeN = cz * sy > 0, seeW = -sz * sy > 0, seeE = sz * sy > 0;
   for (let i = 0; i + step < nx; i += step) {
     const i2 = Math.min(nx - 1, i + step);
     for (const [j, shade, show] of [[0, 0.82, seeS], [ny - 1, 0.62, seeN]]) {
       if (!show) continue;
-      push([S(X(i), Y(j), zb), S(X(i2), Y(j), zb), S(X(i2), Y(j), gz(i2, j)), S(X(i), Y(j), gz(i, j))], wall(shade));
+      const top = Math.min(grid[j][i], grid[j][i2]);
+      wallStrip(base, top, (z0b, z1b) =>
+        [S(X(i), Y(j), z0b), S(X(i2), Y(j), z0b), S(X(i2), Y(j), z1b), S(X(i), Y(j), z1b)], shade);
+      push([S(X(i), Y(j), zOf(top)), S(X(i2), Y(j), zOf(top)),
+            S(X(i2), Y(j), gz(i2, j)), S(X(i), Y(j), gz(i, j))], wall(shade * bandTint(top)));
     }
   }
   for (let j = 0; j + step < ny; j += step) {
     const j2 = Math.min(ny - 1, j + step);
     for (const [i, shade, show] of [[0, 0.72, seeW], [nx - 1, 0.9, seeE]]) {
       if (!show) continue;
-      push([S(X(i), Y(j), zb), S(X(i), Y(j2), zb), S(X(i), Y(j2), gz(i, j2)), S(X(i), Y(j), gz(i, j))], wall(shade));
+      const top = Math.min(grid[j][i], grid[j2][i]);
+      wallStrip(base, top, (z0b, z1b) =>
+        [S(X(i), Y(j), z0b), S(X(i), Y(j2), z0b), S(X(i), Y(j2), z1b), S(X(i), Y(j), z1b)], shade);
+      push([S(X(i), Y(j), zOf(top)), S(X(i), Y(j2), zOf(top)),
+            S(X(i), Y(j2), gz(i, j2)), S(X(i), Y(j), gz(i, j))], wall(shade * bandTint(top)));
     }
   }
-  push([S(0, 0, zb), S(lenKm, 0, zb), S(lenKm, widthKm, zb), S(0, widthKm, zb)], wall(0.45), -1e6);
+  // 바닥은 아래에서 올려다볼 때만 보인다. 바깥 방향이 -Z 이므로 깊이 성분은 -cy 다.
+  if (-cy > 0) push([S(0, 0, zb), S(lenKm, 0, zb), S(lenKm, widthKm, zb), S(0, widthKm, zb)], wall(0.5));
 
   // 3) 물. 지표가 수면보다 낮은 칸에만 평평한 수면을 덮는다.
   const waterFace = (lvl, test, color) => {
@@ -2063,42 +2072,20 @@ function drawSolid(fast) {
     ctx.strokeStyle = f.color; ctx.lineWidth = 0.7; ctx.stroke();
   }
 
-  const label = (x, y, text, color, size) => {
+  const label = (x, y, text, color, size, align) => {
     ctx.font = `700 ${size}px "Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 3.6; ctx.strokeStyle = 'rgba(255,255,255,.94)'; ctx.strokeText(text, x, y);
     ctx.fillStyle = color; ctx.fillText(text, x, y);
   };
 
-  // 4) 등고선. 손을 뗀 뒤에만 그린다.
-  if (!fast) {
-    ctx.save();
-    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(92,72,44,.42)';
-    for (const lv of SOLID_CONTOURS) {
-      const segs = contourSegments(grid, nx, ny, lv);
-      if (!segs.length) continue;
-      ctx.beginPath();
-      for (const [p0, p1] of segs) {
-        const A = S(p0[0] / (nx - 1) * lenKm, p0[1] / (ny - 1) * widthKm, zOf(lv));
-        const B = S(p1[0] / (nx - 1) * lenKm, p1[1] / (ny - 1) * widthKm, zOf(lv));
-        ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
-      }
-      // 아래 label() 이 선 색과 굵기를 바꿔 놓으므로 그을 때마다 다시 지정한다.
-      ctx.lineWidth = 0.9; ctx.strokeStyle = 'rgba(74,58,34,.5)';
-      ctx.stroke();
-      // 높이는 앞쪽(남쪽) 가장자리에 가까운 선분 하나에만 적는다.
-      let best = null;
-      for (const [p0] of segs) if (!best || p0[1] < best[1]) best = p0;
-      if (best) {
-        const q = S(best[0] / (nx - 1) * lenKm, best[1] / (ny - 1) * widthKm, zOf(lv));
-        label(q[0], q[1], `${lv.toLocaleString('ko-KR')}m`, '#6b5232', 10);
-      }
-    }
-    ctx.restore();
-  }
+  // 아래에서 올려다보는 각도에서는 지표에 붙은 표시(해수면선·지대 이름·지명)를
+  // 그리지 않는다. 덩어리에 가려 보이지 않아야 할 것들이다.
+  const topVisible = cy > 0.02;
 
   // 5) 해수면 기준선 — 앞쪽(남)과 뒤쪽(북) 두 곳에 긋는다.
   const z0 = zOf(SOLID_SEA);
+  if (topVisible) {
   ctx.save();
   ctx.setLineDash([6, 5]); ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(40,72,110,.85)';
   for (const yEdge of [0, widthKm]) {
@@ -2108,27 +2095,85 @@ function drawSolid(fast) {
   ctx.restore();
   for (const yEdge of [0, widthKm]) {
     const p1 = S(0, yEdge, z0);
-    label(p1[0], p1[1], '해수면 0m', '#28486e', 11.5);
+    label(p1[0] + 40, p1[1], '해수면 0m', '#28486e', 11.5);
+  }
   }
 
-  // 6) 지대 이름
-  for (const z of SOLID_ZONES) {
+  // 7) 높이 자 — 덩어리와 함께 도는 눈금자. 화면에서 가장 왼쪽에 오는 모서리에
+  // 세워 언제나 지형 바깥에 둔다. 눈금 간격은 실제 세로 축척 그대로여서, 확대하면
+  // 눈금이 벌어지고 이름표도 더 촘촘히 나타난다.
+  {
+    let rc = [0, 0], rx = Infinity;
+    for (const c of [[0, 0], [lenKm, 0], [0, widthKm], [lenKm, widthKm]]) {
+      const q = S(c[0], c[1], zOf(lo));
+      if (q[0] < rx) { rx = q[0]; rc = c; }
+    }
+    const tMin = Math.floor((lo - 30) / 100) * 100, tMax = Math.ceil((hi + 30) / 100) * 100;
+    // 덩어리 모서리에 딱 붙이면 해수면 이름표와 겹친다. 조금 바깥으로 뺀다.
+    const OFF = 26;
+    // 확대하면 모서리가 화면 밖으로 나간다. 세로 축척은 어디서나 같으니 자를
+    // 화면 안으로 밀어 넣어도 눈금은 그대로 맞는다.
+    const rxs = Math.max(80, Math.min(W - 12, S(rc[0], rc[1], zOf(lo))[0] - OFF));
+    const at = m => [rxs, S(rc[0], rc[1], zOf(m))[1]];
+    const a = at(tMin), b = at(tMax);
+    ctx.save();
+    // 눈금자 뒤에 옅은 판을 깔아 지형색 위에서도 읽히게 한다.
+    ctx.fillStyle = 'rgba(255,255,255,.74)';
+    ctx.fillRect(a[0] - 62, Math.min(a[1], b[1]) - 8, 70, Math.abs(b[1] - a[1]) + 16);
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(58,54,46,.9)';
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    ctx.strokeStyle = 'rgba(58,54,46,.75)'; ctx.lineWidth = 1;
+    for (let m = tMin; m <= tMax; m += 100) {
+      const q = at(m), big = m % 500 === 0;
+      ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] - (big ? 11 : 6), q[1]); ctx.stroke();
+    }
+    // 이름표는 겹치면 지운다. 해수면과 사해 바닥을 가장 먼저 자리 잡게 한다.
+    const wanted = [0, SOLID_DEAD_SEA];
+    for (let m = 1000; m >= tMin; m -= 500) if (!wanted.includes(m)) wanted.push(m);
+    for (let m = 1500; m <= tMax; m += 500) if (!wanted.includes(m)) wanted.push(m);
+    const placed = [];
+    for (const m of wanted) {
+      if (m < tMin || m > tMax) continue;
+      const q = at(m);
+      if (placed.some(y => Math.abs(y - q[1]) < 13)) continue;
+      placed.push(q[1]);
+      ctx.lineWidth = 2; ctx.strokeStyle = m === 0 ? 'rgba(40,72,110,.95)' : 'rgba(58,54,46,.9)';
+      ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] - 15, q[1]); ctx.stroke();
+      label(q[0] - 19, q[1], m + 'm', m === 0 ? '#28486e' : '#3a362e', 11, 'right');
+    }
+    ctx.restore();
+  }
+
+  // 8) 주요 지명 — 지도와 같은 붉은 점
+  const shown = [];
+  if (topVisible && solidPlaces) {
+    // 돌리면 화면에서 서로 겹치는 이름표가 생긴다. 등급이 높은 쪽이 먼저 자리를
+    // 잡고, 밀린 쪽은 점만 남긴다.
+    for (const p of [...solidPlaces].sort((a, b) => (a.rank || 9) - (b.rank || 9))) {
+      const q = S(p.x, p.y, zOf(p.m));
+      ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#d92b2b'; ctx.fill();
+      ctx.lineWidth = 1.6; ctx.strokeStyle = '#fff'; ctx.stroke();
+      const ty = q[1] - 13, w = p.ko.length * 11 * 0.62;
+      if (shown.some(o => Math.abs(o.y - ty) < 17 && Math.abs(o.x - q[0]) < (o.w + w) / 2 + 6)) continue;
+      shown.push({ x: q[0], y: ty, w });
+      label(q[0], ty, p.ko, '#2b2a26', 11);
+    }
+  }
+
+  // 9) 지대 이름. 지명 이름표가 자리를 잡은 뒤에 남는 곳에만 적는다.
+  if (topVisible) for (const z of SOLID_ZONES) {
     let i = 0, best = Infinity;
     for (let t = 0; t < nx; t++) { const d = Math.abs(lons[t] - z.lon); if (d < best) { best = d; i = t; } }
     const jm = Math.floor(ny / 2);
     const top = z.sea ? (z.lon < 34.7 ? SOLID_SEA : SOLID_DEAD_SEA) : grid[jm][i];
     const q = S(X(i), Y(jm), zOf(top) + 0.30);
+    const zw = z.name.length * 12.5 * 0.62;
+    if (shown.some(o => Math.abs(o.y - q[1]) < 17 && Math.abs(o.x - q[0]) < (o.w + zw) / 2 + 6)) continue;
+    shown.push({ x: q[0], y: q[1], w: zw });
     label(q[0], q[1], z.name, z.sea ? '#1f4d7a' : '#3b3327', 12.5);
   }
 
-  // 7) 주요 지명 — 지도와 같은 붉은 점
-  if (solidPlaces) for (const p of solidPlaces) {
-    const q = S(p.x, p.y, zOf(p.m));
-    ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#d92b2b'; ctx.fill();
-    ctx.lineWidth = 1.6; ctx.strokeStyle = '#fff'; ctx.stroke();
-    label(q[0], q[1] - 13, p.ko, '#2b2a26', 11);
-  }
 }
 
 async function openSolid() {
@@ -2175,6 +2220,10 @@ $('solidOpen').addEventListener('click', openSolid);
 $('solidClose').addEventListener('click', closeSolid);
 solidBox.addEventListener('click', e => { if (e.target === solidBox) closeSolid(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !solidBox.hidden) closeSolid(); });
+$('solidSpeed').addEventListener('input', e => {
+  solidSpeed = parseFloat(e.target.value);
+  $('solidSpeedOut').textContent = solidSpeed.toFixed(1) + '×';
+});
 $('solidExag').addEventListener('input', e => {
   $('solidExagOut').textContent = e.target.value + '×';
   drawSolid(true);
@@ -2204,11 +2253,11 @@ const solidDown = e => {
 const solidMove = e => {
   if (!solidDrag) return;
   const x = e.clientX ?? e.touches[0].clientX, y = e.clientY ?? e.touches[0].clientY;
-  solidYaw = solidDrag.yaw + (x - solidDrag.x) * 0.008;
-  // 완전히 눕거나 뒤집히면 읽을 수 없다. 5°~85° 로 묶는다.
-  solidPitch = Math.max(0.09, Math.min(1.48, solidDrag.pitch + (y - solidDrag.y) * 0.006));
+  solidYaw = solidDrag.yaw + (x - solidDrag.x) * 0.008 * solidSpeed;
+  // 아래에서 지층을 올려다보는 각도까지 연다. -75°~85°.
+  solidPitch = Math.max(-1.3, Math.min(1.48, solidDrag.pitch + (y - solidDrag.y) * 0.006 * solidSpeed));
   const now = performance.now(), dt = Math.max(8, now - solidDrag.t);
-  solidVel = (x - solidDrag.lastX) * 0.008 * (16 / dt);
+  solidVel = (x - solidDrag.lastX) * 0.008 * solidSpeed * (16 / dt);
   solidDrag.lastX = x; solidDrag.t = now;
   drawSolid(true);
   if (e.cancelable) e.preventDefault();
@@ -2228,7 +2277,8 @@ solidCanvas.addEventListener('touchmove', solidMove, { passive: false });
 solidCanvas.addEventListener('touchend', solidUp);
 solidCanvas.addEventListener('wheel', e => {
   e.preventDefault();
-  solidScale = Math.max(0.5, Math.min(3, solidScale * (e.deltaY > 0 ? 0.92 : 1.08)));
+  const stepZ = 1 + 0.08 * solidSpeed;
+  solidScale = Math.max(0.4, Math.min(4, solidScale * (e.deltaY > 0 ? 1 / stepZ : stepZ)));
   drawSolid(true);
   clearTimeout(solidFineTimer);
   solidFineTimer = setTimeout(() => drawSolid(false), 160);
@@ -2441,6 +2491,7 @@ function loadSearch() {
           if (!c) continue;
           const p = f.properties || {};
           rows.push({ ko: p.ko, en: p.en || '', kind: item.set.kind, zoom: item.set.zoom,
+                      rank: +p.rank || 9,
                       popup: item.set.popup, at: c, k: searchKey(p.ko), ke: searchKey(p.en) });
         }
       }
