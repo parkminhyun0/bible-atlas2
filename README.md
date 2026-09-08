@@ -1,12 +1,13 @@
 # bible-atlas2
 
 성경 무대(고대근동·이집트·가나안·바울 선교지)의 3D 지형 지도.
-위성 이미지 대신 실제 고도·수심·토지피복 데이터로 "일반 지도" 형식의 입체 지형을 그린다.
+실제 고도·수심 데이터를 바탕으로 "일반 지도" 형식의 입체 지형을 그린다.
+기본 높이는 실제 비율(1.0×)이며, 지표색은 식생 복원이 아니라 고도 판독용 지도 표현이다.
 
 - 뷰어: https://parkminhyun0.github.io/bible-atlas2/
 - 지형: Mapterhorn(Copernicus DEM 기반) · 수심: Mapzen/AWS Terrain Tiles(ETOPO1)
 - 전지구 자연색: NASA Blue Marble Next Generation (2004-08), z0–5 (`bake/world.py`)
-- 물·국경: OpenFreeMap(OpenStreetMap) · 지표 텍스처: ESA WorldCover 2021 + Copernicus GLO-30 (`bake/` 참고)
+- 물·국경: OpenFreeMap(OpenStreetMap) · 현대 토지 이용은 선택형 참고 레이어(기본 꺼짐)
 - 엔진: MapLibre GL JS 6 (globe 투영, 3D terrain, color-relief, 다중 광원 음영)
 - 배경: 줌에 따라 우주(별) → 고고도 하늘 → 낮 하늘로 이어진다
 
@@ -15,20 +16,20 @@
 ```
 index.html        뷰어 (단일 파일, 빌드 없음)
 bake/world.py     전지구 자연색 베이스 타일 생성기 (numpy+pillow만 필요)
-bake/bake.py      근동 지표 텍스처 베이킹 파이프라인 (rasterio 필요)
+bake/bake.py      보관된 WorldCover 실험 파이프라인 (운영 뷰어에서는 사용하지 않음)
 bake/world_labels.py  세계 산맥·강·산 라벨 데이터 생성기 (Natural Earth → geojson)
 bake/dead_sea_south.py 사해 남부 증발지의 제방선을 지운 수역 외곽선 생성기
 bake/local_rivers.py  지역 하천 이름 데이터 생성기 (OSM 타일 → geojson)
 bake/verses.py    설명에 인용한 성경 본문(개역한글) 추출기
 bake/README.md    베이킹 사용법
 world/            전지구 자연색 타일 z0–5 (14 MB, 커밋됨)
-tiles/            구운 근동 텍스처 타일 (bake 산출물, {z}/{x}/{y}.webp)
 ```
 
 ## 조작
 
 - 한 손가락 드래그: 이동 · 두 손가락 좌우/상하: 회전/기울기 · 핀치: 확대/축소
-- 패널: 지형 과장, 설선, 구운 텍스처·현대 토지 이용·음영·국경 표시
+- 패널: 실제 지형 1.0×(최대 1.5× 판독 강조), 고도색 설선·현대 토지 이용·음영·국경 표시
+- 고도색과 설선 표시는 실제 식생·적설 상태가 아니라 높낮이를 읽기 위한 지도 표현이다.
 - 현대 토지 이용(OSM landcover: 조림지·경작지·과수원)은 **기본으로 꺼 둔다.** 세 가지
   이유다. ① 있는 분류의 일부만 칠해(관목 220·초지 184 미채색) 이어진 지표가 아니라
   섬처럼 뜬 조각이 남는다. ② OSM 매핑 밀도를 보게 된다 — 국경을 사이에 두고 8km 만에
