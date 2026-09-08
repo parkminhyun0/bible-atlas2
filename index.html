@@ -350,7 +350,7 @@
     <canvas id="solidCanvas"></canvas>
     <div id="solidCtl">
       <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
-      <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.2" max="2" step="0.1" value="0.6" /><output id="solidSpeedOut">0.6×</output></label>
+      <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="solidSpeedOut">0.35×</output></label>
       <span id="solidInfo">끌어서 돌리고, 휠로 확대합니다. 위로 끌면 아래에서 지층을 올려다봅니다</span>
     </div>
   </div>
@@ -1765,8 +1765,8 @@ const SOLID_ZONES = [
 
 const solidBox = $('solid'), solidCanvas = $('solidCanvas');
 let solidGrid = null, solidYaw = -0.30, solidPitch = 0.62, solidScale = 1;
-// 끄는 만큼 도는 정도. 1 이면 예전 속도인데 너무 빨라서 기본을 0.6 으로 둔다.
-let solidSpeed = 0.6;
+// 끄는 만큼 도는 정도. 1 이면 예전 속도인데 너무 빨라서 기본을 0.35 로 둔다.
+let solidSpeed = 0.35;
 let solidTexture = null;
 
 // 땅의 고도색. 지도의 고도 램프와 같은 계열로 맞춘다.
@@ -1795,8 +1795,12 @@ async function captureTexture(bounds, nx, ny, pts) {
   document.body.appendChild(holder);
   try {
     const st = JSON.parse(JSON.stringify(map.getStyle()));
-    // 라벨은 그림에 구워지면 안 된다. 단면 경로선도 뺀다.
-    st.layers = st.layers.filter(l => l.type !== 'symbol' && !l.id.startsWith('profile'));
+    // 그림에는 순수한 지형만 담는다. 라벨(symbol)·붉은 점(circle)·등고선·단면
+    // 경로선이 구워지면 3D 덩어리 표면에 늘어붙어 얼룩으로 남는다. 지명은 3D 쪽에서
+    // 지도와 같은 모양으로 다시 그린다.
+    st.layers = st.layers.filter(l =>
+      l.type !== 'symbol' && l.type !== 'circle' &&
+      !l.id.startsWith('profile') && !l.id.startsWith('contour'));
     delete st.terrain;
     const m2 = new maplibregl.Map({
       container: holder, style: st, interactive: false, attributionControl: false,
@@ -2207,6 +2211,7 @@ function closeSolid() {
 // 브라우저 콘솔·자동 검증에서 모형을 만질 수 있게 한다(window.map 과 같은 목적).
 window.solid = {
   get grid() { return solidGrid; },
+  get tex() { return solidTexture; },
   get places() { return solidPlaces; },
   view(yaw, pitch, scale) {
     if (yaw != null) solidYaw = yaw;
@@ -2222,7 +2227,7 @@ solidBox.addEventListener('click', e => { if (e.target === solidBox) closeSolid(
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !solidBox.hidden) closeSolid(); });
 $('solidSpeed').addEventListener('input', e => {
   solidSpeed = parseFloat(e.target.value);
-  $('solidSpeedOut').textContent = solidSpeed.toFixed(1) + '×';
+  $('solidSpeedOut').textContent = solidSpeed.toFixed(2).replace(/0$/, '') + '×';
 });
 $('solidExag').addEventListener('input', e => {
   $('solidExagOut').textContent = e.target.value + '×';
