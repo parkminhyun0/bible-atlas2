@@ -1856,7 +1856,8 @@ const SOLID_PROFILES = {
     a: [33.901, 32.264], b: [37.299, 32.264],
     halfWidthKm: 140, nx: TOUCH ? 128 : 200, ny: TOUCH ? 112 : 175,
     water: 'judea', places: true, regions: 'c30',
-    zones: [{ lon: 34.55, name: '대해 (지중해)', sea: true }, { lon: 35.52, name: '사해', sea: true }]
+    zones: [{ lon: 34.40, lat: 32.10, name: '대해 (지중해)', sea: true },
+            { lon: 35.47, lat: 31.50, name: '사해', sea: true }]
   },
   korea: {
     title: '대한민국 동일 면적 영역 (전남·광주·경남)',
@@ -1984,7 +1985,8 @@ async function sampleCorridor(route) {
   const grid = [], lons = [], pts = [];
   let lo = Infinity, hi = -Infinity, miss = 0;
   for (let j = 0; j < ny; j++) {
-    const w = (j / (ny - 1) - 0.5) * 2 * halfWidthKm;
+    // j=0 이 북쪽이다. 화면 y 는 아래로 커지므로 이렇게 잡아야 북쪽이 위로 간다.
+    const w = (0.5 - j / (ny - 1)) * 2 * halfWidthKm;
     const row = [];
     for (let i = 0; i < nx; i++) {
       const t = i / (nx - 1);
@@ -2035,7 +2037,7 @@ async function loadSolidPlaces(g, route) {
     if (along < 2 || along > len - 2 || Math.abs(across) > halfWidthKm - 2) continue;
     seen.add(r.ko);
     out.push({ ko: r.ko.replace(/\s*\(.*\)\s*$/, ''), rank: r.rank || 9,
-               x: along, y: across + halfWidthKm, at: r.at });
+               x: along, y: halfWidthKm - across, at: r.at });
   }
   // 중요한 지명부터 고른다. 축 순서로 훑으면 예루살렘 같은 1등급이 옆의 작은
   // 지명에 밀려 빠진다(실제로 빠졌다). 등급이 같으면 축 가운데에 가까운 것을 먼저.
@@ -2371,10 +2373,15 @@ function drawTerrainModel(cv, model, cam, fast) {
   }
 
   // 9) 지대 이름. 지명 이름표가 자리를 잡은 뒤에 남는 곳에만 적는다.
+  const lat0 = model.pts[(ny - 1) * nx][1], lat1 = model.pts[0][1];   // 남쪽·북쪽 끝 위도
   if (topVisible) for (const z of route.zones) {
     let i = 0, best = Infinity;
     for (let t = 0; t < nx; t++) { const d = Math.abs(lons[t] - z.lon); if (d < best) { best = d; i = t; } }
-    const jm = Math.floor(ny / 2);
+    // 위도를 주지 않으면 회랑 한가운데 줄에 놓는다. 회랑이 넓으면 엉뚱한 곳에
+    // 찍히므로(사해가 갈릴리 위도에 찍혔다) 넓은 회랑에는 lat 을 준다.
+    const jm = z.lat != null
+      ? Math.max(0, Math.min(ny - 1, Math.round(ny - 1 - (z.lat - lat0) / (lat1 - lat0) * (ny - 1))))
+      : Math.floor(ny / 2);
     const top = z.sea ? (z.lon < 34.7 ? SOLID_SEA : SOLID_DEAD_SEA) : grid[jm][i];
     const q = S(X(i), Y(jm), zOf(top) + 0.30);
     const zw = z.name.length * 12.5 * 0.62;
@@ -2440,7 +2447,8 @@ function corridorFrame(route) {
   const ux = dx / len, uy = dy / len;
   return ll => {
     const ex = (ll[0] - a[0]) * kx, ey = (ll[1] - a[1]) * ky;
-    return [ex * ux + ey * uy, -ex * uy + ey * ux + halfWidthKm];
+    // 가로지르는 축은 북→남이다. sampleCorridor 의 격자 순서와 같아야 한다.
+    return [ex * ux + ey * uy, halfWidthKm - (-ex * uy + ey * ux)];
   };
 }
 const ringsOf = geom => geom.type === 'Polygon' ? geom.coordinates
