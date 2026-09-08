@@ -619,8 +619,9 @@ const PEAK_MINOR = ['interpolate', ['linear'], ['zoom'],
 ];
 
 // 세 레이어가 아이콘·글자 모양을 공유한다.
-const peakLayer = (id, minzoom, filter, opacity) => ({
+const peakLayer = (id, minzoom, filter, opacity, maxzoom) => ({
   id, type: 'symbol', source: 'peaks', minzoom, filter,
+  ...(maxzoom ? { maxzoom } : {}),
   layout: {
     'icon-image': 'peak', 'icon-anchor': 'bottom',
     'icon-allow-overlap': true, 'icon-ignore-placement': true,
@@ -779,15 +780,18 @@ const style = {
                  9.8, ['case', ['<=', ['get', 'rank'], 3], 1, 0],
                  10.8, 1] } },
 
+    // 아래 세계 규모 라벨(강·산맥)에는 maxzoom 을 준다. 지면에 내려서면 볼 일이 없는데
+    // 레이어가 살아 있는 것만으로 심벌 배치 비용이 든다. 실측(터치 드래그, z15 · 기울기 65°):
+    // 대량 레이어를 끄면 프레임 p90 83ms → 60ms, 최악 프레임 1,093ms → 259ms.
     // 8a) 주요 강 (Natural Earth 50m 중심선). OSM 하천은 확대해야 나오므로
     //     세계 시점에서는 이 선이 강줄기를 보여주고, 겹치기 전에 물러난다.
-    { id: 'wriver-line', type: 'line', source: 'wrivers', layout: { 'line-cap': 'round', 'line-join': 'round' },
+    { id: 'wriver-line', type: 'line', source: 'wrivers', maxzoom: 11, layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#5b93c9',
                'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.5, 3, 1.1, 5, 1.8],
                'line-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.9, 3.5, 0.9, 5.2, 0] } },
 
     // 8b) 강 이름 — 물줄기를 따라 흐르게 놓는다.
-    { id: 'wriver-label', type: 'symbol', source: 'wrivers', layout: {
+    { id: 'wriver-label', type: 'symbol', source: 'wrivers', maxzoom: 11, layout: {
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'symbol-placement': 'line',
         // 확대할수록 간격을 벌린다. 고정값이면 z6 에서 브라마푸트라강이 여섯 번 반복된다.
@@ -799,7 +803,7 @@ const style = {
                'text-opacity': WORLD_LABEL_LINE } },
 
     // 8b-1) 낮은 줌(지구 시점)용 강 이름 — 점 배치.
-    { id: 'wriver-label-pt', type: 'symbol', source: 'worldpts',
+    { id: 'wriver-label-pt', type: 'symbol', source: 'worldpts', maxzoom: 11,
       filter: ['==', ['get', 'kind'], 'river'], layout: {
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10, 3.5, 11.5],
@@ -809,7 +813,7 @@ const style = {
 
     // 8c) 주요 산맥 이름. 산맥은 면이라 선은 그리지 않고, 폴리곤에서 뽑은
     //     등줄기(bake/world_labels.py)를 글자가 지나갈 길로만 쓴다.
-    { id: 'range-label', type: 'symbol', source: 'ranges', layout: {
+    { id: 'range-label', type: 'symbol', source: 'ranges', maxzoom: 11, layout: {
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'symbol-placement': 'line-center', 'symbol-spacing': 600,
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10.5, 4, 12.5, 8, 14],
@@ -819,7 +823,7 @@ const style = {
                'text-opacity': WORLD_LABEL_LINE } },
 
     // 8c-1) 낮은 줌용 산맥 이름 — 점 배치.
-    { id: 'range-label-pt', type: 'symbol', source: 'worldpts',
+    { id: 'range-label-pt', type: 'symbol', source: 'worldpts', maxzoom: 11,
       filter: ['==', ['get', 'kind'], 'range'], layout: {
         'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10.5, 3.5, 12.5],
@@ -831,8 +835,8 @@ const style = {
     // 8d) 세계 산 627곳. 산맥·강과 함께 늘 켜 둔다(버튼 없음).
     //     아이콘은 지명 레이어가 쓰는 것과 같은 삼각형이라 표기 방식이 일관된다.
     peakLayer('world-peak', 0, ['<=', ['get', 'rank'], 3], PEAK_MAJOR),
-    peakLayer('world-peak-mid', 5.0, ['all', ['>', ['get', 'rank'], 3], ['<=', ['get', 'rank'], 5]], PEAK_MID),
-    peakLayer('world-peak-minor', 7.6, ['>', ['get', 'rank'], 5], PEAK_MINOR),
+    peakLayer('world-peak-mid', 5.0, ['all', ['>', ['get', 'rank'], 3], ['<=', ['get', 'rank'], 5]], PEAK_MID, 14),
+    peakLayer('world-peak-minor', 7.6, ['>', ['get', 'rank'], 5], PEAK_MINOR, 15),
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'land',
@@ -1004,7 +1008,17 @@ const map = new maplibregl.Map({
   center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
   // 지면 가까이까지 내려갈 수 있게 한다. 위성 원본은 10 m 라 z14 를 넘으면 늘어나지만,
   // 지형 위를 걷는 듯한 시점은 그때부터 나온다.
-  maxPitch: 85, minZoom: 1, maxZoom: 18, renderWorldCopies: false, hash: true,
+  // 기울기를 크게 눕히면 지형이 지평선까지 화면을 채운다. 지형 위에서는 손가락을
+  // 움직일 때마다 MapLibre 가 화면 좌표를 GPU 에서 되읽어(readPixels) 파이프라인이
+  // 멈추는데, 그릴 것이 많을수록 그 정지가 길어진다. 실측(터치 드래그, z15):
+  //   기울기 75° → 프레임 p90 182ms · 최대 1,093ms   (멈춘 것처럼 보인다)
+  //   기울기 65° → 프레임 p90  83ms · 최대   285ms
+  // 데스크톱은 그대로 두고 터치 기기만 65° 로 묶는다. 지면 시점은 그대로 나온다.
+  // 최대 확대도 터치 기기만 낮춘다. DEM 은 z12, OSM 벡터는 z14 가 끝이라 z16 을 넘으면
+  // 새로 드러나는 것 없이 확대만 되는데, 최악 프레임은 크게 나빠진다.
+  //   z16 → 최대 254ms · z18 → 최대 855ms (터치 드래그, 기울기 65°)
+  maxPitch: TOUCH ? 65 : 85, minZoom: 1, maxZoom: TOUCH ? 16 : 18,
+  renderWorldCopies: false, hash: true,
   attributionControl: { compact: true },
   // 폴리곤·선 가장자리 계단 현상 완화. 다만 모바일 GPU 에서는 비용이 커서 터치 기기는 끈다.
   canvasContextAttributes: { antialias: !TOUCH }
