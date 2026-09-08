@@ -999,12 +999,17 @@ const style = {
   terrain: { source: 'terrain', exaggeration: 1 }
 };
 
+// DEM 원본은 z12까지다. 모바일에서 z18까지 과확대하면 지형 정보는 늘지 않고
+// 같은 메시와 타일을 가까이서 계속 그려 GPU·메모리 부하만 커진다.
+const MAX_MAP_ZOOM = TOUCH ? 14 : 18;
+const MAX_MAP_PITCH = TOUCH ? 72 : 85;
+
 const map = new maplibregl.Map({
   container: 'map', style,
   center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
-  // 지면 가까이까지 내려갈 수 있게 한다. 위성 원본은 10 m 라 z14 를 넘으면 늘어나지만,
-  // 지형 위를 걷는 듯한 시점은 그때부터 나온다.
-  maxPitch: 85, minZoom: 1, maxZoom: 18, renderWorldCopies: false, hash: true,
+  // 데스크톱은 지면 가까운 탐색을 유지하고, 모바일은 위의 안전 범위에서 멈춘다.
+  maxPitch: MAX_MAP_PITCH, minZoom: 1, maxZoom: MAX_MAP_ZOOM,
+  renderWorldCopies: false, hash: true,
   attributionControl: { compact: true },
   // 폴리곤·선 가장자리 계단 현상 완화. 다만 모바일 GPU 에서는 비용이 커서 터치 기기는 끈다.
   canvasContextAttributes: { antialias: !TOUCH }
