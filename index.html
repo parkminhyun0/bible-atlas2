@@ -265,6 +265,9 @@
   font-size: 11.5px; line-height: 1.5; color: #8a2f2f; font-variant-numeric: tabular-nums;
 }
 @media (max-width: 760px) { .pp { width: min(244px, 68vw); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
 </style>
 </head>
 <body>
@@ -463,6 +466,12 @@ if (!maplibregl) {
 
 function initMap() {
 const TOUCH = matchMedia('(pointer: coarse)').matches;
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const memory = navigator.deviceMemory || 0;
+const cores = navigator.hardwareConcurrency || 0;
+const saveData = Boolean(navigator.connection && navigator.connection.saveData);
+const LOW_POWER = TOUCH && (saveData || (memory > 0 && memory <= 4) || (cores > 0 && cores <= 4));
+const motionMs = ms => REDUCED_MOTION ? 0 : ms;
 
 // ---------- 데이터 소스 ----------
 // 육지 DEM: Mapterhorn (Terrarium 인코딩, 512px WebP, 무료·키 불필요, 바다는 0m로 고정)
@@ -1015,9 +1024,10 @@ syncSpace();
 map.on('move', syncSpace);
 map.on('zoom', syncSpace);
 
-// 3배 픽셀 폰에서 3D 지형 + 위성을 그대로 그리면 프레임이 떨어진다.
-// 2배로 낮추면 렌더 픽셀이 절반 이하가 되고 육안 차이는 거의 없다.
-if (TOUCH && (window.devicePixelRatio || 1) > 2) map.setPixelRatio(2);
+// 고밀도 모바일 화면은 실제 CSS 크기보다 훨씬 많은 픽셀을 그린다. 일반 터치는 2배,
+// 데이터 절약 또는 메모리·코어가 적은 기기는 1.5배로 제한해 발열과 프레임 저하를 줄인다.
+const pixelRatioCap = LOW_POWER ? 1.5 : 2;
+if (TOUCH && (window.devicePixelRatio || 1) > pixelRatioCap) map.setPixelRatio(pixelRatioCap);
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1 }), 'top-right');
@@ -1380,7 +1390,7 @@ function syncAspectButtons() {
 for (const btn of aspButtons) {
   btn.addEventListener('click', () => {
     const a = ASPECTS[btn.dataset.aspect];
-    map.easeTo({ bearing: a.bearing, pitch: 0, duration: 1200 });
+    map.easeTo({ bearing: a.bearing, pitch: 0, duration: motionMs(1200) });
     $('aspNote').innerHTML = a.note;
   });
 }
@@ -1388,7 +1398,7 @@ $('aspNote').innerHTML = '버튼을 눌러 ‘위쪽’을 바꿔 본다. 중심
 map.on('rotate', syncAspectButtons);
 syncAspectButtons();
 
-const fly = (c, z, b = -8, p = 58) => map.flyTo({ center: c, zoom: z, bearing: b, pitch: p, duration: 1800 });
+const fly = (c, z, b = -8, p = 58) => map.flyTo({ center: c, zoom: z, bearing: b, pitch: p, duration: motionMs(1800) });
 $('viewLevant').onclick   = () => fly([35.6, 32.4], 7.2);     // 갈릴리~사해, 헤르몬
 $('viewAnatolia').onclick = () => fly([31.5, 38.0], 6.0);     // 소아시아 (바울 1·2차)
 $('viewAll').onclick      = () => fly([36.5, 33.5], 4.6, -8, 50);
@@ -1401,7 +1411,7 @@ function showElevation(e) {
   $('readout').innerHTML =
     `실제 DEM 고도 <b>${el}</b> &nbsp;·&nbsp; 경도 ${e.lngLat.lng.toFixed(3)}° · 위도 ${e.lngLat.lat.toFixed(3)}°`;
 }
-map.on('mousemove', showElevation);
+if (!TOUCH) map.on('mousemove', showElevation);
 map.on('click', showElevation);          // 터치에는 hover 가 없다
 if (TOUCH) $('readout').textContent = '지도를 탭하면 고도를 표시합니다';
 
@@ -1550,7 +1560,7 @@ function closeSearch() {
 function gotoHit(r) {
   closeSearch();
   searchInput.blur();
-  map.flyTo({ center: r.at, zoom: r.zoom, duration: 1600 });
+  map.flyTo({ center: r.at, zoom: r.zoom, duration: motionMs(1600) });
   if (!r.popup) return;
   // 검색해서 갔는데 그 지명이 꺼져 있으면 아무것도 안 보인다. 해당 지명 묶음을 켠다.
   const btn = { ot: 'otPlaces', nt: 'ntPlaces' }[r.popup];
