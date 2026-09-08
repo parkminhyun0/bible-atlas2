@@ -319,10 +319,10 @@
 
   <div class="aspect">
     <div class="aspect-h">태양 · 시간대</div>
-    <div class="row"><label><input type="checkbox" id="sunOn" checked /> 태양 위치로 그림자 만들기</label></div>
+    <div class="row"><label><input type="checkbox" id="sunOn" /> 태양·하늘 시간 변화 보기</label></div>
     <div class="row"><label for="sunHour">시각 (현지 태양시)</label><output id="sunOut">14:00</output></div>
-    <input id="sunHour" type="range" min="0" max="24" step="0.25" value="14" />
-    <div class="sub" id="sunNote" style="margin-top:2px"></div>
+    <input id="sunHour" type="range" min="0" max="24" step="0.25" value="14" disabled aria-describedby="sunNote" />
+    <div class="sub" id="sunNote" style="margin-top:2px">기본 음영은 지형 판독용 북서광이며 시간과 관계없이 유지됩니다.</div>
   </div>
 
   <div class="aspect">
@@ -340,11 +340,13 @@
     <div class="ramp" id="rampBar"></div>
     <div class="ramp-labels"><span>−430 m</span><span>1,000</span><span>2,000</span><span id="snowLabel">2,500+</span></div>
     <div class="swatches">
-      <span><i class="sw" style="background:#4d7d3f"></i>산림</span>
-      <span><i class="sw" style="background:#f4f7fa"></i>눈·빙하</span>
+      <span><i class="sw" style="background:#c8d2a2"></i>저지대</span>
+      <span><i class="sw" style="background:#a58e78"></i>고원</span>
+      <span><i class="sw" style="background:#e9edf0"></i>고도색 설선</span>
       <span><i class="sw" style="background:#7fb5dc"></i>호수</span>
       <span><i class="sw" style="background:linear-gradient(90deg,#c4e2ef,#0f2a4d)"></i>바다 (얕음→깊음)</span>
     </div>
+    <div class="sub" style="margin:7px 0 0">육지색은 현재 식생이 아니라 실제 고도를 읽기 위한 단계색입니다.</div>
   </div>
 </div>
 
@@ -489,22 +491,22 @@ function reliefRamp(snowLine) {
   // 저지대 색은 설선과 무관하게 고정한다. 설선이 내려오면 암석대에 먹히는 스톱만 덜어낸다.
   // interpolate 는 입력값이 강한 오름차순이어야 하므로 이 filter 가 불변식을 강제한다.
   const base = [
-    [-450, '#c9d3a8'],  // 사해 주변 저지
+    [-450, '#b8c6a2'],  // 사해 주변 저지
     // 예전에는 0m 를 투명하게 두어 아래 바다색이 비치게 했다. 그런데 DEM 은
     // '바다 0m' 와 '나일 삼각주 육지 0m'(실측 -0.2~+0.5m)를 구분하지 못해
     // 삼각주가 통째로 바다처럼 칠해졌다. 고도색은 어디서나 불투명하게 두고,
     // 바다는 OSM 해안선 폴리곤(sea)으로 그린다.
-    [    0, '#cfd6a6'],
-    [ 150, '#d8d6a0'],
-    [ 400, '#dac68f'],
-    [ 800, '#c6a87a'],  // 채도를 낮춰 사막 주황이 아나톨리아 고원까지 번지지 않게 한다
-    [1300, '#ab9070'],
-    [1900, '#948069']
+    [    0, '#c8d2a2'],
+    [ 150, '#d5d2a0'],
+    [ 400, '#d7c28f'],
+    [ 800, '#c3a77f'],  // 저채도 황토색으로 사막·식생을 단정하지 않고 고도만 구분한다
+    [1300, '#a58e78'],
+    [1900, '#8c7f73']
   ].filter(([elev]) => elev < rock);
 
   return ['interpolate', ['linear'], ['elevation'],
     ...base.flat(),
-    rock,    '#8b8375',                  // 암석 회갈색
+    rock,    '#7d7a74',                  // 중립 회갈색 고산대
     s - 120, '#a9a59c',
     s,       '#e9edf0',                  // 설선
     s + 500, '#ffffff'
@@ -542,7 +544,7 @@ const BASE_SKY = {
   'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.5, 6, 0.25, 8, 0]
 };
 
-// 지도 관습대로 북서쪽에서 빛을 주는 설정. 태양 시뮬레이션을 끄면 여기로 돌아온다.
+// 지도 관습대로 북서쪽에서 빛을 주는 판독광. 태양·시간 보기와 분리해 항상 유지한다.
 const CARTO_LIGHT = {
   dir: [315, 45, 225, 135],
   alt: [42, 64, 72, 68],
@@ -1258,7 +1260,6 @@ function localSolarToUTC(hour, lon) {
 
 const mixRGB = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgbStr = c => `rgb(${c[0]},${c[1]},${c[2]})`;
-const rgbaStr = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
 
 // 태양 고도에 따른 하늘색 (천정, 지평선)
 const SKY_STOPS = [
@@ -1295,44 +1296,23 @@ function applySun() {
 }
 
 function applySunNow() {
-  const hs = (k, v) => map.setPaintProperty('hillshade', k, v);
+  $('sunHour').disabled = !$('sunOn').checked;
 
   if (!$('sunOn').checked) {
-    hs('hillshade-illumination-direction', ['literal', CARTO_LIGHT.dir]);
-    hs('hillshade-illumination-altitude', ['literal', CARTO_LIGHT.alt]);
-    hs('hillshade-highlight-color', ['literal', CARTO_LIGHT.hi]);
-    hs('hillshade-shadow-color', ['literal', CARTO_LIGHT.sh]);
-    hs('hillshade-exaggeration', CARTO_LIGHT.exag);
     map.setSky(BASE_SKY);
     groundSkyRGB = [207, 224, 238];   // BASE_SKY 의 horizon-color
     groundZenithRGB = [77, 143, 214];  // BASE_SKY 의 sky-color
     syncSpace();
     $('night').style.opacity = 0;
-    $('sunNote').textContent = '지도 관습대로 북서쪽에서 빛을 준다 — 시간과 무관하다.';
+    $('sunNote').textContent = '기본 음영은 지형 판독용 북서광이며 시간과 관계없이 유지됩니다.';
     return;
   }
 
   const c = map.getCenter();
   const s = sunPosition(localSolarToUTC(sunHour, c.lng), c.lat, c.lng);
   const alt = s.altitude, az = s.azimuth;
-  const day = clamp01((alt + 6) / 14);        // -6°~8° 에 걸쳐 밤 → 낮
-  const warm = clamp01(1 - alt / 28);         // 해가 낮을수록 붉다
-
-  // 주광은 태양, 나머지 셋은 하늘빛을 흉내낸 약한 보조광이다.
-  // 보조광이 없으면 그늘이 새까맣게 죽어 지형이 읽히지 않는다.
-  // 보조광은 태양 반대편까지 고르게 벌린다. 예전에는 +150/+210/+180 을 써서
-  // 셋이 60° 안에 뭉쳤고, 그쪽을 향한 사면만 하이라이트가 겹쳐 들떴다.
-  hs('hillshade-illumination-direction',
-     ['literal', [az, (az + 90) % 360, (az + 180) % 360, (az + 270) % 360]]);
-  hs('hillshade-illumination-altitude', ['literal', [Math.max(alt, 1.5), 58, 58, 72]]);
-  hs('hillshade-highlight-color', ['literal', [
-    rgbaStr(mixRGB([255, 250, 240], [255, 190, 120], warm), 0.40 * day),
-    'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.08)']]);
-  hs('hillshade-shadow-color', ['literal', [
-    rgbaStr(mixRGB([38, 48, 72], [62, 42, 58], warm), 0.30 + 0.55 * day),
-    'rgba(60,70,92,0.22)', 'rgba(72,80,98,0.18)', 'rgba(78,86,104,0.18)']]);
-  // 해가 낮을수록 그림자가 길어진다 — 과장을 올려 그 느낌을 낸다.
-  hs('hillshade-exaggeration', 0.5 + 0.30 * (1 - clamp01(alt / 60)));
+  // 태양 시뮬레이션은 하늘색·밝기와 태양 위치 정보만 바꾼다. 지형 음영은
+  // CARTO_LIGHT에 고정해, 시간 슬라이더를 움직여도 능선·계곡 판독성이 흔들리지 않는다.
 
   const sky = skyByAltitude(alt);
   groundSkyRGB = sky.horizon;     // 지표 배경(하늘)을 태양에 맞춘다
