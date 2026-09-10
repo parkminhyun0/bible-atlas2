@@ -121,8 +121,6 @@
                  cursor: grab; touch-action: none; }
   #solidCanvas.drag { cursor: grabbing; }
   #solidCanvas.pan { cursor: move; }
-  #solidCanvas.panmode { cursor: grab; }
-  #solidCanvas.panmode.pan { cursor: move; }
   #solidClose { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; padding: 0;
                 border: 0; background: none; color: var(--ink-soft); font-size: 17px; cursor: pointer; }
   #solidCtl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 9px; font-size: 12px; }
@@ -145,8 +143,6 @@
     background: linear-gradient(#dbe6f2, #f2efe6); cursor: grab; touch-action: none; }
   .cmp-pane canvas.drag { cursor: grabbing; }
   .cmp-pane canvas.pan { cursor: move; }
-  .cmp-pane canvas.panmode { cursor: grab; }
-  .cmp-pane canvas.panmode.pan { cursor: move; }
   .cmp-sub { margin: 6px 0 4px; font-size: 11.5px; color: var(--ink-soft); min-height: 15px; }
   .cmp-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none;
     font-size: 11px; color: var(--ink-soft); }
@@ -156,11 +152,8 @@
   #cmpCtl input[type=range] { width: 120px; }
   #cmpCtl button { min-height: 32px; }
   .cmp-note { color: var(--ink-soft); }
-  .modeSw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .modeSw button { min-height: 32px; padding: 0 11px; border: 0; border-radius: 0; background: transparent;
-    font-size: 12px; }
-  .modeSw button + button { border-left: 1px solid var(--line); }
-  .modeSw button[aria-pressed="true"] { color: #fff; background: var(--accent); }
+  /* 조작 키 이름. 지도의 붉은 점과 같은 색을 써서 눈에 먼저 들어오게 한다. */
+  .key { color: #d92b2b; }
   .cmp-warn { margin: 7px 0 0; padding: 6px 9px; border-radius: 7px; background: #f5f1e8;
     color: var(--ink-soft); font-size: 11.5px; }
   .cmp-facts { width: 100%; margin: 11px 0 0; border-collapse: collapse; font-size: 12px; }
@@ -406,8 +399,7 @@
       <div id="solidCtl">
         <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
         <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="solidSpeedOut">0.35×</output></label>
-        <span class="modeSw" role="group" aria-label="끌어서 할 동작"><button type="button" data-mode="spin" aria-pressed="true">↻ 회전</button><button type="button" data-mode="pan" aria-pressed="false">✥ 위치 이동</button></span>
-        <span id="solidInfo">휠로 확대합니다. 위로 끌면 아래에서 지층을 올려다봅니다</span>
+        <span id="solidInfo">끌어서 돌리고, <b class="key">Shift+끌기</b>(또는 오른쪽 끌기)로 위치를 옮깁니다. 휠로 확대, 위로 끌면 아래에서 지층을 올려다봅니다</span>
       </div>
     </div>
   </div>
@@ -441,8 +433,7 @@
       <label>높이 과장 <input id="cmpExag" type="range" min="1" max="10" step="0.5" value="1" /><output id="cmpExagOut">1×</output></label>
       <label>회전·확대 속도 <input id="cmpSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="cmpSpeedOut">0.35×</output></label>
       <button id="cmpReset" type="button">처음 각도로</button>
-      <span class="modeSw" role="group" aria-label="끌어서 할 동작"><button type="button" data-mode="spin" aria-pressed="true">↻ 회전</button><button type="button" data-mode="pan" aria-pressed="false">✥ 위치 이동</button></span>
-      <span class="cmp-note">휠=확대 · 모바일은 두 손가락으로 옮기고 오므려 확대. 두 지형에 동시에 걸립니다</span>
+      <span class="cmp-note">끌기=회전 · <b class="key">Shift+끌기</b>(또는 오른쪽 끌기)=위치 이동 · 휠=확대 · 모바일은 두 손가락으로 옮기고 오므려 확대. 두 지형에 동시에 걸립니다</span>
     </div>
     <p id="cmpExagNote" class="cmp-warn" hidden>실제보다 높이를 강조한 판독용 표현입니다. 면적과 고도 수치는 실제값을 유지합니다.</p>
     <table class="cmp-facts">
@@ -2561,7 +2552,6 @@ async function openSolid() {
   $('solidExag').value = '6'; $('solidExagOut').textContent = '6×'; solidCam.exag = 6;
   solidCam.yaw = -0.30; solidCam.pitch = 0.62; solidCam.scale = 1; solidCam.fit = null;
   solidCam.panX = solidCam.panY = 0;
-  setTerrainMode('spin');
   await loadSolidProfile('judea', $('solidSub'));
 }
 
@@ -2599,7 +2589,6 @@ async function openTerrainCompare() {
   $('compareClose').focus();
   compareCam.yaw = -0.30; compareCam.pitch = 0.62; compareCam.scale = 1;
   compareCam.panX = compareCam.panY = 0;
-  setTerrainMode('spin');
   compareCam.exag = 1;                                    // 실제 높이 1.0× 로 시작한다
   $('cmpExag').value = '1'; $('cmpExagOut').textContent = '1×';
   $('cmpExagNote').hidden = true;
@@ -2669,15 +2658,6 @@ function renderCompareFacts() {
 // ---------- 끌어서 돌리기 ----------
 // 손을 떼면 남은 속도로 잠시 더 돌다가 멈추고, 그때 촘촘히 다시 그린다.
 let solidDrag = null, solidVel = 0, solidRaf = 0, solidFineTimer = 0, solidActive = null;
-// 끌었을 때 할 일. Shift·오른쪽 버튼·두 손가락은 언제나 반대 동작으로 쓴다.
-let terrainMode = 'spin';
-function setTerrainMode(mode) {
-  terrainMode = mode;
-  for (const btn of document.querySelectorAll('.modeSw button'))
-    btn.setAttribute('aria-pressed', btn.dataset.mode === mode ? 'true' : 'false');
-  for (const cv of [solidCanvas, $('cmpCanvasA'), $('cmpCanvasB')])
-    if (cv) cv.classList.toggle('panmode', mode === 'pan');
-}
 function solidGlide() {
   if (!solidActive) return;
   solidActive.cam.yaw += solidVel;
@@ -2704,13 +2684,8 @@ function bindTerrainControls(canvas, cam, draw) {
              d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) };
   };
   // 오른쪽 버튼·가운데 버튼·Shift·두 손가락이면 돌리는 대신 옮긴다.
-  // 두 손가락은 언제나 옮기기다. 마우스는 모드가 기본이고, Shift·오른쪽·가운데
-  // 버튼이 그 반대 동작을 준다(회전 모드면 옮기기, 이동 모드면 회전).
-  const wantsPan = e => {
-    if (e.touches) return e.touches.length >= 2;
-    const flip = e.button === 1 || e.button === 2 || e.shiftKey;
-    return terrainMode === 'pan' ? !flip : flip;
-  };
+  const wantsPan = e => e.touches ? e.touches.length >= 2
+                                  : (e.button === 1 || e.button === 2 || e.shiftKey);
   const down = e => {
     solidActive = ctl;
     solidVel = 0; cancelAnimationFrame(solidRaf); solidRaf = 0;
@@ -2827,9 +2802,6 @@ $('cmpReset').addEventListener('click', () => {
   drawCompare(false);
 });
 for (const c of cmpCanvas()) bindTerrainControls(c, compareCam, drawCompare);
-for (const btn of document.querySelectorAll('.modeSw button'))
-  btn.addEventListener('click', () => setTerrainMode(btn.dataset.mode));
-setTerrainMode('spin');
 
 // 브라우저 콘솔·자동 검증에서 모형을 만질 수 있게 한다(window.map 과 같은 목적).
 window.solid = {
