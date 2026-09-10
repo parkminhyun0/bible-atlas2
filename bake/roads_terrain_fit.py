@@ -180,7 +180,7 @@ def round_corners(pts):
         d1, d2 = hav(a, b), hav(b, c)
         if d1 < 1 or d2 < 1: continue
         turn = abs((bearing(b, c) - bearing(a, b) + 180) % 360 - 180)
-        if turn < CORNER_DEG: out.append(b); continue
+        if turn < CORNER_DEG or turn > 150: out.append(b); continue
         r = min(CORNER_MAX_M, d1 * 0.45, d2 * 0.45)
         t1, t2 = r / d1, r / d2
         p1 = [b[0] + (a[0] - b[0]) * t1, b[1] + (a[1] - b[1]) * t1]
@@ -217,48 +217,113 @@ def point_at(a, b, dist):
     t = min(1.0, dist / d)
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 
+def dir_point(line, idx, back, win=50.0):
+    """그 끝의 진행 방향을 50 m 쯤 떨어진 점으로 잰다. 바로 옆 점은 몇 m 라 방향이 튄다."""
+    j = idx; d = 0.0; step = -1 if back else 1
+    while 0 <= j + step < len(line) and d < win:
+        d += hav(line[j], line[j + step]); j += step
+    return line[j]
+
+def cut(line, end, dist):
+    """끝에서 dist m 를 잘라 낸 나머지. 잘린 자리를 첫 점으로 둔다.
+    거리로 걸러 내면 굽은 데서 이가 맞지 않아 새 꺾임이 생긴다."""
+    seq = line if end == 0 else line[::-1]
+    d = 0.0
+    for i in range(len(seq) - 1):
+        step = hav(seq[i], seq[i + 1])
+        if d + step >= dist:
+            rest = [point_at(seq[i], seq[i + 1], dist - d)] + seq[i + 1:]
+            return rest if end == 0 else rest[::-1]
+        d += step
+    return None
+
 def join_corners(feats):
     """한 도로가 여러 구간(feature)으로 나뉘어 있어서, 구간과 구간이 만나는 이음매는
     앞의 round_corners 가 보지 못한다. 거기서 길이 직각으로 꺾여 보인다.
-    같은 도로끼리 맞닿은 끝점만 골라 양쪽을 조금씩 깎고 곡선으로 잇는다.
-    서로 다른 도로가 만나는 곳(진짜 갈림길)은 그대로 둔다."""
+
+    끝점이 정확히 둘만 만나는 곳(길이 이어지는 곳)만 둥글린다. 셋 이상 모이면
+    갈림길이라 두 갈래를 억지로 이으면 없는 길이 생긴다. 다른 도로끼리 만나는
+    곳도 그대로 둔다."""
     ends = []
     for fi, f in enumerate(feats):
         for li, line in enumerate(f['geometry']['coordinates']):
             if len(line) < 2: continue
-            ends.append([f['properties']['roadId'], fi, li, 0])
-            ends.append([f['properties']['roadId'], fi, li, -1])
-    def pt(e):
-        line = feats[e[1]]['geometry']['coordinates'][e[2]]
-        return line[e[3]], line[1 if e[3] == 0 else -2]
-    fixed = 0
+            # dir 은 방향만 재는 50 m 탐침이고, room 은 깎아 낼 수 있는 여유다.
+            # 둘을 같은 점으로 쓰면 반경이 50 m 로 묶여 넓은 굽이도 못 깎는다.
+            ends.append({'road': f['properties']['roadId'], 'fi': fi, 'li': li, 'end': 0,
+                         'p': line[0], 'dir': dir_point(line, 0, False),
+                         'room': hav(line[0], dir_point(line, 0, False, 400.0))})
+            ends.append({'road': f['properties']['roadId'], 'fi': fi, 'li': li, 'end': -1,
+                         'p': line[-1], 'dir': dir_point(line, len(line) - 1, True),
+                         'room': hav(line[-1], dir_point(line, len(line) - 1, True, 400.0))})
+    used = [False] * len(ends)
+    groups = []
     for i in range(len(ends)):
+        if used[i]: continue
+        g = [i]; used[i] = True
         for j in range(i + 1, len(ends)):
-            a, b = ends[i], ends[j]
-            if a[0] != b[0]: continue                       # 다른 도로면 갈림길이다
-            if a[1] == b[1] and a[2] == b[2]: continue
-            pa, na = pt(a); pb, nb = pt(b)
-            if hav(pa, pb) > 40: continue
-            turn = abs((bearing(pb, nb) - bearing(na, pa) + 180) % 360 - 180)
-            if turn <= CORNER_DEG: continue
-            r = min(200.0, hav(na, pa) * 0.4, hav(pb, nb) * 0.4)
-            if r < 15: continue
-            p1 = point_at(pa, na, r); p2 = point_at(pb, nb, r)
-            J = pa
-            def bez(t):
-                u = 1 - t
-                return [u * u * p1[0] + 2 * u * t * J[0] + t * t * p2[0],
-                        u * u * p1[1] + 2 * u * t * J[1] + t * t * p2[1]]
-            la = feats[a[1]]['geometry']['coordinates'][a[2]]
-            lb = feats[b[1]]['geometry']['coordinates'][b[2]]
-            arc_a = [bez(k / 8) for k in range(0, 5)]        # p1 → 가운데
-            arc_b = [bez(k / 8) for k in range(4, 9)][::-1]  # 가운데 → p2 (b 는 끝에서 시작)
-            if a[3] == 0: feats[a[1]]['geometry']['coordinates'][a[2]] = arc_a[::-1] + la[1:]
-            else:         feats[a[1]]['geometry']['coordinates'][a[2]] = la[:-1] + arc_a
-            if b[3] == 0: feats[b[1]]['geometry']['coordinates'][b[2]] = arc_b[::-1] + lb[1:]
-            else:         feats[b[1]]['geometry']['coordinates'][b[2]] = lb[:-1] + arc_b
-            fixed += 1
+            if used[j]: continue
+            if hav(ends[i]['p'], ends[j]['p']) <= 40: g.append(j); used[j] = True
+        if len(g) > 1: groups.append(g)
+    fixed = 0; forks = 0
+    for g in groups:
+        if len(g) != 2: forks += 1; continue              # 갈림길
+        a, b = ends[g[0]], ends[g[1]]
+        if a['road'] != b['road']: continue               # 다른 도로가 만나는 곳
+        turn = abs((bearing(b['p'], b['dir']) - bearing(a['dir'], a['p']) + 180) % 360 - 180)
+        # 150도를 넘으면 길이 되짚어 나가는 것(헤어핀)이다. 그런 곳을 곡선으로
+        # 이으려 하면 호가 꼭짓점을 지나 되돌아와 뾰족한 가시가 생긴다. 그대로 둔다.
+        if turn <= CORNER_DEG or turn > 150: continue
+        r = min(200.0, a['room'] * 0.5, b['room'] * 0.5)
+        if r < 15: continue
+        # 깎을 지점은 선을 따라 r 만큼 간 실제 점이어야 한다(50 m 탐침 너머일 수 있다).
+        la0 = feats[a['fi']]['geometry']['coordinates'][a['li']]
+        lb0 = feats[b['fi']]['geometry']['coordinates'][b['li']]
+        ta = cut(la0, a['end'], r); tb = cut(lb0, b['end'], r)
+        if not ta or not tb or len(ta) < 2 or len(tb) < 2: continue
+        p1 = ta[0] if a['end'] == 0 else ta[-1]
+        p2 = tb[0] if b['end'] == 0 else tb[-1]
+        J = a['p']
+        def bez(t):
+            u = 1 - t
+            return [u * u * p1[0] + 2 * u * t * J[0] + t * t * p2[0],
+                    u * u * p1[1] + 2 * u * t * J[1] + t * t * p2[1]]
+        arc_a = [bez(k / 10) for k in range(1, 6)]      # p1 바로 다음 ~ 가운데
+        arc_b = [bez(k / 10) for k in range(5, 10)]      # 가운데 ~ p2 바로 앞
+        feats[a['fi']]['geometry']['coordinates'][a['li']] = (arc_a[::-1] + ta) if a['end'] == 0 else (ta + arc_a)
+        feats[b['fi']]['geometry']['coordinates'][b['li']] = (arc_b[::-1] + tb) if b['end'] == 0 else (tb + arc_b)
+        fixed += 1
+    print(f'이음매 {fixed}곳을 둥글렸다 · 갈림길 {forks}곳은 그대로 두었다')
     return fixed
+
+def drop_spikes(line, max_deg=150.0, max_drop_m=40.0):
+    """되짚어 나가는 뾰족한 가시를 뺀다. 꼭짓점을 지웠을 때 선이 40 m 넘게 달라지면
+    진짜 헤어핀으로 보고 그대로 둔다."""
+    if len(line) < 3: return line
+    out = list(line); changed = True
+    while changed and len(out) >= 3:
+        changed = False
+        for i in range(1, len(out) - 1):
+            d1, d2 = hav(out[i - 1], out[i]), hav(out[i], out[i + 1])
+            if d1 < 1 or d2 < 1: continue
+            turn = abs((bearing(out[i], out[i + 1]) - bearing(out[i - 1], out[i]) + 180) % 360 - 180)
+            if turn <= max_deg: continue
+            if _perp(out[i], out[i - 1], out[i + 1]) > max_drop_m: continue
+            del out[i]; changed = True; break
+    return out
+
+def dedupe(line, min_m=3.0):
+    """너무 가까이 붙은 점은 뺀다. 베지에·최소비용 경로가 만든 잔 점이다."""
+    if len(line) < 3: return line
+    out = [line[0]]
+    for p in line[1:-1]:
+        if hav(out[-1], p) >= min_m: out.append(p)
+    out.append(line[-1])
+    return out
+
+def round_coords(line, nd=5):
+    """소수 5자리면 약 1.1 m 다. 자료가 주장하는 정확도(산지 50 m)보다 훨씬 잘다."""
+    return [[round(c[0], nd), round(c[1], nd)] for c in line]
 
 def main(src, dst):
     d = json.load(open(src, encoding='utf-8'))
@@ -278,8 +343,9 @@ def main(src, dst):
         else:
             p['geometrySource'] = 'itinere'
         f['geometry']['coordinates'] = new
-    n_join = join_corners(d['features'])
-    print(f'구간과 구간이 만나는 이음매 {n_join}곳을 둥글렸다')
+    for f in d['features']:
+        f['geometry']['coordinates'] = [dedupe(l) for l in f['geometry']['coordinates']]
+    join_corners(d['features'])
     d['note'] = (d.get('note', '') +
         ' 원본이 성기게 그려 둔 구간(두 점 사이 600 m 이상)은 실제 표고를 보고 '
         '토블러 보행함수로 다시 이었다(지형 보정). 새 사료가 아니라 지형에 맞춘 '
@@ -292,6 +358,8 @@ def main(src, dst):
                        'note': '원본 꼭짓점은 모두 고정했다. 벗어나는 폭은 구간 길이의 1/4 과 800 m 중 '
                                '작은 값으로 묶고, 가운데로 당기는 힘을 두어 지형이 확실히 편해질 때만 '
                                '벗어나게 했다. 55도 넘게 꺾이는 꼭짓점은 반경 130 m 안에서 둥글렸다.'}
+    for f in d['features']:
+        f['geometry']['coordinates'] = [round_coords(dedupe(drop_spikes(l))) for l in f['geometry']['coordinates']]
     json.dump(d, open(dst, 'w', encoding='utf-8'), ensure_ascii=False)
     print(f'지형 보정한 구간(feature) {n_fit}개 · 다시 이은 마디 {n_span}개')
     print(f'점 {before} → {after}')
