@@ -2036,8 +2036,9 @@ $('roadEvidence').addEventListener('click', async () => {
       ` (90분위 ${ev.terrainFit.measured.deviationFromOriginalM.p90} m · 최대 ${ev.terrainFit.measured.deviationFromOriginalM.max} m) · ` +
       `걸어 올라야 하는 누적 오르막 ${ev.terrainFit.measured.cumulativeAscentM.before.toLocaleString('ko-KR')} m → ` +
       `${ev.terrainFit.measured.cumulativeAscentM.after.toLocaleString('ko-KR')} m (${ev.terrainFit.measured.cumulativeAscentM.changePct}%) · ` +
-      `55° 넘게 꺾이던 꼭짓점 ${ev.terrainFit.measured.cornersOver55deg.beforeInside} → ${ev.terrainFit.measured.cornersOver55deg.afterInside}개` +
-      ` (구간이 만나는 이음매 ${ev.terrainFit.measured.cornersOver55deg.beforeJoints} → ${ev.terrainFit.measured.cornersOver55deg.afterJoints}곳).</p>` +
+      `55~150° 로 꺾이던 꼭짓점 ${Object.entries(ev.terrainFit.measured.cornersByAngle.before).filter(([k]) => k !== '150~180').reduce((a, [, v]) => a + v, 0)} → 0개` +
+      ` (이음매 ${ev.terrainFit.measured.jointsOver55deg.before} → 0곳).</p>` +
+      `<p>${esc(ev.terrainFit.measured.cornersByAngle.note)}</p>` +
       `<p>${esc(ev.terrainFit.measured.straightSpansOver1_5km.note)}</p>` +
       `<p><b>${esc(ev.terrainFit.honesty)}</b></p>` +
       `<h3>도보 일수</h3><p>${esc(ev.walkDays.basis)}</p>`;
