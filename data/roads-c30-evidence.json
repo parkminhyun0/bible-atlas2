@@ -1,0 +1,535 @@
+{
+  "schema": "bible-atlas2/roads-c30-evidence/1",
+  "generated": "2026-09-10",
+  "period": {
+    "label": "서기 30년경",
+    "note": "이 자료는 “서기 30년경의 정확한 도로망”이 아니라 문헌·고고학·지형에 근거한 교육용 재구성이다. 1세기 유대에는 로마가 놓은 포장 간선망이 거의 없었고, 대부분은 그 전부터 쓰이던 길이다."
+  },
+  "naming": {
+    "via-maris": "화면 표기는 ‘지중해 연안 간선로’를 쓴다. ‘해변길/Via Maris’는 전통적 별칭이며 1세기 공식 도로명이 아니다.",
+    "later-names": "Itiner-e 의 구간명은 후대 지명을 쓴다(네아폴리스 72년, 디오스폴리스 199년, 레기오 2세기, 카피톨리아스 97/98년). 화면에는 서기 30년의 지명으로 적고, 구간명은 출처 추적용으로만 남긴다."
+  },
+  "sources": [
+    {
+      "id": "itinere-2024",
+      "title": "Itiner-e: the digital atlas of ancient roads — A High-Resolution Dataset of Roads of the Roman Empire (static version 2024)",
+      "authors": [
+        "Brughmans, T.",
+        "de Soto, P.",
+        "Pažout, A.",
+        "Bjerregaard Vahlstrup, P."
+      ],
+      "year": 2024,
+      "datasetVersion": "1.3 (2025-09-15)",
+      "url": "https://itiner-e.org",
+      "doi": "10.5281/zenodo.17122148",
+      "paperDoi": "10.1038/s41597-025-06140-z",
+      "type": "지리공간 데이터셋 (LineString, EPSG:3395)",
+      "license": "CC BY 4.0",
+      "licenseCheckedAt": "2026-09-10",
+      "licenseEvidence": "DataCite rightsList = 'CC BY 4.0' (https://creativecommons.org/licenses/by/4.0/) 및 itiner-e.org/about 의 라이선스 문구에서 확인했다.",
+      "attributionRequired": "Itiner-e — Brughmans, T., de Soto, P., Pažout, A., Bjerregaard Vahlstrup, P. (2024), CC BY 4.0",
+      "changesMade": "EPSG:3395 → WGS84 재투영, 레반트 범위만 추출, 25 m 더글러스–포이커 단순화, 서기 30년 기준 노선 선별, 한국어 속성 신규 부여.",
+      "supports": "이 자료의 모든 선형(geometry)과 구간 확실성(Segment_s)",
+      "spatialAccuracy": "Itiner-e 문서 기준 — 'Certain' 은 산지 50 m·평지 200 m 이내 편차. 여기에 25 m 단순화를 더했다.",
+      "datingCaveat": "Itiner-e 의 공간 기준 시점은 서기 150년경이다. 550개 레반트 구간 중 연대가 적힌 것은 58개뿐이고 나머지는 미지정(9999)이다. 따라서 Itiner-e 만으로는 서기 30년 사용 여부를 판정할 수 없다.",
+      "review": "연대가 적힌 구간 중 서기 30년 이후(70·111·130·162·200·305·350년)인 것은 기준 층에서 모두 제외하고 별도의 ‘후대 도로’ 참고 층으로 돌렸다."
+    },
+    {
+      "id": "pleiades",
+      "title": "Pleiades gazetteer of ancient places",
+      "authors": [
+        "Pleiades 공동체"
+      ],
+      "year": 2024,
+      "url": "https://pleiades.stoa.org/",
+      "type": "고대 지명 사전",
+      "license": "CC BY 3.0",
+      "supports": "도시 위치·존속 시기 확인(간접). 좌표를 복사하지 않았다.",
+      "review": "Itiner-e 가 구간마다 인접 Pleiades 장소를 연결한다. 여기서는 도시 존재 여부 판단의 배경으로만 썼다."
+    },
+    {
+      "id": "josephus",
+      "title": "Flavius Josephus, 『유대 전쟁사』·『유대 고대사』",
+      "authors": [
+        "Flavius Josephus"
+      ],
+      "year": 75,
+      "type": "고전 문헌",
+      "license": "public domain",
+      "supports": "베레아 범위(BJ 3.46-47), 갈릴리 순례자의 사마리아 통과(AJ 20.118), 헤롯 가문의 도시 건설 연대",
+      "review": "도로의 선형이 아니라 ‘그 시기에 그 길로 다녔는가’를 뒷받침하는 근거로 썼다."
+    },
+    {
+      "id": "awmc",
+      "title": "Ancient World Mapping Center",
+      "url": "https://awmc.unc.edu/",
+      "type": "학술 지도·데이터",
+      "license": "ODbL-1.0 (geodata)",
+      "supports": "참고만 함. 이번 도로 자료에는 AWMC 좌표를 쓰지 않았다."
+    }
+  ],
+  "roads": [
+    {
+      "id": "coastal-trunk",
+      "nameKo": "지중해 연안 간선로",
+      "nameEn": "Mediterranean coastal trunk road",
+      "routeType": "trunk",
+      "region": "Coast",
+      "via": [
+        "가사",
+        "아스글론",
+        "아소도",
+        "얌니아",
+        "욥바",
+        "가이사랴",
+        "돌레마이",
+        "두로"
+      ],
+      "relatedVerses": [
+        "행 8:26",
+        "행 9:32-43",
+        "행 21:7-8"
+      ],
+      "segments": 18,
+      "lengthKm": 255,
+      "certaintyMix": {
+        "confirmed": 5,
+        "probable": 13
+      },
+      "walkDaysRange": [
+        7,
+        10
+      ],
+      "c30Basis": "이집트–레반트를 잇는 해안 통로는 청동기 이래 쓰였고, 잇는 도시가 모두 서기 30년에 존재한다. Itiner-e 는 이 구간에 연대를 지정하지 않았다.",
+      "noteKo": "이집트에서 가사·욥바·가이사랴를 지나 두로로 이어지는 해안길이다. 전통적으로 ‘해변길(Via Maris)’이라 불리지만 그것은 후대의 별칭이며 1세기 공식 도로명이 아니다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "ridge-route",
+      "nameKo": "중앙 산지 능선로",
+      "nameEn": "Central hill-country ridge route",
+      "routeType": "pilgrimage",
+      "region": "Judaea/Samaria",
+      "via": [
+        "헤브론",
+        "베들레헴",
+        "예루살렘",
+        "벧엘",
+        "실로",
+        "세겜",
+        "사마리아"
+      ],
+      "relatedVerses": [
+        "요 4:3-6",
+        "눅 2:4",
+        "삿 21:19"
+      ],
+      "segments": 20,
+      "lengthKm": 186,
+      "certaintyMix": {
+        "confirmed": 16,
+        "probable": 4
+      },
+      "walkDaysRange": [
+        5,
+        7
+      ],
+      "c30Basis": "유대 산지의 분수령을 따르는 길로 철기시대부터 이어졌다. 갈릴리 사람들이 절기에 사마리아를 지나 예루살렘으로 올라갔다는 기록(요세푸스 유대고대사 20.118; 요 4:3-6)이 1세기 통행을 뒷받침한다.",
+      "noteKo": "산지 분수령을 따라 남북으로 잇는 길이다. Itiner-e 의 구간명은 후대 지명(네아폴리스·세바스테)을 쓰지만 길 자체는 세겜·사마리아를 지나던 그 노선이다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "jerusalem-jericho",
+      "nameKo": "예루살렘–여리고 길",
+      "nameEn": "Jerusalem–Jericho road",
+      "routeType": "trunk",
+      "region": "Judaea",
+      "via": [
+        "예루살렘",
+        "여리고"
+      ],
+      "relatedVerses": [
+        "눅 10:30-35",
+        "눅 19:1",
+        "막 10:46"
+      ],
+      "segments": 2,
+      "lengthKm": 26,
+      "certaintyMix": {
+        "confirmed": 2
+      },
+      "walkDaysRange": [
+        1,
+        1
+      ],
+      "c30Basis": "유대 광야를 가로질러 예루살렘과 여리고를 잇는 길. 헤롯의 여리고 궁과 예루살렘을 오가는 주요 통로였고, 복음서가 이 길의 내리막과 위험을 그대로 전한다.",
+      "noteKo": "예루살렘(약 750 m)에서 여리고(약 -260 m)까지 27 km 남짓에 1,000 m 넘게 내려간다. ‘예루살렘에서 여리고로 내려가다’(눅 10:30)라는 표현이 그대로 지형이다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "joppa-jerusalem",
+      "nameKo": "욥바·룻다–예루살렘 연결로",
+      "nameEn": "Joppa/Lydda–Jerusalem road",
+      "routeType": "trunk",
+      "region": "Judaea",
+      "via": [
+        "욥바",
+        "룻다",
+        "엠마오",
+        "기브온",
+        "벧호론",
+        "예루살렘"
+      ],
+      "relatedVerses": [
+        "눅 24:13-33",
+        "행 9:32-38",
+        "행 23:31-33"
+      ],
+      "segments": 29,
+      "lengthKm": 200,
+      "certaintyMix": {
+        "confirmed": 25,
+        "probable": 3,
+        "hypothetical": 1
+      },
+      "walkDaysRange": [
+        6,
+        8
+      ],
+      "c30Basis": "항구 욥바와 예루살렘을 잇는 길목이다. 룻다(디오스폴리스는 서기 199년의 개칭)·엠마오·벧호론은 모두 서기 30년에 있던 곳이며, 벧호론 오르막은 마카베오 시대부터 알려진 통로다.",
+      "noteKo": "해안에서 유대 산지로 올라가는 여러 갈래가 있다. 엠마오 길(눅 24:13)과 벧호론 오르막이 대표적이다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "jordan-valley",
+      "nameKo": "요단 계곡길",
+      "nameEn": "Jordan Valley road",
+      "routeType": "trunk",
+      "region": "Jordan Valley",
+      "via": [
+        "벧산(스구도볼리)",
+        "여리고"
+      ],
+      "relatedVerses": [
+        "막 10:1",
+        "요 1:28",
+        "눅 9:52-53"
+      ],
+      "segments": 10,
+      "lengthKm": 109,
+      "certaintyMix": {
+        "confirmed": 4,
+        "probable": 6
+      },
+      "walkDaysRange": [
+        3,
+        4
+      ],
+      "c30Basis": "아르켈라이스는 아켈라오(기원전 4년~서기 6년)가 세운 곳이라 서기 30년에 존재한다. 사마리아를 피해 요단 계곡으로 도는 길은 갈릴리–예루살렘 왕래의 대안 노선이었다.",
+      "noteKo": "갈릴리에서 예루살렘으로 갈 때 사마리아를 지나지 않으려면 이 계곡길로 돌았다(눅 9:52-53 배경).",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "galilee-cross",
+      "nameKo": "갈릴리 횡단로",
+      "nameEn": "Galilee cross route",
+      "routeType": "regional",
+      "region": "Galilee",
+      "via": [
+        "돌레마이",
+        "세포리스",
+        "디베랴"
+      ],
+      "relatedVerses": [
+        "마 4:23",
+        "요 2:1-11"
+      ],
+      "segments": 9,
+      "lengthKm": 109,
+      "certaintyMix": {
+        "confirmed": 4,
+        "probable": 5
+      },
+      "walkDaysRange": [
+        3,
+        4
+      ],
+      "c30Basis": "세포리스는 안티파스의 첫 도읍, 디베랴는 서기 19/20년 건설로 둘 다 서기 30년에 존재한다. 두 도시를 잇는 길이 갈릴리 내륙을 가로지른다.",
+      "noteKo": "항구 돌레마이에서 갈릴리 내륙을 거쳐 갈릴리 호수로 나가는 길이다. 가나·나사렛이 이 길목 가까이에 있다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "galilee-damascus",
+      "nameKo": "갈릴리–다메섹 연결로",
+      "nameEn": "Galilee–Damascus road",
+      "routeType": "trunk",
+      "region": "Upper Galilee/Gaulanitis",
+      "via": [
+        "두로",
+        "가이사랴 빌립보",
+        "다메섹"
+      ],
+      "relatedVerses": [
+        "마 16:13",
+        "막 8:27",
+        "행 9:1-8"
+      ],
+      "segments": 15,
+      "lengthKm": 185,
+      "certaintyMix": {
+        "confirmed": 5,
+        "probable": 10
+      },
+      "walkDaysRange": [
+        5,
+        7
+      ],
+      "c30Basis": "파네아스(가이사랴 빌립보)는 빌립이 기원전 2년에 다시 세워 서기 30년에 존재한다. 훌라 계곡을 지나 다메섹으로 가는 통로는 오래된 국제 노선이다.",
+      "noteKo": "갈릴리 북쪽에서 훌라 계곡을 지나 다메섹으로 이어진다. Itiner-e 가 서기 130년으로 연대를 적은 율리아스–파네아스 구간은 이 층에서 뺐다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "decapolis",
+      "nameKo": "데가볼리·요단 동편 연결로",
+      "nameEn": "Decapolis / Transjordan link",
+      "routeType": "regional",
+      "region": "Decapolis/Peraea",
+      "via": [
+        "벧산(스구도볼리)",
+        "가다라",
+        "히포스",
+        "거라사",
+        "빌라델비아"
+      ],
+      "relatedVerses": [
+        "막 5:20",
+        "막 7:31",
+        "마 4:25"
+      ],
+      "segments": 23,
+      "lengthKm": 271,
+      "certaintyMix": {
+        "confirmed": 20,
+        "probable": 3
+      },
+      "walkDaysRange": [
+        8,
+        11
+      ],
+      "c30Basis": "데가볼리 도시들은 모두 서기 30년에 존재한다. 가다라·히포·펠라·게라사·필라델피아를 잇는 길은 폼페이우스 이후의 도시망을 따른다. 카피톨리아스(서기 97/98년 건설)를 지나는 구간은 뺐다.",
+      "noteKo": "갈릴리 호수 동남쪽 데가볼리 도시들을 잇는 길이다. ‘데가볼리에서 큰 무리가 따랐다’(마 4:25)의 배경.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "peraea-philadelphia",
+      "nameKo": "베레아–필라델피아 연결로",
+      "nameEn": "Peraea–Philadelphia road",
+      "routeType": "regional",
+      "region": "Peraea",
+      "via": [
+        "헤스본",
+        "빌라델비아"
+      ],
+      "relatedVerses": [
+        "막 10:1"
+      ],
+      "segments": 4,
+      "lengthKm": 44,
+      "certaintyMix": {
+        "confirmed": 1,
+        "probable": 3
+      },
+      "walkDaysRange": [
+        1,
+        2
+      ],
+      "c30Basis": "요세푸스는 베레아가 “필라델피아에서 요단까지” 뻗었다고 적는다(유대 전쟁사 3.47). 리비아스는 안티파스가 서기 13년경 세워 서기 30년에 존재한다.",
+      "noteKo": "요단 동편 베레아에서 헤스본을 지나 필라델피아(오늘의 암만)로 오르는 길이다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    },
+    {
+      "id": "incense-gaza",
+      "nameKo": "나바테아 향료길 (페트라–가사)",
+      "nameEn": "Nabataean incense road (Petra–Gaza)",
+      "routeType": "trade",
+      "region": "Negev/Nabataea",
+      "via": [
+        "가사"
+      ],
+      "relatedVerses": [],
+      "segments": 16,
+      "lengthKm": 229,
+      "certaintyMix": {
+        "confirmed": 4,
+        "probable": 12
+      },
+      "walkDaysRange": [
+        7,
+        9
+      ],
+      "c30Basis": "아라비아의 향료를 페트라에서 지중해 항구 가사로 실어 내던 나바테아 대상로다. 오보다·엘루사 같은 길목 도시가 기원전 1세기~서기 1세기에 쓰였다. 트라야누스가 서기 111~114년에 놓은 Via Nova Traiana 와는 다른 길이다.",
+      "noteKo": "유일하게 서기 30년 이전부터 확실히 쓰인 나바테아 교역로다. 요단 동편을 남북으로 잇는 Via Nova Traiana 는 서기 111~114년 도로여서 이 층에 넣지 않았다.",
+      "sourceIds": [
+        "itinere-2024",
+        "pleiades",
+        "josephus"
+      ],
+      "uncertainty": "선형은 Itiner-e 의 구간 확실성을 그대로 따른다(확정/개연/추정). 서기 30년 사용 여부는 별도 판단이며 위 c30Basis 에 근거를 적었다."
+    }
+  ],
+  "later": [
+    {
+      "id": "via-nova-traiana",
+      "nameKo": "Via Nova Traiana (서기 111~114년)",
+      "periodStart": 111,
+      "segments": 28,
+      "lengthKm": 269,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    },
+    {
+      "id": "later-hula",
+      "nameKo": "율리아스–파네아스 도로 (서기 130년)",
+      "periodStart": 130,
+      "segments": 1,
+      "lengthKm": 42,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    },
+    {
+      "id": "later-jer-eleuth",
+      "nameKo": "예루살렘–엘레우테로폴리스 도로 (서기 130년)",
+      "periodStart": 130,
+      "segments": 3,
+      "lengthKm": 54,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    },
+    {
+      "id": "later-golan",
+      "nameKo": "갈릴리 호수 동편 도로 (서기 162년)",
+      "periodStart": 162,
+      "segments": 5,
+      "lengthKm": 90,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    },
+    {
+      "id": "later-gerasa-bostra",
+      "nameKo": "게라사–보스트라 도로 (서기 162년)",
+      "periodStart": 162,
+      "segments": 2,
+      "lengthKm": 54,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    },
+    {
+      "id": "later-caesarea-legio",
+      "nameKo": "가이사랴–레기오 도로 (서기 70년 이후)",
+      "periodStart": 70,
+      "segments": 6,
+      "lengthKm": 51,
+      "reason": "서기 30년 이후에 놓인 길. 기준 화면에서 숨기고 참고용으로만 켠다.",
+      "sourceIds": [
+        "itinere-2024"
+      ]
+    }
+  ],
+  "hold": [
+    {
+      "id": "via-nova-precursor",
+      "nameKo": "요단 동편 남북 간선(‘왕의 대로’) 선행 경로",
+      "reason": "Itiner-e 의 요단 동편 남북 축(카락모바–토르니아–네글라–페트라)은 모두 서기 111년으로 연대가 적힌 Via Nova Traiana 다. 그 아래에 서기 30년에 쓰이던 선행 노선이 있었을 개연성은 높으나, 선형을 분리해 그릴 근거를 이번 조사에서 확보하지 못했다.",
+      "next": "Brünnow–Domaszewski, Graf 의 나바테아 도로 연구와 이정표 분포로 선행 구간을 분리할 수 있는지 검토"
+    },
+    {
+      "id": "beersheba-leg",
+      "nameKo": "브엘세바–헤브론 구간",
+      "reason": "Itiner-e 의 남쪽 연장은 엘루사·맘프시스 같은 나바테아 도시로 향하고 브엘세바를 지나는 구간이 따로 없다.",
+      "next": "TIR Iudaea-Palaestina 의 브엘세바 주변 도로 항목 확인"
+    },
+    {
+      "id": "jezreel-legio",
+      "nameKo": "이스르엘 평야 횡단로(레기오 경유)",
+      "reason": "Itiner-e 의 해당 구간은 모두 레기오(Legio, 서기 117~120년경 제6군단 주둔지)를 기준으로 이름이 붙어 있다. 평야를 가로지르는 길 자체는 훨씬 오래됐지만, 서기 30년의 선형을 이 자료에서 분리할 수 없다.",
+      "next": "Tepper 의 레기오 발굴 보고서에서 군단 이전의 노선 근거를 찾는다"
+    },
+    {
+      "id": "capitolias-links",
+      "nameKo": "카피톨리아스 경유 데가볼리 구간",
+      "reason": "카피톨리아스는 서기 97/98년 건설이라 서기 30년에 없다.",
+      "next": "제외 유지"
+    },
+    {
+      "id": "paul-mission",
+      "nameKo": "바울 선교 이동로",
+      "reason": "서기 30년 기준 층의 범위 밖이다(행 9는 서기 34년경). 색상표에는 자리를 두었으나 이번 시범에서 쓰지 않았다.",
+      "next": "선교 여행 사이클에서 따로 다룬다"
+    },
+    {
+      "id": "imperial-type",
+      "nameKo": "로마 행정·군사도로 유형",
+      "reason": "유대의 로마 포장 간선망은 대체로 서기 70년 이후에 놓였다. 서기 30년 층에 넣을 노선이 없어 이 유형은 후대 참고 층에서만 쓴다.",
+      "next": "제외 유지"
+    }
+  ],
+  "walkDays": {
+    "basis": "하루 25~35 km 도보 기준의 개략값이다. 짐·계절·동행·통행료·숙박지에 따라 달라지며 확정된 여행 일수가 아니다."
+  }
+}
