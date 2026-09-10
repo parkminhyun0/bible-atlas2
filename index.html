@@ -25,6 +25,26 @@
   /* 지구 밖에서는 MapLibre 캔버스가 투명하므로 그 뒤에 우주를 직접 그린다. */
   /* canvas 는 대체 요소라 inset: 0 만으로는 늘어나지 않는다. 크기를 명시해야 한다. */
   #space { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+  /* 태양 원반. 지도 위에 얹되 마우스는 통과시킨다. */
+  #sunDisc { position: absolute; z-index: 3; pointer-events: none; border-radius: 50%;
+    transform: translate(-50%, -50%); will-change: left, top; }
+  #sunDisc[hidden] { display: none; }
+  /* 태양이 화면 밖일 때 가장자리에 방향만 알린다. */
+  #sunEdge { position: absolute; z-index: 3; pointer-events: none; transform: translate(-50%, -50%);
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(255,255,255,.82); box-shadow: 0 1px 6px rgba(0,0,0,.28); font-size: 15px; }
+  #sunEdge[hidden] { display: none; }
+  #minimap { position: absolute; right: 10px; bottom: 34px; z-index: 4; width: 160px;
+    background: var(--panel); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.24);
+    padding: 6px 6px 4px; }
+  #minimap[hidden] { display: none; }
+  #minimapCv { display: block; width: 100%; height: auto; border-radius: 6px; background: #0b1020; }
+  #minimapCap { margin-top: 3px; font-size: 10px; line-height: 1.4; color: var(--ink-soft);
+    text-align: center; }
+  @media (max-width: 760px) {
+    #minimap { width: 116px; right: 8px; bottom: calc(96px + env(safe-area-inset-bottom)); }
+    #minimapCap { font-size: 9.5px; }
+  }
 
   .panel {
     /* content-box 면 max-height 가 패딩·테두리를 빼고 계산돼 실제 높이가 넘친다.
@@ -406,6 +426,12 @@
 <canvas id="space" aria-hidden="true"></canvas>
 <div id="map"></div>
 <div id="night" aria-hidden="true"></div>
+<div id="sunDisc" aria-hidden="true" hidden></div>
+<div id="sunEdge" aria-hidden="true" hidden><span>☀</span></div>
+<div id="minimap" hidden>
+  <canvas id="minimapCv" width="320" height="320" aria-label="세계 미니맵 · 현재 위치와 태양 위치"></canvas>
+  <div id="minimapCap"></div>
+</div>
 
 <div id="solid" hidden role="dialog" aria-modal="true" aria-labelledby="solidTitle">
   <div id="solidBox">
@@ -601,6 +627,9 @@
     <div class="row"><label for="sunHour">시각 (현지 태양시)</label><output id="sunOut">14:00</output></div>
     <input id="sunHour" type="range" min="0" max="24" step="0.25" value="14" disabled aria-describedby="sunNote" />
     <div class="sub" id="sunNote" style="margin-top:2px">기본 음영은 지형 판독용 북서광이며 시간과 관계없이 유지됩니다.</div>
+    <div class="row" style="margin-top:6px"><label><input type="checkbox" id="minimapOn" /> 미니맵 (오른쪽 아래)</label></div>
+    <div class="sub" style="margin:-2px 0 0">지금 보는 자리와 보는 방향을 세계 지도 위에 찍습니다.
+      태양을 켜면 해가 머리 위에 오는 지점과 낮·밤 경계도 함께 표시합니다.</div>
   </div>
 
   <div class="aspect">
@@ -1705,7 +1734,7 @@ function sunPosition(utcMillis, lat, lon) {
   let cosAz = (Math.sin(dec) - Math.sin(phi) * sinAlt) / (Math.cos(phi) * Math.cos(alt));
   let az = Math.acos(Math.max(-1, Math.min(1, cosAz))) / D2R;
   if (Math.sin(H) > 0) az = 360 - az;               // 정오 이후에는 서쪽
-  return { altitude: alt / D2R, azimuth: az };
+  return { altitude: alt / D2R, azimuth: az, dec: dec / D2R, ra: ra / D2R, gmst };
 }
 
 // 슬라이더는 '그 지점의 태양시'다. 경도로 UTC 를 되돌린다.
@@ -1762,6 +1791,8 @@ function applySunNow() {
     syncSpace();
     $('night').style.opacity = 0;
     $('sunNote').textContent = '기본 음영은 지형 판독용 북서광이며 시간과 관계없이 유지됩니다.';
+    $('sunDisc').hidden = true; $('sunEdge').hidden = true;
+    drawMinimap();
     return;
   }
 
@@ -1790,6 +1821,195 @@ function applySunNow() {
   $('sunNote').innerHTML = alt > 0
     ? `태양 고도 <b>${alt.toFixed(0)}°</b> · 방위 <b>${az.toFixed(0)}°</b> (${COMPASS[Math.round(az / 45) % 8]})`
     : `해가 진 뒤 · 고도 <b>${alt.toFixed(0)}°</b>`;
+  drawSunDisc(alt, az);
+  drawMinimap();
+}
+
+// ---------- 태양의 모습과 미니맵 ----------
+// 태양이 머리 바로 위에 오는 지점(subsolar point). 미니맵에 해를 찍고 낮·밤 경계를
+// 그리는 데 쓴다.
+function subsolarPoint(utcMillis) {
+  const s = sunPosition(utcMillis, 0, 0);
+  // 그리니치 시각도 = GMST(시) × 15° − 적경. 그만큼 서쪽이 정오다.
+  let lon = s.ra - s.gmst * 15;
+  lon = ((lon + 540) % 360) - 180;
+  return { lat: s.dec, lon };
+}
+
+// 하늘의 한 점(방위·고도)이 화면 어디에 오는지. MapLibre 의 세로 화각은 36.87° 다.
+const SKY_FOV = 36.87 * Math.PI / 180;
+function skyToScreen(az, alt) {
+  const W = map.getCanvas().clientWidth, H = map.getCanvas().clientHeight;
+  const dAz = (((az - map.getBearing()) % 360) + 540) % 360 - 180;
+  // 카메라 축은 지평선 아래로 (90 - pitch)° 를 본다. 태양의 상대 고도는 그만큼 더해진다.
+  const el = alt + 90 - map.getPitch();
+  if (Math.abs(dAz) >= 88 || Math.abs(el) >= 88) return { x: 0, y: 0, inView: false, dAz };
+  const tanV = Math.tan(SKY_FOV / 2), tanH = tanV * (W / H);
+  const x = W / 2 + (Math.tan(dAz * D2R) / tanH) * (W / 2);
+  const y = H / 2 - (Math.tan(el * D2R) / tanV) * (H / 2);
+  return { x, y, inView: x > -60 && x < W + 60 && y > -60 && y < H + 60, dAz };
+}
+
+// 태양 고도에 따른 원반 색. 낮은 해는 붉게 흐려진다.
+function sunDiscColor(alt) {
+  const t = clamp01((alt + 2) / 14);
+  const c = mixRGB([252, 146, 74], [255, 246, 214], t);
+  return rgbStr(c);
+}
+
+function drawSunDisc(alt, az) {
+  const disc = $('sunDisc'), edge = $('sunEdge');
+  if (!$('sunOn').checked || alt < -1.5) { disc.hidden = true; edge.hidden = true; return; }
+  const p = skyToScreen(az, alt);
+  const W = map.getCanvas().clientWidth, H = map.getCanvas().clientHeight;
+  if (p.inView) {
+    // 해가 낮을수록 크고 뭉근하게 보인다(대기 산란).
+    const r = 16 + 10 * (1 - clamp01((alt + 2) / 16));
+    const col = sunDiscColor(alt);
+    disc.style.width = disc.style.height = r * 2 + 'px';
+    disc.style.left = p.x + 'px'; disc.style.top = p.y + 'px';
+    disc.style.background = `radial-gradient(circle, ${col} 0 42%, rgba(255,236,190,.55) 58%, rgba(255,220,150,0) 100%)`;
+    disc.style.boxShadow = `0 0 ${r * 2.6}px ${r * 0.9}px rgba(255,214,140,${(0.16 + 0.2 * clamp01(alt / 20)).toFixed(2)})`;
+    disc.hidden = false; edge.hidden = true;
+  } else {
+    // 화면 밖이면 가장자리에 방향만 알린다. 기울기가 낮으면(위에서 내려다보면)
+    // 해는 늘 화면 밖이라, 이것이 사실상 기본 표시가 된다.
+    disc.hidden = true;
+    const a = p.dAz * D2R;
+    const m = 26, cx = W / 2, cy = H / 2;
+    const rx = (W / 2 - m), ry = (H / 2 - m);
+    const k = Math.min(rx / Math.max(Math.abs(Math.sin(a)), 1e-3), ry / Math.max(Math.abs(Math.cos(a)), 1e-3));
+    edge.style.left = (cx + Math.sin(a) * k) + 'px';
+    edge.style.top = (cy - Math.cos(a) * k) + 'px';
+    edge.hidden = false;
+  }
+}
+
+// ---------- 미니맵 ----------
+// 두 번째 WebGL 지도를 만들지 않는다. 저장소에 이미 있는 세계 타일 한 장(z0)을
+// 2D 캔버스에 깔고, 그 위에 낮·밤 경계와 해, 현재 보는 자리를 찍는다.
+const MINIMAP_IMG = new Image();
+let minimapReady = false;
+MINIMAP_IMG.onload = () => { minimapReady = true; drawMinimap(); };
+MINIMAP_IMG.onerror = () => { console.warn('미니맵 바탕 이미지를 읽지 못했다'); };
+MINIMAP_IMG.src = SITE_ROOT + 'world/0/0/0.webp';
+
+const MM = { size: 320 };                       // 캔버스 논리 크기(정사각)
+// 해가 머리 위에 오는 지점을 알면, 어느 지점의 태양 고도는 그 두 점 사이의
+// 대권 거리로 바로 나온다. sin(고도) = cos(두 점 사이 각).
+function sunAltAt(lat, lon, ss) {
+  const a = lat * D2R, b = ss.lat * D2R, dl = (lon - ss.lon) * D2R;
+  const c = Math.sin(a) * Math.sin(b) + Math.cos(a) * Math.cos(b) * Math.cos(dl);
+  return Math.asin(Math.max(-1, Math.min(1, c))) / D2R;
+}
+let _mmNight = null;
+function mmNight(w, h) {
+  if (!_mmNight) { _mmNight = document.createElement('canvas'); }
+  if (_mmNight.width !== w) { _mmNight.width = w; _mmNight.height = h; }
+  return _mmNight.getContext('2d');
+}
+const mmLonToX = lon => (lon + 180) / 360 * MM.size;
+const mmLatToY = lat => {
+  const y = Math.log(Math.tan(Math.PI / 4 + Math.max(-85, Math.min(85, lat)) * D2R / 2));
+  return MM.size / 2 - y / (2 * Math.PI) * MM.size;
+};
+function drawMinimap() {
+  const cv = $('minimapCv');
+  if (!cv || $('minimap').hidden) return;
+  const ctx = cv.getContext('2d');
+  const S = MM.size;
+  ctx.clearRect(0, 0, S, S);
+  if (minimapReady) ctx.drawImage(MINIMAP_IMG, 0, 0, S, S);
+  else { ctx.fillStyle = '#12203a'; ctx.fillRect(0, 0, S, S); }
+
+  const on = $('sunOn').checked;
+  const c = map.getCenter();
+  if (on) {
+    const utc = localSolarToUTC(sunHour, c.lng);
+    const ss = subsolarPoint(utc);
+    // 밤 쪽을 어둡게. 경도마다 해가 걸리는 위도를 푸는 해석식은 분점 근처에서
+    // 발산한다(적위가 0 에 가까우면 tan(dec) 이 0 이라 경계가 세로선이 된다).
+    // 그래서 칸마다 실제 태양 고도를 재서 칠한다. 80×80 으로 계산해 늘리면
+    // 경계가 부드럽고 계산도 가볍다.
+    const N = 80, off = mmNight(N, N);
+    const im = off.createImageData(N, N);
+    for (let j = 0; j < N; j++) {
+      // 화면 y → 위도 (메르카토르 역변환)
+      const yy = (j + 0.5) / N * MM.size;
+      const lat = (2 * Math.atan(Math.exp((MM.size / 2 - yy) / MM.size * 2 * Math.PI)) - Math.PI / 2) / D2R;
+      for (let i = 0; i < N; i++) {
+        const lon = (i + 0.5) / N * 360 - 180;
+        const alt = sunAltAt(lat, lon, ss);
+        // 0° 위는 낮, -6° 아래는 밤. 그 사이는 박명이라 서서히 어두워진다.
+        const t = clamp01((-alt) / 6);
+        const k = (j * N + i) * 4;
+        im.data[k] = 6; im.data[k + 1] = 10; im.data[k + 2] = 24;
+        im.data[k + 3] = Math.round(158 * t);
+      }
+    }
+    off.putImageData(im, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off.canvas, 0, 0, N, N, 0, 0, MM.size, MM.size);
+    ctx.restore();
+    // 해. 날짜변경선 가까이 있으면 지도 양 끝에 걸치므로 두 번 그린다.
+    const sy = mmLatToY(ss.lat);
+    for (const dx of [-MM.size, 0, MM.size]) {
+      const sx = mmLonToX(ss.lon) + dx;
+      if (sx < -34 || sx > MM.size + 34) continue;
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
+      g.addColorStop(0, 'rgba(255,238,170,.95)'); g.addColorStop(1, 'rgba(255,214,120,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, 30, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd85e'; ctx.fill();
+      ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(90,60,10,.8)'; ctx.stroke();
+    }
+  }
+  // 지금 보는 자리
+  const px = mmLonToX(c.lng), py = mmLatToY(c.lat);
+  ctx.beginPath(); ctx.arc(px, py, 7.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#d92b2b'; ctx.fill();
+  ctx.lineWidth = 2.4; ctx.strokeStyle = '#fff'; ctx.stroke();
+  // 보는 방향(부채꼴)
+  const br = map.getBearing() * D2R, half = 26 * D2R, R = 30;
+  ctx.beginPath(); ctx.moveTo(px, py);
+  ctx.arc(px, py, R, br - Math.PI / 2 - half, br - Math.PI / 2 + half);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(217,43,43,.28)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(217,43,43,.75)'; ctx.lineWidth = 1.4; ctx.stroke();
+
+  const cap = $('minimapCap');
+  const ns = c.lat >= 0 ? 'N' : 'S', ew = c.lng >= 0 ? 'E' : 'W';
+  let txt = `${Math.abs(c.lat).toFixed(2)}° ${ns} · ${Math.abs(c.lng).toFixed(2)}° ${ew}`;
+  if (on) {
+    const s = sunPosition(localSolarToUTC(sunHour, c.lng), c.lat, c.lng);
+    txt += s.altitude > 0
+      ? `<br>해 고도 ${s.altitude.toFixed(0)}° · ${COMPASS[Math.round(s.azimuth / 45) % 8]}`
+      : `<br>해가 진 뒤 (${s.altitude.toFixed(0)}°)`;
+  }
+  cap.innerHTML = txt;
+}
+let mmTimer = 0;
+function scheduleMinimap() {
+  clearTimeout(mmTimer);
+  mmTimer = setTimeout(drawMinimap, 90);
+}
+$('minimapOn').addEventListener('change', e => {
+  $('minimap').hidden = !e.target.checked;
+  if (e.target.checked) drawMinimap();
+});
+map.on('move', () => { scheduleMinimap(); if ($('sunOn').checked) scheduleSunDisc(); });
+map.on('rotate', () => { if ($('sunOn').checked) scheduleSunDisc(); });
+map.on('pitch', () => { if ($('sunOn').checked) scheduleSunDisc(); });
+window.addEventListener('resize', () => { scheduleMinimap(); scheduleSunDisc(); });
+let sunTimer = 0;
+function scheduleSunDisc() {
+  clearTimeout(sunTimer);
+  sunTimer = setTimeout(() => {
+    const c = map.getCenter();
+    const s = sunPosition(localSolarToUTC(sunHour, c.lng), c.lat, c.lng);
+    drawSunDisc(s.altitude, s.azimuth);
+  }, 40);
 }
 
 $('sunOn').addEventListener('change', applySun);
