@@ -152,6 +152,8 @@
   #cmpCtl input[type=range] { width: 120px; }
   #cmpCtl button { min-height: 32px; }
   .cmp-note { color: var(--ink-soft); }
+  /* 조작 키 이름. 지도의 붉은 점과 같은 색을 써서 눈에 먼저 들어오게 한다. */
+  .key { color: #d92b2b; }
   .cmp-warn { margin: 7px 0 0; padding: 6px 9px; border-radius: 7px; background: #f5f1e8;
     color: var(--ink-soft); font-size: 11.5px; }
   .cmp-facts { width: 100%; margin: 11px 0 0; border-collapse: collapse; font-size: 12px; }
@@ -397,7 +399,7 @@
       <div id="solidCtl">
         <label>높이 과장 <input id="solidExag" type="range" min="1" max="14" step="0.5" value="6" /><output id="solidExagOut">6×</output></label>
         <label>회전·확대 속도 <input id="solidSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="solidSpeedOut">0.35×</output></label>
-        <span id="solidInfo">끌어서 돌리고, <b>Shift+끌기</b>(또는 오른쪽 끌기)로 위치를 옮깁니다. 휠로 확대, 위로 끌면 아래에서 지층을 올려다봅니다</span>
+        <span id="solidInfo">끌어서 돌리고, <b class="key">Shift+끌기</b>(또는 오른쪽 끌기)로 위치를 옮깁니다. 휠로 확대, 위로 끌면 아래에서 지층을 올려다봅니다</span>
       </div>
     </div>
   </div>
@@ -431,7 +433,7 @@
       <label>높이 과장 <input id="cmpExag" type="range" min="1" max="10" step="0.5" value="1" /><output id="cmpExagOut">1×</output></label>
       <label>회전·확대 속도 <input id="cmpSpeed" type="range" min="0.1" max="1.5" step="0.05" value="0.35" /><output id="cmpSpeedOut">0.35×</output></label>
       <button id="cmpReset" type="button">처음 각도로</button>
-      <span class="cmp-note">끌기=회전 · <b>Shift+끌기</b>(또는 오른쪽 끌기)=위치 이동 · 휠=확대 · 모바일은 두 손가락으로 옮기고 오므려 확대. 두 지형에 동시에 걸립니다</span>
+      <span class="cmp-note">끌기=회전 · <b class="key">Shift+끌기</b>(또는 오른쪽 끌기)=위치 이동 · 휠=확대 · 모바일은 두 손가락으로 옮기고 오므려 확대. 두 지형에 동시에 걸립니다</span>
     </div>
     <p id="cmpExagNote" class="cmp-warn" hidden>실제보다 높이를 강조한 판독용 표현입니다. 면적과 고도 수치는 실제값을 유지합니다.</p>
     <table class="cmp-facts">
