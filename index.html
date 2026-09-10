@@ -1960,7 +1960,10 @@ function roadPopupHtml(p) {
     (ev ? `<p>${esc(ev.noteKo)}</p>` : '') +
     (verses ? `<p class="refs">${verses}</p>` : '') +
     (ev ? `<p class="certainty"><b>서기 30년 근거</b> ${esc(ev.c30Basis)}</p>` : '') +
-    `<p class="certainty">도보 일수는 하루 25~35 km 로 어림한 값입니다. 선형 출처: Itiner-e (CC BY 4.0).</p>` +
+    `<p class="certainty">도보 일수는 하루 25~35 km 로 어림한 값입니다. 선형 출처: Itiner-e (CC BY 4.0)` +
+    (p.geometrySource && p.geometrySource.includes('terrain')
+      ? ` · 원본이 성기게 그려 둔 마디는 실제 표고를 보고 걷기 쉬운 길로 다시 이었습니다(지형 보정). 새 사료가 아닙니다.`
+      : '') + `</p>` +
     `</div>`;
 }
 const roadPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px', offset: 10 });
@@ -2027,6 +2030,16 @@ $('roadEvidence').addEventListener('click', async () => {
         `${esc(r.nameKo)} · 약 ${r.lengthKm} km`)) + `</ul>` +
       `<h3>근거가 모자라 보류한 것 ${ev.hold.length}건</h3><ul>` + li(ev.hold.map(h =>
         `<b>${esc(h.nameKo)}</b> — ${esc(h.reason)}`)) + `</ul>` +
+      `<h3>지형 보정</h3><p>${esc(ev.terrainFit.why)}</p><p>${esc(ev.terrainFit.method)}</p>` +
+      `<p>${esc(ev.terrainFit.limits)}</p>` +
+      `<p>실제로 바뀐 정도 — 원래 선에서 벗어난 거리 중앙값 ${ev.terrainFit.measured.deviationFromOriginalM.median} m` +
+      ` (90분위 ${ev.terrainFit.measured.deviationFromOriginalM.p90} m · 최대 ${ev.terrainFit.measured.deviationFromOriginalM.max} m) · ` +
+      `걸어 올라야 하는 누적 오르막 ${ev.terrainFit.measured.cumulativeAscentM.before.toLocaleString('ko-KR')} m → ` +
+      `${ev.terrainFit.measured.cumulativeAscentM.after.toLocaleString('ko-KR')} m (${ev.terrainFit.measured.cumulativeAscentM.changePct}%) · ` +
+      `55° 넘게 꺾이던 꼭짓점 ${ev.terrainFit.measured.cornersOver55deg.beforeInside} → ${ev.terrainFit.measured.cornersOver55deg.afterInside}개` +
+      ` (구간이 만나는 이음매 ${ev.terrainFit.measured.cornersOver55deg.beforeJoints} → ${ev.terrainFit.measured.cornersOver55deg.afterJoints}곳).</p>` +
+      `<p>${esc(ev.terrainFit.measured.straightSpansOver1_5km.note)}</p>` +
+      `<p><b>${esc(ev.terrainFit.honesty)}</b></p>` +
       `<h3>도보 일수</h3><p>${esc(ev.walkDays.basis)}</p>`;
   }
   roadEvBox.hidden = false;
