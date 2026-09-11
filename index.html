@@ -569,6 +569,20 @@
 
 
   <div class="aspect">
+    <div class="aspect-h">나사렛 둘레의 나무</div>
+    <div class="row"><label><input type="checkbox" id="nazTrees" /> 3D 나무 (실제 크기)</label></div>
+    <div class="sub" id="nazTreeNote" style="margin:-2px 0 6px">z15 이상으로 확대하면 나타납니다.
+      기울여 보면(두 손가락 위아래) 나무가 지형 위에 섭니다.</div>
+    <div class="sub" id="nazTreeCaution" hidden style="margin:-2px 0 6px">
+      <b>이것은 오늘의 숲입니다.</b> 나사렛 둘레의 이름 붙은 숲(나사렛 비탈 숲·세포리스 숲·다볼산 숲 등)은
+      대부분 20세기에 심은 조림지입니다. 1세기 나사렛의 풍경이 아닙니다 — 그 시절 이 비탈은 계단식
+      올리브밭과 포도원, 참나무·테레빈 성긴 숲, 방목지가 섞인 땅이었습니다.<br>
+      나무가 <b>있는 자리</b>는 실제 삼림 경계(OSM)이고 <b>크기</b>도 실제 수고 범위이지만,
+      <b>한 그루 한 그루의 위치는 그 경계 안에 뿌린 것</b>입니다. 실제 나무를 측량한 자리가 아닙니다.
+    </div>
+  </div>
+
+  <div class="aspect">
     <div class="aspect-h">고대 도로</div>
     <div class="row"><label><input type="checkbox" id="roadsOtOn" /> <b>구약</b> 시대 도로</label></div>
     <div class="row"><label><input type="checkbox" id="roadsOn" /> <b>신약</b> 시대 도로 (서기 30년경)</label></div>
@@ -800,6 +814,7 @@ const ROADS_C30  = SITE_ROOT + 'data/roads-c30.geojson';
 const ROADS_EV   = SITE_ROOT + 'data/roads-c30-evidence.json';
 const ROADS_OT   = SITE_ROOT + 'data/roads-ot.geojson';
 const ROADS_OT_EV = SITE_ROOT + 'data/roads-ot-evidence.json';
+const NAZ_WOOD   = SITE_ROOT + 'data/nazareth-woodland.geojson';
 
 // ---------- 고대 도로 ----------
 // 도로 기능별 색. 색각 이상 사용자를 위해 선 모양(확실성)과 함께 쓴다.
@@ -1020,6 +1035,9 @@ const style = {
     dssouth:  { type: 'geojson', data: DS_SOUTH },
     profileline: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     lrivers:  { type: 'geojson', data: LOC_RIVERS },
+    nazwood:  { type: 'geojson', data: { type: 'FeatureCollection', features: [] },
+                attribution: 'Nazareth woodland: © OpenStreetMap contributors (ODbL)' },
+    naztrees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     roadsot:  { type: 'geojson', data: ROADS_OT, promoteId: 'id',
                 attribution: 'Old Testament routes: 지형 최소비용 경로 재구성 (교육용)' },
     roads:    { type: 'geojson', data: ROADS_C30, promoteId: 'id',
@@ -1269,6 +1287,13 @@ const style = {
       paint: { 'text-color': ROAD_COLOR, 'text-halo-color': '#fffdf8', 'text-halo-width': 1.9,
                'text-opacity': ROAD_SEL(0.95) } },
 
+    // 나사렛 둘레의 실제 삼림 경계. 위에서 보면 이 색이 숲으로 읽힌다.
+    { id: 'nazwood-fill', type: 'fill', source: 'nazwood', minzoom: 12,
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': ['match', ['get', 'kind'], 'forest', '#4a6b41', 'scrub', '#8a8f5c',
+                              'orchard', '#6d8456', '#5a7a4a'],
+               'fill-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0.30, 15, 0.5] } },
+
     { id: 'hillshade', type: 'hillshade', source: 'land',
       paint: {
         // 다중 광원. 단일 광원은 주광 반대면이 통째로 뭉개져 산줄기가 사라진다.
@@ -1291,6 +1316,19 @@ const style = {
 
     // 10) 신약 지명 — 붉은 점
     //     circle-pitch-alignment: viewport 라야 지도를 기울여도 점이 타원으로 눌리지 않는다.
+    // 나무 한 그루 = 줄기 기둥 + 그 위의 수관. 둘 다 실제 미터 높이다.
+    // fill-extrusion 이라 원근이 맞고 지형 위에 그대로 선다.
+    { id: 'naztrees-3d', type: 'fill-extrusion', source: 'naztrees', minzoom: 15,
+      layout: { visibility: 'none' },
+      paint: {
+        'fill-extrusion-color': ['case', ['==', ['get', 'part'], 'trunk'], '#6b4f32',
+          ['match', ['get', 'sp'],
+            'pine', '#3d6238', 'cypress', '#2f5236', 'oak', '#5a7a3e',
+            'carob', '#4c6b3c', 'olive', '#77906a', 'shrub', '#8a8f52', '#4a7040']],
+        'fill-extrusion-height': ['get', 'h'],
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-opacity': 0.96 } },
+
     { id: 'nt-dot', type: 'circle', source: 'ntplaces',
       // 물·지역·산은 점을 찍지 않는다. 물과 지역은 면이라 점이 어울리지 않고,
       // 산에는 아래의 산 모양 아이콘이 대신 붙는다.
@@ -2141,6 +2179,150 @@ function openPlacePopup(feature, lngLat) {
 // ---------- 고대 도로 ----------
 // 레이어와 소스는 스타일에 한 번만 선언해 두고, 켜고 끌 때는 visibility 와 filter 만
 // 바꾼다. 반복해서 켜도 source·layer 가 쌓이지 않는다.
+// ---------- 나사렛 둘레의 나무 ----------
+// 나무 한 그루의 실제 자리를 담은 자료는 없다. 있는 것은 '나무가 실제로 있는 자리',
+// 곧 OSM 의 삼림·관목지 경계다. 그 경계 안에만, 실제 수고 범위대로, 실제 밀도대로
+// 뿌린다. 씨앗을 폴리곤 id 로 고정해 같은 곳을 다시 보면 나무가 같은 자리에 선다.
+//
+// 그리는 방법은 fill-extrusion 두 겹이다 — 가는 줄기 기둥과 그 위의 굵은 수관.
+// 지도 엔진의 3D 경로라 원근이 맞고 지형 위에 그대로 선다. 두 번째 WebGL 컨텍스트를
+// 만들지 않는다.
+const NAZ_TREE_LAYERS = ['nazwood-fill', 'naztrees-3d'];
+const NAZ_CAP = TOUCH ? 2600 : 8000;        // 한 화면에 세울 나무 수 상한
+const NAZ_MINZOOM = 15;
+let nazWood = null, nazTreesOn = false, nazTimer = 0, nazLastKey = '';
+
+// 같은 씨앗이면 같은 수열. 화면을 옮겼다 돌아와도 나무가 춤추지 않는다.
+function seeded(seed) {
+  let x = (seed >>> 0) || 1;
+  return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+}
+function pointInRing(p, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// 수종을 비율대로 뽑는다.
+function pickSpecies(kindDef, r) {
+  let acc = 0;
+  for (const sp of kindDef.species) { acc += sp.share; if (r <= acc) return sp; }
+  return kindDef.species[kindDef.species.length - 1];
+}
+async function loadNazWood() {
+  if (nazWood) return nazWood;
+  try {
+    nazWood = await fetch(NAZ_WOOD).then(r => r.json());
+    map.getSource('nazwood').setData(nazWood);
+  } catch (e) { console.warn('나사렛 삼림 자료를 읽지 못했다:', e); nazWood = null; }
+  return nazWood;
+}
+function buildNazTrees() {
+  if (!nazTreesOn || !nazWood) return;
+  const z = map.getZoom();
+  if (z < NAZ_MINZOOM) {
+    map.getSource('naztrees').setData({ type: 'FeatureCollection', features: [] });
+    $('nazTreeNote').innerHTML = `z${NAZ_MINZOOM} 이상으로 확대하면 나타납니다.`;
+    return;
+  }
+  // 기울여 보면 화면 범위가 지평선까지 늘어난다. 그 넓이에 상한을 나누면 나무가
+  // 발밑에서 성겨진다. 그래서 화면 한가운데 둘레만 채운다.
+  const c = map.getCenter();
+  const R = Math.max(250, Math.min(3500, 380 * Math.pow(2, 17 - z)));   // m
+  const kx = 111320 * Math.cos(c.lat * Math.PI / 180), ky = 110570;
+  const b = map.getBounds();
+  const W = Math.max(b.getWest(), c.lng - R / kx), E = Math.min(b.getEast(), c.lng + R / kx);
+  const S = Math.max(b.getSouth(), c.lat - R / ky), N = Math.min(b.getNorth(), c.lat + R / ky);
+  const key = [z.toFixed(2), W.toFixed(4), S.toFixed(4), E.toFixed(4), N.toFixed(4)].join('|');
+  if (key === nazLastKey) return;
+  nazLastKey = key;
+  if (E <= W || N <= S) { map.getSource('naztrees').setData({ type: 'FeatureCollection', features: [] }); return; }
+
+  // 1) 보이는 폴리곤마다 '세우고 싶은 수'를 먼저 센다.
+  const jobs = [];
+  let wantTotal = 0;
+  for (const f of nazWood.features) {
+    const ring = f.geometry.coordinates[0];
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const q of ring) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+    if (x1 < W || x0 > E || y1 < S || y0 > N) continue;
+    const kd = nazWood.kinds[f.properties.kind];
+    if (!kd) continue;
+    // 화면 안에 든 몫만큼만
+    const vx = Math.max(0, Math.min(x1, E) - Math.max(x0, W));
+    const vy = Math.max(0, Math.min(y1, N) - Math.max(y0, S));
+    const box = (x1 - x0) * (y1 - y0);
+    const frac = box > 0 ? (vx * vy) / box : 0;
+    const want = f.properties.areaHa * kd.densityPerHa * frac;
+    if (want < 1) continue;
+    jobs.push({ f, ring, kd, want, bx: [x0, x1, y0, y1] });
+    wantTotal += want;
+  }
+  // 2) 상한을 비례로 나눈다. 한 폴리곤이 상한을 다 먹지 않는다.
+  const scale = wantTotal > NAZ_CAP ? NAZ_CAP / wantTotal : 1;
+  const feats = [];
+  let trees = 0;
+  for (const j of jobs) {
+    const n = Math.round(j.want * scale);
+    if (n < 1) continue;
+    const [x0, x1, y0, y1] = j.bx;
+    const id = parseInt((j.f.properties.osmId || '0/0').split('/')[1], 10) || 1;
+    const rng = seeded(id * 2654435761);
+    let made = 0, tries = 0;
+    while (made < n && tries < n * 14) {
+      tries++;
+      const p = [x0 + (x1 - x0) * rng(), y0 + (y1 - y0) * rng()];
+      if (p[0] < W || p[0] > E || p[1] < S || p[1] > N) continue;
+      if (!pointInRing(p, j.ring)) continue;
+      const sp = pickSpecies(j.kd, rng());
+      const h = sp.heightM[0] + (sp.heightM[1] - sp.heightM[0]) * rng();
+      const shrub = j.f.properties.kind === 'scrub';
+      const rad = shrub ? 0.5 + 0.5 * rng() : Math.max(0.9, h * (0.16 + 0.08 * rng()));
+      const mx = 1 / (111320 * Math.cos(p[1] * Math.PI / 180)), my = 1 / 110570;
+      const ring6 = r => {
+        const q = [];
+        for (let k = 0; k < 7; k++) { const a2 = k / 6 * Math.PI * 2;
+          q.push([p[0] + Math.cos(a2) * r * mx, p[1] + Math.sin(a2) * r * my]); }
+        return q;
+      };
+      const trunkTop = shrub ? h * 0.12 : h * 0.42;
+      if (!shrub) feats.push({ type: 'Feature',
+        properties: { h: +trunkTop.toFixed(2), base: 0, part: 'trunk', sp: sp.id },
+        geometry: { type: 'Polygon', coordinates: [ring6(Math.max(0.2, rad * 0.17))] } });
+      feats.push({ type: 'Feature',
+        properties: { h: +h.toFixed(2), base: +trunkTop.toFixed(2), part: 'crown', sp: sp.id },
+        geometry: { type: 'Polygon', coordinates: [ring6(rad)] } });
+      made++; trees++;
+    }
+  }
+  map.getSource('naztrees').setData({ type: 'FeatureCollection', features: feats });
+  $('nazTreeNote').innerHTML = trees === 0
+    ? `이 자리에는 숲이 없습니다. 나사렛 둘레의 숲으로 옮겨 보세요.`
+    : `화면 한가운데 <b>${Math.round(R)} m</b> 안에 <b>${trees.toLocaleString('ko-KR')}</b>그루` +
+      (scale < 1 ? ` (실제 밀도의 ${Math.round(scale * 100)}%만 세웠습니다 — 더 확대하면 촘촘해집니다)` : '') +
+      ` · 기울여 보면 지형 위에 섭니다.`;
+}
+function scheduleNazTrees() {
+  clearTimeout(nazTimer);
+  nazTimer = setTimeout(buildNazTrees, 180);
+}
+$('nazTrees').addEventListener('change', async e => {
+  nazTreesOn = e.target.checked;
+  $('nazTreeCaution').hidden = !nazTreesOn;
+  const vis = nazTreesOn ? 'visible' : 'none';
+  if (nazTreesOn) await loadNazWood();
+  for (const id of NAZ_TREE_LAYERS) map.setLayoutProperty(id, 'visibility', vis);
+  if (nazTreesOn) { nazLastKey = ''; buildNazTrees(); }
+  else {
+    // 큰 자료를 붙들고 있지 않게 비운다.
+    map.getSource('naztrees').setData({ type: 'FeatureCollection', features: [] });
+    $('nazTreeNote').innerHTML = 'z15 이상으로 확대하면 나타납니다. 기울여 보면(두 손가락 위아래) 나무가 지형 위에 섭니다.';
+  }
+});
+map.on('moveend', () => { if (nazTreesOn) scheduleNazTrees(); });
+
 const ROAD_LINE_LAYERS = ['road-casing', 'road-confirmed', 'road-probable', 'road-hypothetical'];
 const ROAD_LAYERS = [...ROAD_LINE_LAYERS, 'road-label'];
 const ROADOT_LINE_LAYERS = ['roadot-casing', 'roadot-probable', 'roadot-hypothetical'];
