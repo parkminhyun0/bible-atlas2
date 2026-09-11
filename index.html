@@ -174,24 +174,6 @@
   .cmp-note { color: var(--ink-soft); }
   /* 조작 키 이름. 지도의 붉은 점과 같은 색을 써서 눈에 먼저 들어오게 한다. */
   .key { color: #d92b2b; }
-  .road-legend { display: flex; flex-wrap: wrap; gap: 3px 11px; margin: 6px 0 2px; padding: 0;
-    list-style: none; font-size: 11px; color: var(--ink-soft); }
-  .road-legend i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; margin-right: 4px;
-    vertical-align: middle; }
-  .road-legend svg { vertical-align: middle; margin-right: 4px; }
-  #roadEv { position: fixed; inset: 0; z-index: 22; background: rgba(16,18,24,.72); display: flex;
-    align-items: center; justify-content: center; padding: 16px; }
-  #roadEv[hidden] { display: none; }
-  #roadEvBox { position: relative; width: min(760px, 96vw); max-height: 88dvh; overflow-y: auto;
-    padding: 14px 16px; background: var(--panel); border-radius: 12px; box-shadow: 0 18px 44px rgba(0,0,0,.34); }
-  #roadEvBox h2 { margin: 0 42px 6px 0; font-size: 15px; }
-  #roadEvClose { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; padding: 0; }
-  #roadEvBox h3 { margin: 12px 0 4px; font-size: 12.5px; }
-  #roadEvBox p, #roadEvBox li { font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 4px; }
-  #roadEvBox ul { margin: 0 0 6px; padding-left: 16px; }
-  .pp .road-meta { margin: 0 0 6px; font-size: 11.5px; color: var(--ink-soft); }
-  .pp .road-cert { display: inline-block; margin-top: 2px; padding: 1px 6px; border-radius: 999px;
-    font-size: 10.5px; background: rgba(58,47,40,.08); }
   .cmp-warn { margin: 7px 0 0; padding: 6px 9px; border-radius: 7px; background: #f5f1e8;
     color: var(--ink-soft); font-size: 11.5px; }
   .cmp-facts { width: 100%; margin: 11px 0 0; border-collapse: collapse; font-size: 12px; }
@@ -449,14 +431,6 @@
   </div>
 </div>
 
-<div id="roadEv" hidden role="dialog" aria-modal="true" aria-labelledby="roadEvTitle">
-  <div id="roadEvBox">
-    <button id="roadEvClose" type="button" aria-label="닫기">✕</button>
-    <h2 id="roadEvTitle">고대 도로 · 출처와 불확실성</h2>
-    <div id="roadEvBody">읽는 중…</div>
-  </div>
-</div>
-
 <div id="terrainCompare" hidden role="dialog" aria-modal="true" aria-labelledby="compareTitle">
   <div id="compareBox">
     <button id="compareClose" type="button" aria-label="비교 창 닫기">✕</button>
@@ -579,46 +553,6 @@
       올리브밭과 포도원, 참나무·테레빈 성긴 숲, 방목지가 섞인 땅이었습니다.<br>
       나무가 <b>있는 자리</b>는 실제 삼림 경계(OSM)이고 <b>크기</b>도 실제 수고 범위이지만,
       <b>한 그루 한 그루의 위치는 그 경계 안에 뿌린 것</b>입니다. 실제 나무를 측량한 자리가 아닙니다.
-    </div>
-  </div>
-
-  <div class="aspect">
-    <div class="aspect-h">고대 도로</div>
-    <div class="row"><label><input type="checkbox" id="roadsOtOn" /> <b>구약</b> 시대 도로</label></div>
-    <div class="row"><label><input type="checkbox" id="roadsOn" /> <b>신약</b> 시대 도로 (서기 30년경)</label></div>
-    <div id="roadOpts" hidden>
-      <div class="row"><label><input type="checkbox" class="road-type" data-type="trunk" checked /> 주요 간선도로</label></div>
-      <div class="row"><label><input type="checkbox" class="road-type" data-type="regional" checked /> 지역 연결로</label></div>
-      <div class="row"><label><input type="checkbox" class="road-type" data-type="pilgrimage" checked /> 순례길</label></div>
-      <div class="row"><label><input type="checkbox" class="road-type" data-type="trade" checked /> 교역로</label></div>
-      <div class="row"><label><input type="checkbox" class="road-type" data-type="imperial" disabled /> 로마 행정·군사도로</label></div>
-      <div class="sub" style="margin:-2px 0 6px">유대의 로마 포장 간선망은 대체로 서기 70년 이후에 놓였다.
-        서기 30년 층에 넣을 노선이 없어 이 유형은 비어 있다.</div>
-      <div class="btns" role="group" aria-label="확실성 범위">
-        <button id="roadCertAll" aria-pressed="true">추정 구간 포함</button>
-        <button id="roadCertSure" aria-pressed="false">확정 구간만 보기</button>
-      </div>
-      <div class="row" style="margin-top:6px"><label><input type="checkbox" id="roadLater" /> 서기 30년 이후 도로 (참고)</label></div>
-      <div class="sub" id="roadOtNote" style="margin:4px 0 0" hidden>구약 층에는 <b>확정</b>이 없습니다.
-        철기시대 도로는 유구가 거의 남지 않아, 성경이 말하는 양 끝과 경유지를 잇는 지형상 통로로 그렸습니다.
-        <b>길이 있었다는 것과 여기 그린 선이 그 길인가는 다른 문제</b>입니다.</div>
-      <ul class="road-legend" aria-label="도로 범례">
-        <li><i style="background:#D59B2D"></i>주요 간선로 (국제·해안)</li>
-        <li><i style="background:#A96F3B"></i>지역 연결로</li>
-        <li><i style="background:#8A62A8"></i>절기 순례길</li>
-        <li><i style="background:#278C86"></i>대상 교역로</li>
-        <li><i style="background:#C94A3A"></i>로마 행정·군사도로</li>
-        <li><i style="background:#3978B8"></i>바울 선교 이동로</li>
-      </ul>
-      <ul class="road-legend" aria-label="확실성 범례">
-        <li><svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" stroke="#3a2f28" stroke-width="3.4"/></svg>확정</li>
-        <li><svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" stroke="#3a2f28" stroke-width="1.5"/></svg>개연</li>
-        <li><svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" stroke="#3a2f28" stroke-width="1.7" stroke-dasharray="3 2.5"/></svg>추정</li>
-      </ul>
-      <div class="sub" style="margin:4px 0 6px"><b>서기 30년경 교육용 재구성</b>입니다. 문헌·고고학·지형에
-        근거해 고른 길이며, 그 시절의 정확한 도로망이 아닙니다.</div>
-      <div class="row"><button id="roadEvidence" type="button">출처 · 불확실성 보기</button></div>
-      <div class="sub" id="roadNote" style="margin-top:6px"></div>
     </div>
   </div>
 
@@ -810,40 +744,7 @@ const PEAKS      = SITE_ROOT + 'data/peaks.geojson';
 const DS_SOUTH   = SITE_ROOT + 'data/dead-sea-south.geojson';
 const VERSES     = SITE_ROOT + 'data/verses.json';
 const LOC_RIVERS = SITE_ROOT + 'data/rivers-local.geojson';
-const ROADS_C30  = SITE_ROOT + 'data/roads-c30.geojson';
-const ROADS_EV   = SITE_ROOT + 'data/roads-c30-evidence.json';
-const ROADS_OT   = SITE_ROOT + 'data/roads-ot.geojson';
-const ROADS_OT_EV = SITE_ROOT + 'data/roads-ot-evidence.json';
 const NAZ_WOOD   = SITE_ROOT + 'data/nazareth-woodland.geojson';
-
-// ---------- 고대 도로 ----------
-// 도로 기능별 색. 색각 이상 사용자를 위해 선 모양(확실성)과 함께 쓴다.
-const ROAD_COLORS = {
-  imperial: '#C94A3A',      // 로마 행정·군사도로
-  trunk: '#D59B2D',         // 국제·해안 간선로
-  regional: '#A96F3B',      // 지역 연결로
-  pilgrimage: '#8A62A8',    // 유대 절기 순례길
-  trade: '#278C86',         // 나바테아·대상 교역로
-  mission: '#3978B8'        // 바울 선교 이동로
-};
-const ROAD_COLOR = ['match', ['get', 'routeType'],
-  'imperial', ROAD_COLORS.imperial, 'trunk', ROAD_COLORS.trunk, 'regional', ROAD_COLORS.regional,
-  'pilgrimage', ROAD_COLORS.pilgrimage, 'trade', ROAD_COLORS.trade, 'mission', ROAD_COLORS.mission,
-  '#8b8b8b'];
-// 고른 도로만 도드라지게 하고 나머지는 물러난다. feature-state 를 쓰면 화면 밖 구간이
-// 빠지므로(querySourceFeatures 는 보이는 타일만 준다) 고른 id 를 표현식에 직접 넣는다.
-const ROAD_SEL = base => base;
-const roadSelOpacity = (base, sel) => sel
-  ? ['case', ['==', ['get', 'roadId'], sel], Math.min(1, base + 0.18), base * 0.27]
-  : base;
-const ROAD_OPACITY = ROAD_SEL(0.82);
-// 줌아웃에서는 간선·교역로만 두고, z8 부터 지역 연결로·순례길이 함께 나온다.
-// 불투명도를 0 으로 낮추는 방식은 안 된다 — 보이지 않아도 눌리고 배치 비용도 든다.
-// 걸러내야 화면에서도 성능에서도 실제로 빠진다. (필터의 zoom 은 정수 줌에서만 평가된다)
-const ROAD_ZOOM_GATE = ['step', ['zoom'],
-  ['match', ['get', 'routeType'], ['trunk', 'trade'], true, false], 8, true];
-// 기본 화면에는 서기 30년에 쓰인 길만 올린다. 유형별 켜고 끄기는 setFilter 로 바꾼다.
-const ROAD_BASE_FILTER = ['all', ['==', ['get', 'activeC30'], true], ROAD_ZOOM_GATE];
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -1038,10 +939,6 @@ const style = {
     nazwood:  { type: 'geojson', data: { type: 'FeatureCollection', features: [] },
                 attribution: 'Nazareth woodland: © OpenStreetMap contributors (ODbL)' },
     naztrees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
-    roadsot:  { type: 'geojson', data: ROADS_OT, promoteId: 'id',
-                attribution: 'Old Testament routes: 지형 최소비용 경로 재구성 (교육용)' },
-    roads:    { type: 'geojson', data: ROADS_C30, promoteId: 'id',
-                attribution: 'Ancient roads: Itiner-e (Brughmans, de Soto, Pažout, Bjerregaard Vahlstrup 2024) CC BY 4.0' },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
   },
@@ -1222,71 +1119,6 @@ const style = {
                'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
-    // ---------- 서기 30년경 주요 육상 교통로 ----------
-    // 색은 도로의 기능, 선 모양은 역사적 확실성이다. 색만으로 구분하면 색각 이상
-    // 사용자가 읽지 못하므로 둘을 함께 쓴다. 확실성별로 레이어를 나눈 것은
-    // line-dasharray 가 자료 표현식을 받지 못하기 때문이다.
-    { id: 'road-later', type: 'line', source: 'roads', layout: { visibility: 'none',
-        'line-cap': 'round', 'line-join': 'round' },
-      filter: ['==', ['get', 'activeC30'], false],
-      paint: { 'line-color': '#8b8b8b', 'line-opacity': 0.55, 'line-dasharray': [1, 2.2],
-               'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.8, 9, 1.4, 12, 2] } },
-    { id: 'road-casing', type: 'line', source: 'roads', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ROAD_BASE_FILTER,
-      paint: { 'line-color': '#261e16', 'line-opacity': ROAD_SEL(0.34),
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.2, 8, 3.6, 11, 5.6, 14, 8] } },
-    { id: 'road-confirmed', type: 'line', source: 'roads', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ['all', ROAD_BASE_FILTER, ['==', ['get', 'certainty'], 'confirmed']],
-      paint: { 'line-color': ROAD_COLOR, 'line-opacity': ROAD_OPACITY,
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1.3, 8, 2.3, 11, 3.6, 14, 5.2] } },
-    { id: 'road-probable', type: 'line', source: 'roads', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ['all', ROAD_BASE_FILTER, ['==', ['get', 'certainty'], 'probable']],
-      paint: { 'line-color': ROAD_COLOR, 'line-opacity': ROAD_OPACITY,
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.8, 8, 1.3, 11, 2.1, 14, 3] } },
-    { id: 'road-hypothetical', type: 'line', source: 'roads', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ['all', ROAD_BASE_FILTER, ['==', ['get', 'certainty'], 'hypothetical']],
-      paint: { 'line-color': ROAD_COLOR, 'line-opacity': ROAD_OPACITY, 'line-dasharray': [1.4, 2],
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.9, 8, 1.4, 11, 2.2, 14, 3.1] } },
-    // 구약 층. 색·선 규칙은 신약과 같다. 다만 '확정'이 없고 모두 개연·추정이다.
-    { id: 'roadot-casing', type: 'line', source: 'roadsot', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ROAD_ZOOM_GATE,
-      paint: { 'line-color': '#261e16', 'line-opacity': ROAD_SEL(0.34),
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.2, 8, 3.6, 11, 5.6, 14, 8] } },
-    { id: 'roadot-probable', type: 'line', source: 'roadsot', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ['all', ROAD_ZOOM_GATE, ['==', ['get', 'certainty'], 'probable']],
-      paint: { 'line-color': ROAD_COLOR, 'line-opacity': ROAD_SEL(0.82),
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.8, 8, 1.3, 11, 2.1, 14, 3] } },
-    { id: 'roadot-hypothetical', type: 'line', source: 'roadsot', minzoom: 5,
-      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-      filter: ['all', ROAD_ZOOM_GATE, ['==', ['get', 'certainty'], 'hypothetical']],
-      paint: { 'line-color': ROAD_COLOR, 'line-opacity': ROAD_SEL(0.82), 'line-dasharray': [1.4, 2],
-               'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.9, 8, 1.4, 11, 2.2, 14, 3.1] } },
-    { id: 'roadot-label', type: 'symbol', source: 'roadsot', minzoom: TOUCH ? 22 : 9,
-      layout: { visibility: 'none', 'text-field': ['get', 'nameKo'], 'text-font': ['Noto Sans Bold'],
-        'symbol-placement': 'line', 'symbol-spacing': 420, 'text-max-angle': 40,
-        'text-size': ['interpolate', ['linear'], ['zoom'], 9, 10.5, 13, 13], 'text-padding': 4,
-        'text-letter-spacing': 0.02 },
-      filter: ROAD_ZOOM_GATE,
-      paint: { 'text-color': ROAD_COLOR, 'text-halo-color': '#fffdf8', 'text-halo-width': 1.9,
-               'text-opacity': ROAD_SEL(0.95) } },
-
-    // 도로 이름 — 데스크톱에서 충분히 확대해야 나온다. 모바일에서는 아예 켜지 않고
-    // 선을 눌렀을 때 팝업으로 보여준다(작은 화면에서 이름이 지형을 덮는다).
-    { id: 'road-label', type: 'symbol', source: 'roads', minzoom: TOUCH ? 22 : 9,
-      layout: { visibility: 'none', 'text-field': ['get', 'nameKo'], 'text-font': ['Noto Sans Bold'],
-        'symbol-placement': 'line', 'symbol-spacing': 420, 'text-max-angle': 40,
-        'text-size': ['interpolate', ['linear'], ['zoom'], 9, 10.5, 13, 13], 'text-padding': 4,
-        'text-letter-spacing': 0.02 },
-      filter: ROAD_BASE_FILTER,
-      paint: { 'text-color': ROAD_COLOR, 'text-halo-color': '#fffdf8', 'text-halo-width': 1.9,
-               'text-opacity': ROAD_SEL(0.95) } },
-
     // 나사렛 둘레의 실제 삼림 경계. 위에서 보면 이 색이 숲으로 읽힌다.
     { id: 'nazwood-fill', type: 'fill', source: 'nazwood', minzoom: 12,
       layout: { visibility: 'none' },
@@ -2176,9 +2008,6 @@ function openPlacePopup(feature, lngLat) {
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
 
-// ---------- 고대 도로 ----------
-// 레이어와 소스는 스타일에 한 번만 선언해 두고, 켜고 끌 때는 visibility 와 filter 만
-// 바꾼다. 반복해서 켜도 source·layer 가 쌓이지 않는다.
 // ---------- 나사렛 둘레의 나무 ----------
 // 나무 한 그루의 실제 자리를 담은 자료는 없다. 있는 것은 '나무가 실제로 있는 자리',
 // 곧 OSM 의 삼림·관목지 경계다. 그 경계 안에만, 실제 수고 범위대로, 실제 밀도대로
@@ -2322,226 +2151,6 @@ $('nazTrees').addEventListener('change', async e => {
   }
 });
 map.on('moveend', () => { if (nazTreesOn) scheduleNazTrees(); });
-
-const ROAD_LINE_LAYERS = ['road-casing', 'road-confirmed', 'road-probable', 'road-hypothetical'];
-const ROAD_LAYERS = [...ROAD_LINE_LAYERS, 'road-label'];
-const ROADOT_LINE_LAYERS = ['roadot-casing', 'roadot-probable', 'roadot-hypothetical'];
-const ROADOT_LAYERS = [...ROADOT_LINE_LAYERS, 'roadot-label'];
-const ROAD_TYPE_LABEL = { imperial: '로마 행정·군사도로', trunk: '주요 간선로',
-  regional: '지역 연결로', pilgrimage: '유대 절기 순례길', trade: '나바테아·대상 교역로',
-  mission: '바울 선교 이동로', later: '서기 30년 이후 도로' };
-const ROAD_CERT_LABEL = { confirmed: '확정', probable: '개연', hypothetical: '추정' };
-let roadsOn = false, roadsOtOn = false, roadCertAll = true, roadSelected = null;
-let roadEvidence = null, roadOtEvidence = null;
-const roadTypes = new Set(['trunk', 'regional', 'pilgrimage', 'trade']);
-
-function applyRoadFilter() {
-  const types = [...roadTypes];
-  const base = ['all', ['==', ['get', 'activeC30'], true], ROAD_ZOOM_GATE,
-                ['match', ['get', 'routeType'], types.length ? types : ['__none__'], true, false]];
-  for (const id of ROAD_LINE_LAYERS) {
-    const cert = id.startsWith('road-c') || id === 'road-casing' ? null : id.replace('road-', '');
-    let f = base;
-    if (id === 'road-confirmed') f = ['all', base, ['==', ['get', 'certainty'], 'confirmed']];
-    else if (id === 'road-probable') f = ['all', base, ['==', ['get', 'certainty'], 'probable']];
-    else if (id === 'road-hypothetical') f = ['all', base, ['==', ['get', 'certainty'], 'hypothetical']];
-    if (!roadCertAll && id !== 'road-casing') f = ['all', f, ['==', ['get', 'certainty'], 'confirmed']];
-    if (!roadCertAll && id === 'road-casing') f = ['all', base, ['==', ['get', 'certainty'], 'confirmed']];
-    map.setFilter(id, f);
-  }
-  map.setFilter('road-label', base);
-  // 구약 층. 확정 등급이 없으므로 '확정만 보기'를 켜면 아무것도 남지 않는다 —
-  // 그 사실을 안내 문구로 알리고 층을 비운다.
-  const otBase = ['all', ROAD_ZOOM_GATE,
-                  ['match', ['get', 'routeType'], types.length ? types : ['__none__'], true, false]];
-  for (const id of ROADOT_LINE_LAYERS) {
-    let f = otBase;
-    if (id === 'roadot-probable') f = ['all', otBase, ['==', ['get', 'certainty'], 'probable']];
-    else if (id === 'roadot-hypothetical') f = ['all', otBase, ['==', ['get', 'certainty'], 'hypothetical']];
-    if (!roadCertAll) f = ['all', f, ['==', ['get', 'certainty'], '__none__']];
-    map.setFilter(id, f);
-  }
-  map.setFilter('roadot-label', otBase);
-  const vis = roadsOn ? 'visible' : 'none';
-  for (const id of ROAD_LAYERS) map.setLayoutProperty(id, 'visibility', vis);
-  const visOt = roadsOtOn ? 'visible' : 'none';
-  for (const id of ROADOT_LAYERS) map.setLayoutProperty(id, 'visibility', visOt);
-  $('roadOtNote').hidden = !roadsOtOn;
-  updateRoadNote();
-}
-function updateRoadNote() {
-  const n = $('roadNote');
-  const part = [];
-  const tally = (ev, label, certOnly) => {
-    if (!ev) return;
-    const rows = ev.roads.filter(r => roadTypes.has(r.routeType));
-    if (!rows.length) return;
-    const km = rows.reduce((a, r) => a + r.lengthKm, 0);
-    part.push(`${label} <b>${rows.length}</b>개 · 약 <b>${km.toLocaleString('ko-KR')} km</b>` + (certOnly || ''));
-  };
-  if (roadsOtOn) tally(roadOtEvidence, '구약', roadCertAll ? '' : ' <b>(확정 등급이 없어 표시 없음)</b>');
-  if (roadsOn) tally(roadEvidence, '신약', roadCertAll ? '' : ' · 확정 구간만');
-  n.innerHTML = part.join('<br>');
-}
-// 고른 도로만 남기고 나머지는 흐리게 한다.
-const ROAD_BASE_OPACITY = { 'road-casing': 0.34, 'road-confirmed': 0.82,
-  'road-probable': 0.82, 'road-hypothetical': 0.82,
-  'roadot-casing': 0.34, 'roadot-probable': 0.82, 'roadot-hypothetical': 0.82 };
-function setRoadSelection(roadId) {
-  roadSelected = roadId || null;
-  for (const [id, base] of Object.entries(ROAD_BASE_OPACITY))
-    if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', roadSelOpacity(base, roadSelected));
-  for (const id of ['road-label', 'roadot-label'])
-    if (map.getLayer(id)) map.setPaintProperty(id, 'text-opacity', roadSelOpacity(0.95, roadSelected));
-}
-async function loadRoadEvidence() {
-  if (roadEvidence) return roadEvidence;
-  try { roadEvidence = await fetch(ROADS_EV).then(r => r.json()); }
-  catch (e) { console.warn('도로 출처 자료를 읽지 못했다:', e); roadEvidence = null; }
-  return roadEvidence;
-}
-async function loadRoadOtEvidence() {
-  if (roadOtEvidence) return roadOtEvidence;
-  try { roadOtEvidence = await fetch(ROADS_OT_EV).then(r => r.json()); }
-  catch (e) { console.warn('구약 도로 출처 자료를 읽지 못했다:', e); roadOtEvidence = null; }
-  return roadOtEvidence;
-}
-function roadPopupHtml(p) {
-  const isOt = p.testament === 'ot';
-  const src = isOt ? roadOtEvidence : roadEvidence;
-  const ev = src && src.roads.find(r => r.id === p.roadId);
-  const mix = p.certaintyMix || {};
-  const mixTxt = Object.entries(mix).map(([k, v]) => `${ROAD_CERT_LABEL[k]} ${v}`).join(' · ');
-  const days = p.walkDays || [];
-  const verses = (ev && ev.relatedVerses || []).map(v => `<span class="cite">${esc(v)}</span>`).join(' · ');
-  return `<div class="pp"><h3>${esc(p.nameKo)}<span class="en">${esc(p.nameEn || '')}</span></h3>` +
-    `<p class="road-meta">${esc(ROAD_TYPE_LABEL[p.routeType] || p.routeType)}` +
-    (ev && ev.via && ev.via.length ? ` · ${esc(ev.via.join(' – '))}` : '') + `</p>` +
-    `<p class="road-meta">약 <b>${p.lengthKm}</b> km` +
-    (days.length ? ` · 걸어서 <b>${days[0] === days[1] ? (days[0] < 1 ? '하루 안쪽' : days[0] + '일 남짓')
-                                                        : days[0] + '~' + days[1] + '일'}</b>` : '') + `</p>` +
-    `<p class="road-meta">사용 시기 ` + (isOt
-      ? `<b>${esc(p.periodKo || '구약 시대')}</b>`
-      : p.activeC30 ? `<b>서기 30년경 통행</b><span class="q"></span> · 원자료에 연대 표기 없음`
-      : `<b>서기 ${p.periodStart}년 이후</b> · 서기 30년 층에서 제외`) + `</p>` +
-    (isOt
-      ? `<p class="road-meta">선형 <b>${ROAD_CERT_LABEL[p.certainty]}</b>` +
-        (p.romanOverlapPct != null ? ` · 후대 로마 도로와 같은 회랑 ${Math.max(p.romanOverlapPct, p.laterRomanOverlapPct || 0)}%` : '') + `</p>`
-      : `<p class="road-meta">이 구간 <b>${ROAD_CERT_LABEL[p.certainty]}</b>` +
-        (mixTxt ? ` · 노선 전체 ${esc(mixTxt)} 구간` : '') + `</p>`) +
-    (ev ? `<p>${esc(ev.noteKo)}</p>` : '') +
-    (verses ? `<p class="refs">${verses}</p>` : '') +
-    (ev ? `<p class="certainty"><b>${isOt ? '근거' : '서기 30년 근거'}</b> ${esc(isOt ? ev.basisKo : ev.c30Basis)}</p>` : '') +
-    (isOt ? `<p class="certainty">길이 있었다는 것은 성경 본문이 말합니다. 여기 그린 선은 그 길이 지났을
-      지형상 통로이며, 철기시대 도로 유구의 선형이 아닙니다.</p>` : '') +
-    `<p class="certainty">도보 일수는 하루 25~35 km 로 어림한 값입니다. ` +
-    (isOt ? `선형: 표고(Mapterhorn)로 계산한 최소비용 경로` : `선형 출처: Itiner-e (CC BY 4.0)`) +
-    (p.geometrySource && p.geometrySource.includes('terrain')
-      ? ` · 원본이 성기게 그려 둔 마디는 실제 표고를 보고 걷기 쉬운 길로 다시 이었습니다(지형 보정). 새 사료가 아닙니다.`
-      : '') + `</p>` +
-    `</div>`;
-}
-const roadPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px', offset: 10 });
-async function onRoadClick(e) {
-  const f = e.features && e.features[0];
-  if (!f) return;
-  const isOt = f.properties.testament === 'ot';
-  if (isOt ? !roadsOtOn : !roadsOn) return;
-  await (isOt ? loadRoadOtEvidence() : loadRoadEvidence());
-  setRoadSelection(f.properties.roadId);
-  roadPopup.setLngLat(e.lngLat).setHTML(roadPopupHtml(f.properties)).addTo(map);
-}
-// 팝업을 여닫아도 리스너가 늘지 않도록 한 번만 건다.
-for (const id of ['road-confirmed', 'road-probable', 'road-hypothetical',
-                  'roadot-probable', 'roadot-hypothetical']) {
-  map.on('click', id, onRoadClick);
-  map.on('mouseenter', id, () => { if ((roadsOn || roadsOtOn) && !TOUCH) map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', id, () => { if (!TOUCH) map.getCanvas().style.cursor = ''; });
-}
-roadPopup.on('close', () => setRoadSelection(null));
-
-async function onRoadToggle() {
-  roadsOn = $('roadsOn').checked;
-  roadsOtOn = $('roadsOtOn').checked;
-  $('roadOpts').hidden = !(roadsOn || roadsOtOn);
-  if (roadsOn) await loadRoadEvidence();
-  if (roadsOtOn) await loadRoadOtEvidence();
-  if (!roadsOn && !roadsOtOn) { roadPopup.remove(); setRoadSelection(null); }
-  applyRoadFilter();
-}
-$('roadsOn').addEventListener('change', onRoadToggle);
-$('roadsOtOn').addEventListener('change', onRoadToggle);
-for (const cb of document.querySelectorAll('.road-type'))
-  cb.addEventListener('change', () => {
-    cb.checked ? roadTypes.add(cb.dataset.type) : roadTypes.delete(cb.dataset.type);
-    applyRoadFilter();
-  });
-$('roadCertAll').addEventListener('click', () => { roadCertAll = true; syncRoadCert(); });
-$('roadCertSure').addEventListener('click', () => { roadCertAll = false; syncRoadCert(); });
-function syncRoadCert() {
-  $('roadCertAll').setAttribute('aria-pressed', String(roadCertAll));
-  $('roadCertSure').setAttribute('aria-pressed', String(!roadCertAll));
-  applyRoadFilter();
-}
-$('roadLater').addEventListener('change', e =>
-  map.setLayoutProperty('road-later', 'visibility', e.target.checked ? 'visible' : 'none'));
-
-// 출처·불확실성 대화상자
-const roadEvBox = $('roadEv');
-$('roadEvidence').addEventListener('click', async () => {
-  const ev = await loadRoadEvidence();
-  const evOt = await loadRoadOtEvidence();
-  const b = $('roadEvBody');
-  if (!ev && !evOt) { b.textContent = '출처 자료를 읽지 못했습니다.'; }
-  else if (!ev) { b.textContent = '신약 출처 자료를 읽지 못했습니다.'; }
-  else {
-    const li = a => a.map(x => `<li>${x}</li>`).join('');
-    b.innerHTML =
-      (evOt ? `<h3>구약 층과 신약 층은 근거가 다릅니다</h3>` +
-        `<p><b>신약</b> — ${esc(evOt.howItDiffersFromNT.nt)}</p>` +
-        `<p><b>구약</b> — ${esc(evOt.howItDiffersFromNT.ot)}</p>` +
-        `<p><b>확실성이 뜻하는 것</b> — ${esc(evOt.whatCertaintyMeans.warning)}</p>` +
-        `<h3>구약 노선 ${evOt.roads.length}개</h3><ul>` + li(evOt.roads.map(r =>
-          `<b>${esc(r.nameKo)}</b> · ${esc(ROAD_TYPE_LABEL[r.routeType])} · 약 ${r.lengthKm} km · ` +
-          `선형 ${ROAD_CERT_LABEL[r.certainty]} · 후대 로마 도로와 같은 회랑 ` +
-          `${Math.max(r.romanOverlapPct, r.laterRomanOverlapPct)}%<br>` +
-          `${esc(r.attestation.join(' · '))} — ${esc(r.basisKo)}`)) + `</ul>` +
-        `<h3>구약 층에서 보류한 것 ${evOt.hold.length}건</h3><ul>` + li(evOt.hold.map(h =>
-          `<b>${esc(h.nameKo)}</b> — ${esc(h.reason)}`)) + `</ul>` : '') +
-      `<p>${esc(ev.period.note)}</p>` +
-      `<h3>이름에 대하여</h3><p>${esc(ev.naming['via-maris'])}</p><p>${esc(ev.naming['later-names'])}</p>` +
-      `<h3>출처와 라이선스</h3><ul>` + li(ev.sources.map(s =>
-        `<b>${esc(s.title)}</b>${s.year ? ` (${s.year})` : ''} — ${esc(s.license)}` +
-        (s.doi ? ` · DOI ${esc(s.doi)}` : '') + (s.url ? ` · <span class="q">${esc(s.url)}</span>` : '') +
-        (s.datingCaveat ? `<br>연대 주의: ${esc(s.datingCaveat)}` : '') +
-        (s.spatialAccuracy ? `<br>공간 정확도: ${esc(s.spatialAccuracy)}` : '') +
-        (s.changesMade ? `<br>바꾼 점: ${esc(s.changesMade)}` : ''))) + `</ul>` +
-      `<h3>이 화면에 올린 노선 ${ev.roads.length}개</h3><ul>` + li(ev.roads.map(r =>
-        `<b>${esc(r.nameKo)}</b> · ${esc(ROAD_TYPE_LABEL[r.routeType])} · 약 ${r.lengthKm} km · ` +
-        Object.entries(r.certaintyMix).map(([k, v]) => `${ROAD_CERT_LABEL[k]} ${v}`).join(' · ') + ' 구간' +
-        `<br>${esc(r.c30Basis)}`)) + `</ul>` +
-      `<h3>서기 30년 이후라서 뺀 길 ${ev.later.length}개</h3><ul>` + li(ev.later.map(r =>
-        `${esc(r.nameKo)} · 약 ${r.lengthKm} km`)) + `</ul>` +
-      `<h3>근거가 모자라 보류한 것 ${ev.hold.length}건</h3><ul>` + li(ev.hold.map(h =>
-        `<b>${esc(h.nameKo)}</b> — ${esc(h.reason)}`)) + `</ul>` +
-      `<h3>지형 보정</h3><p>${esc(ev.terrainFit.why)}</p><p>${esc(ev.terrainFit.method)}</p>` +
-      `<p>${esc(ev.terrainFit.limits)}</p>` +
-      `<p>실제로 바뀐 정도 — 원래 선에서 벗어난 거리 중앙값 ${ev.terrainFit.measured.deviationFromOriginalM.median} m` +
-      ` (90분위 ${ev.terrainFit.measured.deviationFromOriginalM.p90} m · 최대 ${ev.terrainFit.measured.deviationFromOriginalM.max} m) · ` +
-      `걸어 올라야 하는 누적 오르막 ${ev.terrainFit.measured.cumulativeAscentM.before.toLocaleString('ko-KR')} m → ` +
-      `${ev.terrainFit.measured.cumulativeAscentM.after.toLocaleString('ko-KR')} m (${ev.terrainFit.measured.cumulativeAscentM.changePct}%) · ` +
-      `55~150° 로 꺾이던 꼭짓점 ${Object.entries(ev.terrainFit.measured.cornersByAngle.before).filter(([k]) => k !== '150~180').reduce((a, [, v]) => a + v, 0)} → 0개` +
-      ` (이음매 ${ev.terrainFit.measured.jointsOver55deg.before} → 0곳).</p>` +
-      `<p>${esc(ev.terrainFit.measured.cornersByAngle.note)}</p>` +
-      `<p>${esc(ev.terrainFit.measured.straightSpansOver1_5km.note)}</p>` +
-      `<p><b>${esc(ev.terrainFit.honesty)}</b></p>` +
-      `<h3>도보 일수</h3><p>${esc(ev.walkDays.basis)}</p>`;
-  }
-  roadEvBox.hidden = false;
-  $('roadEvClose').focus();
-});
-$('roadEvClose').addEventListener('click', () => { roadEvBox.hidden = true; $('roadEvidence').focus(); });
-roadEvBox.addEventListener('click', e => { if (e.target === roadEvBox) roadEvBox.hidden = true; });
 
 // ---------- 등고선 ----------
 // MapLibre 코어에는 등고선이 없다. maplibre-contour 가 DEM 타일을 워커에서 벡터 타일로
@@ -3560,8 +3169,7 @@ terrainCompare.addEventListener('click', e => { if (e.target === terrainCompare)
 solidBox.addEventListener('click', e => { if (e.target === solidBox) closeSolid(); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (!$('roadEv').hidden) { $('roadEv').hidden = true; $('roadEvidence').focus(); }
-  else if (!terrainCompare.hidden) closeTerrainCompare();
+  if (!terrainCompare.hidden) closeTerrainCompare();
   else if (!solidBox.hidden) closeSolid();
 });
 $('solidSpeed').addEventListener('input', e => {
