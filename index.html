@@ -744,7 +744,7 @@ const PEAKS      = SITE_ROOT + 'data/peaks.geojson';
 const DS_SOUTH   = SITE_ROOT + 'data/dead-sea-south.geojson';
 const VERSES     = SITE_ROOT + 'data/verses.json';
 const LOC_RIVERS = SITE_ROOT + 'data/rivers-local.geojson';
-const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.geojson';
+const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.json';
 
 // 등급마다 나타나는 줌이 다르다. 고속도로는 전체 보기(z6)부터, 간선은 z7, 주요도로는
 // z9 부터. 줌을 filter 에 쓰면 MapLibre 가 정수 줌마다 다시 재는데, 그 대신 그 줌에서
@@ -1976,6 +1976,7 @@ map.on('click', showElevation);          // 터치에는 hover 가 없다
 if (TOUCH) $('readout').textContent = '지도를 탭하면 고도를 표시합니다';
 
 window.map = map;   // 브라우저 콘솔·자동 검증에서 지도를 만질 수 있게 한다
+window.roadsToGeojson = roadsToGeojson;   // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
 
 // ---------- 지명 설명 팝업 ----------
 // MapLibre 의 Popup 은 remove() 하면 DOM 이 바로 사라져 '들어가는' 연출이 안 된다.
@@ -2039,17 +2040,52 @@ function openPlacePopup(feature, lngLat) {
 // 이 지도의 배경은 서기 30년경이지만 도로만은 오늘의 포장도로다. 성지를 찾는 사람이
 // '지금 어느 길로 가면 그 자리에 닿는가'를 읽게 하려는 것이다. 옛 길 추정이 아니다.
 //
-// 자료는 312KB 라 켤 때만 받는다. 쓰지 않는 사람에게 미리 지울 이유가 없다.
+// 도형은 OSM 원본 그대로다 — 줄이지 않는다. 미리 줄이면 완만한 곡선이 직선으로
+// 떨어지고 남은 꼭짓점이 뾰족하게 꺾인다. 줌에 따른 간략화는 geojson 소스가
+// 타일마다 알아서 한다. 1.4 MB 라 켤 때만 받는다.
 const ROAD_LAYERS = ['road-casing', 'road-line', 'road-ref'];
 let roadsLoaded = false, roadsLoading = null;
+
+// 인코딩된 폴리라인을 푼다. 앞 점과의 차이를 밑수 32 로 적은 것이라,
+// 글자를 5비트씩 모아 정수를 만들고 그 정수를 앞 점에 더해 간다. 경도가 먼저다.
+// 33만 점을 [경도,위도] 배열로 담으면 6.4 MB 지만 이렇게 적으면 1.4 MB 다.
+function decodePolyline(str, factor) {
+  const pts = [];
+  let i = 0, x = 0, y = 0;
+  const n = str.length;
+  while (i < n) {
+    let shift = 0, result = 0, b;
+    do { b = str.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    x += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = str.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    y += (result & 1) ? ~(result >> 1) : (result >> 1);
+    pts.push([x / factor, y / factor]);
+  }
+  return pts;
+}
+
+function roadsToGeojson(doc) {
+  const factor = Math.pow(10, doc.precision);
+  return {
+    type: 'FeatureCollection',
+    features: doc.features.map(f => {
+      const props = { cls: f.cls };
+      if (f.ref) props.ref = f.ref;
+      return { type: 'Feature', properties: props,
+               geometry: { type: 'MultiLineString',
+                           coordinates: f.enc.map(e => decodePolyline(e, factor)) } };
+    })
+  };
+}
 
 async function loadRoads() {
   if (roadsLoaded) return true;
   if (!roadsLoading) roadsLoading = fetch(ROADS_MOD).then(r => {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
-  }).then(g => {
-    map.getSource('roadsmod').setData(g);
+  }).then(doc => {
+    map.getSource('roadsmod').setData(roadsToGeojson(doc));
     roadsLoaded = true;
     return true;
   }).catch(e => {
