@@ -437,6 +437,7 @@
 .pp .verse p:last-child { margin-bottom: 0; }
 .pp .verse .src { margin-top: 7px; font-size: 10.5px; color: var(--ink-soft, #6b7785); }
 .pp .verse .err { color: var(--ink-soft, #6b7785); }
+.pp .verse .verse-title { margin: 0 0 7px; font-size: 11.5px; font-weight: 800; color: #8a2f2f; }
 .pp .meta { margin: 0 0 7px; font-size: 11.5px; color: var(--ink-soft, #6b7785); }
 .pp .context { margin: 0 0 7px; font-size: 10.5px; color: var(--accent, #4f6d8f); font-weight: 600; }
 .pp .certainty { margin: 8px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--ink-soft, #6b7785); }
@@ -4231,6 +4232,14 @@ function verseHtml(groups, i) {
          `<div class="src">${esc(VERSE_SRC)}</div>`;
 }
 
+function allVerseHtml(groups) {
+  if (!groups || !groups.length) return '<span class="err">개역한글 본문을 찾지 못했습니다.</span>';
+  return '<div class="verse-title">개역한글</div>' +
+    groups.flatMap(g => g.v).map(([label, text]) =>
+      `<p><b>${esc(label)}</b>${esc(text)}</p>`
+    ).join('') + `<div class="src">${esc(VERSE_SRC)}</div>`;
+}
+
 function bindVerses(root) {
   const refs = root.querySelector('.refs');
   const box = root.querySelector('.verse');
@@ -4250,8 +4259,10 @@ function bindVerses(root) {
   };
   const hide = () => {
     refs.querySelectorAll('.cite.on').forEach(x => x.classList.remove('on'));
-    box.hidden = true;
-    box.innerHTML = '';
+    loadVerses().then(table => {
+      box.hidden = false;
+      box.innerHTML = allVerseHtml(table[key]);
+    });
   };
 
   for (const el of refs.querySelectorAll('.cite')) {
@@ -4262,6 +4273,11 @@ function bindVerses(root) {
     // 터치에는 hover 가 없다. 한 번 누르면 펼치고 다시 누르면 접는다.
     el.addEventListener('click', e => { e.stopPropagation(); show(el); });
   }
+  // hover 를 발견해야만 본문이 보이던 문제를 없앤다. 팝업이 열리면 해당 지명의
+  // 모든 인용을 개역한글로 먼저 펼치고, 장절을 누르면 그 묶음만 골라 볼 수 있다.
+  box.hidden = false;
+  box.innerHTML = '개역한글 본문을 읽는 중…';
+  loadVerses().then(table => { box.innerHTML = allVerseHtml(table[key]); });
 }
 
 for (const id of PLACE_LAYERS) {
