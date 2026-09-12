@@ -614,15 +614,15 @@
 
   <div class="aspect">
     <div class="aspect-h">갈릴리 호수의 항구</div>
-    <div class="row"><label><input type="checkbox" id="harbours" /> 1세기 정박지 (닻 표시)</label></div>
-    <div class="sub" id="harbNote" style="margin:-2px 0 6px">호수를 둘러싼 12곳. 눌러서 설명을 봅니다.</div>
+    <div class="row"><label><input type="checkbox" id="harbours" /> 1세기 항구·정박 후보 (닻 표시)</label></div>
+    <div class="sub" id="harbNote" style="margin:-2px 0 6px">고고학 근거 14곳. 눌러서 확실도와 좌표 성격을 봅니다.</div>
     <div class="sub" id="harbCaution" hidden style="margin:-2px 0 6px">
-      근거는 <b>멘델 눈의 호숫가 조사</b>입니다. 1985~86년 가뭄으로 물이 크게 빠지자 평소
-      잠겨 있던 방파제와 계선석이 드러났고, 그는 호수를 한 바퀴 돌며 고대 정박지 열여섯 곳을
-      기록했습니다. <b>지금도 대부분은 물 밑에 있습니다.</b><br>
-      점은 정박지가 딸린 <b>마을·유적의 자리</b>이지 방파제 자리 자체가 아닙니다 —
-      물가에서 수십~수백 m 어긋납니다. 방파제 하나하나의 좌표는 공개 자료에서 확인할 수
-      없어 지어내지 않았습니다. 벳 예라(세나브리스) 정박지는 같은 이유로 뺐습니다.
+      멘델 눈의 16은 <b>항만·정박 구조물 조사 수</b>이며, 서기 1세기에 동시에 운영된 도시
+      16곳이라는 뜻이 아닙니다. 후속 발굴·해양고고학 연구를 대조해 장소 단위 14곳으로 묶었습니다.<br>
+      <b style="color:#087f5b">A 확인</b>(1세기 직접 증거) ·
+      <b style="color:#12626b">B 유력</b>(헬레니즘·로마기 항만) ·
+      <b style="color:#657b83">C 추정</b>(연대·위치 제한)을 점의 채움과 색으로 구분합니다.
+      점마다 실제 <b>항만 구조·호안 대표점·배후 유적</b> 중 무엇인지도 팝업에 밝힙니다.
     </div>
   </div>
 
@@ -1334,7 +1334,9 @@ const style = {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 4, 10, 6, 14, 8.5],
-        'circle-color': '#12626b', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
+        'circle-color': ['match', ['get', 'grade'], 'A', '#087f5b', 'B', '#12626b', '#ffffff'],
+        'circle-stroke-color': ['match', ['get', 'grade'], 'C', '#657b83', '#ffffff'],
+        'circle-stroke-width': ['match', ['get', 'grade'], 'C', 2.5, 2],
         'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     { id: 'harb-icon', type: 'symbol', source: 'harbours', minzoom: 8,
@@ -1342,7 +1344,8 @@ const style = {
         'icon-image': 'anchor', 'icon-anchor': 'bottom',
         'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.42, 12, 0.58, 16, 0.74],
         'icon-offset': [0, -6], 'icon-allow-overlap': true,
-        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport' } },
+        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport' },
+      paint: { 'icon-opacity': ['match', ['get', 'grade'], 'A', 1, 'B', 0.8, 0.42] } },
 
     { id: 'harb-label', type: 'symbol', source: 'harbours', minzoom: 9,
       layout: { visibility: 'none',
@@ -2416,16 +2419,18 @@ $('harbours').addEventListener('change', e => {
 function openHarbourPopup(feature) {
   const p = feature.properties || {};
   closePlacePopup();
-  const SRC = { atlas: '이 지도의 지명 자료', osm: 'OpenStreetMap (ODbL)' };
+  const BASIS = { harbour: '확인된 항만 구조 지점', shore: '관련 호안 대표점', site: '배후 유적 대표점' };
   const pt = feature.geometry.coordinates;
   const html =
     `<div class="pp"><h3>${esc(p.ko)}${p.en ? `<span class="en">${esc(p.en)}</span>` : ''}</h3>` +
-    '<div class="context">갈릴리 호수의 1세기 정박지</div>' +
-    `<div class="meta">${esc(p.side)} · 경도 ${(+pt[0]).toFixed(3)}° · 위도 ${(+pt[1]).toFixed(3)}°</div>` +
+    `<div class="context">갈릴리 호수 항구·정박 후보 · ${esc(p.grade)} ${esc(p.confidence)}</div>` +
+    `<div class="meta">${esc(p.side)} · ${esc(p.period)} · ${esc(BASIS[p.coordinate_basis] || p.coordinate_basis)}</div>` +
+    `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E</div>` +
     `<p>${esc(p.desc)}</p>` +
     (p.refs ? `<div class="refs" data-refs="${esc(p.refs)}">${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
-    '<div class="certainty">점은 정박지가 딸린 마을·유적의 자리입니다. 방파제 자리 자체는 아니며, ' +
-    '대부분 지금도 물 밑에 있습니다. 좌표 출처: ' + esc(SRC[p.src] || p.src) + '.</div></div>';
+    `<div class="certainty"><b>판정 기준:</b> ${esc(p.criterion)}.<br>` +
+    `<b>주요 근거:</b> ${esc(p.sources)}.<br>` +
+    '대표점은 위치 성격을 확인한 뒤 사용해야 하며, 근사 호안점은 방파제의 정밀 측량 좌표가 아닙니다.</div></div>';
   const pop = new maplibregl.Popup({
     className: 'place-popup', closeButton: false, closeOnClick: false,
     maxWidth: 'none', offset: 12, anchor: 'bottom'
