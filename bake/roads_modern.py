@@ -4,31 +4,31 @@
 옛 길을 추정해 그린 것이 아니다. 성지를 찾는 사람이 '지금 어느 길로 가면
 그 자리에 닿는가'를 읽을 수 있게 하려는 것이다.
 
-원본은 OSM 의 motorway·trunk·primary 다(ODbL). 이 상자 안에 22,015개 way,
-33만 점이 들어 있어 그대로는 못 쓴다. 세 단계로 줄인다.
+**도형은 줄이지 않는다.** 처음에는 Douglas–Peucker 로 33만 점을 1.4만 점까지
+줄였는데(고속 60 m · 간선 90 m · 주요 130 m), 그러면 완만한 곡선이 긴 직선으로
+떨어지고 남은 꼭짓점이 뾰족하게 꺾인다. 허용오차 안이라도 눈에는 보인다.
+그래서 OSM 이 가진 점을 하나도 버리지 않는다.
 
-1. 잇기   — OSM 의 way 는 교차로·태그 변화마다 토막나 있다. 같은 등급·같은
-            노선번호끼리 끝점을 맞춰 한 줄로 잇는다. 조각 수가 크게 준다.
-2. 단순화 — Douglas–Peucker. 고속도로는 원래 곡률이 완만해 100 m 로 줄여도
-            z13 에서 눈에 띄지 않는다. 등급별로 다르게 준다.
-3. 자리수 — 좌표를 소수 5자리(약 1 m)로 끊는다. 그 아래는 파일만 불린다.
+대신 좌표를 **인코딩된 폴리라인**으로 담는다. 33만 점을 [경도,위도] 배열로
+쓰면 6.4 MB 지만, 앞 점과의 차이를 밑수 32 로 적으면 1.4 MB 다(점당 4.3바이트).
+차이값은 대개 작아서 — 도로 위 이웃한 점은 10~50 m 떨어져 있다 — 한두 글자로
+적힌다. 정밀도는 소수 6자리(약 0.11 m)로, 가장 크게 확대해도 계단이 지지 않는다.
+
+줌에 따른 간략화는 MapLibre 의 geojson 소스가 타일마다 알아서 한다. 우리가 미리
+줄일 이유가 없다 — 미리 줄이면 확대했을 때 되돌릴 방법이 없다.
 
 입력:  Overpass API (https 는 이 환경에서 urllib 이 막혀 curl 로 받는다)
-출력:  data/roads-modern.geojson
+출력:  data/roads-modern.json   (GeoJSON 이 아니다. 읽는 쪽에서 펼친다)
 """
 import json, math, pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT  = ROOT / 'data' / 'roads-modern.geojson'
+OUT  = ROOT / 'data' / 'roads-modern.json'
 
 # 성경 지리권을 덮는 상자. 남쪽은 네게브·아라바, 북쪽은 다마스쿠스·시돈까지.
 BBOX = (29.3, 33.8, 34.0, 37.0)          # 남, 서, 북, 동
 CLASSES = ('motorway', 'trunk', 'primary')
-
-# 등급별 단순화 허용오차(m). 고속도로일수록 곡률이 완만해 더 줄여도 된다…가 아니라
-# 반대다. 고속도로는 넓은 곡선반경으로 길게 휘므로 촘촘한 점이 실제로 모양을 만든다.
-# 지방도는 굽이가 많아 보이지만 그 굽이가 지도 축척에서는 거의 안 보인다.
-TOL = {'motorway': 60.0, 'trunk': 90.0, 'primary': 130.0}
+PRECISION = 6                            # 소수 6자리 ≈ 0.11 m
 
 OVERPASS = 'https://overpass-api.de/api/interpreter'
 
@@ -58,8 +58,12 @@ def clean_ref(tags):
 def chain(segments):
     """끝점이 맞는 조각들을 한 줄로 잇는다.
 
+    도형은 바뀌지 않는다 — 이어 붙이기만 한다. 줄 수가 줄면 파일의 껍데기가 줄고,
+    MapLibre 가 타일마다 다루는 조각 수도 준다.
+
     좌표를 소수 6자리로 끊어 열쇠를 만든다. OSM 은 같은 교차점을 공유하므로
     좌표가 정확히 일치한다 — 근사 매칭은 필요 없고, 하면 엉뚱한 길이 붙는다.
+    갈림길(후보가 둘 이상)에서는 잇지 않는다. 아무 쪽이나 붙이면 길이 꼬인다.
     """
     key = lambda p: (round(p[0], 6), round(p[1], 6))
     ends = {}
@@ -74,11 +78,10 @@ def chain(segments):
             continue
         used[i] = True
         line = list(segments[i])
-        # 양 끝으로 번갈아 뻗는다.
-        for _ in range(2):
+        for _ in range(2):                    # 양 끝으로 번갈아 뻗는다
             while True:
                 cands = [(j, side) for j, side in ends.get(key(line[-1]), []) if not used[j]]
-                if len(cands) != 1:          # 갈림길이면 잇지 않는다. 아무 쪽이나 붙이면 길이 꼬인다.
+                if len(cands) != 1:
                     break
                 j, side = cands[0]
                 used[j] = True
@@ -89,37 +92,21 @@ def chain(segments):
     return out
 
 
-def dp(line, tol_m):
-    """Douglas–Peucker. 위경도를 그 위도의 미터로 환산해 잰다."""
-    if len(line) < 3:
-        return line
-    lat0 = math.radians(sum(p[1] for p in line) / len(line))
-    mx, my = 111320.0 * math.cos(lat0), 110540.0
-
-    def seg_dist(p, a, b):
-        px, py = (p[0] - a[0]) * mx, (p[1] - a[1]) * my
-        bx, by = (b[0] - a[0]) * mx, (b[1] - a[1]) * my
-        L = bx * bx + by * by
-        if L == 0:
-            return math.hypot(px, py)
-        t = max(0.0, min(1.0, (px * bx + py * by) / L))
-        return math.hypot(px - t * bx, py - t * by)
-
-    keep = [False] * len(line)
-    keep[0] = keep[-1] = True
-    stack = [(0, len(line) - 1)]
-    while stack:
-        a, b = stack.pop()
-        worst, wi = -1.0, -1
-        for i in range(a + 1, b):
-            d = seg_dist(line[i], line[a], line[b])
-            if d > worst:
-                worst, wi = d, i
-        if worst > tol_m:
-            keep[wi] = True
-            stack.append((a, wi))
-            stack.append((wi, b))
-    return [p for p, k in zip(line, keep) if k]
+def encode(line, prec=PRECISION):
+    """인코딩된 폴리라인. 경도·위도 순으로, 앞 점과의 차이를 밑수 32 로 적는다."""
+    f = 10 ** prec
+    out = []
+    px = py = 0
+    for x, y in line:
+        ix, iy = round(x * f), round(y * f)
+        for d in (ix - px, iy - py):
+            v = ~(d << 1) if d < 0 else (d << 1)
+            while v >= 0x20:
+                out.append(chr((0x20 | (v & 0x1f)) + 63))
+                v >>= 5
+            out.append(chr(v + 63))
+        px, py = ix, iy
+    return ''.join(out)
 
 
 def length_km(line):
@@ -132,8 +119,8 @@ def length_km(line):
 
 def main():
     data = fetch()
-    raw_pts = 0
     groups = {}
+    raw_pts = 0
     for e in data.get('elements', []):
         geom = e.get('geometry')
         if not geom or len(geom) < 2:
@@ -148,47 +135,40 @@ def main():
         ref = clean_ref(tags)
         groups.setdefault((cls, ref or 'w%d' % e['id']), []).append(line)
 
-    # 같은 등급·같은 노선번호는 한 피처(MultiLineString)로 묶는다. 조각마다 Feature 를
-    # 만들면 properties·geometry 껍데기만 110 바이트씩 붙어 파일의 절반을 먹는다.
-    bundles, kept_pts = {}, 0
+    # 같은 등급·같은 노선번호는 한 묶음으로 낸다. 조각마다 껍데기를 붙이면 그것만으로
+    # 파일의 절반을 먹는다.
+    bundles, kept_pts, total_km, nlines = {}, 0, 0.0, 0
     for (cls, gid), segs in groups.items():
         ref = '' if gid.startswith('w') and gid[1:].isdigit() else gid
         for line in chain(segs):
-            line = dp(line, TOL[cls])
             if len(line) < 2:
                 continue
-            km = length_km(line)
-            # 아주 짧은 토막은 버린다. 잇지 못한 램프·연결로라 지도에서 점처럼 보인다.
-            if km < (0.8 if cls == 'primary' else 0.4):
-                continue
-            line = [[round(x, 5), round(y, 5)] for x, y in line]
             kept_pts += len(line)
-            bundles.setdefault((cls, ref), []).append(line)
+            total_km += length_km(line)
+            nlines += 1
+            bundles.setdefault((cls, ref), []).append(encode(line))
 
     feats = []
-    for (cls, ref), lines in sorted(bundles.items()):
-        props = {'cls': cls}
+    for (cls, ref), enc in sorted(bundles.items()):
+        f = {'cls': cls, 'enc': enc}
         if ref:
-            props['ref'] = ref
-        feats.append({'type': 'Feature', 'properties': props,
-                      'geometry': {'type': 'MultiLineString', 'coordinates': lines}})
+            f['ref'] = ref
+        feats.append(f)
 
-    fc = {'type': 'FeatureCollection',
-          'attribution': '© OpenStreetMap contributors (ODbL)',
-          'note': '오늘의 도로다. 1세기 노선이 아니다.',
-          'features': feats}
-    OUT.write_text(json.dumps(fc, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    doc = {'format': 'roads-encoded-polyline', 'precision': PRECISION,
+           'attribution': '© OpenStreetMap contributors (ODbL)',
+           'note': '오늘의 도로다. 1세기 노선이 아니다. 도형은 OSM 원본 그대로, 줄이지 않았다.',
+           'features': feats}
+    OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
 
-    n, lines_by = {}, {}
+    n = {}
     for f in feats:
-        c = f['properties']['cls']
-        n[c] = n.get(c, 0) + 1
-        lines_by[c] = lines_by.get(c, 0) + len(f['geometry']['coordinates'])
-    print('조각 %d개 → 이어서 %d줄 → 노선 %d개로 묶음'
-          % (len(data.get('elements', [])), sum(lines_by.values()), len(feats)))
-    print('점 %d개 → %d개 (%.1f%%)' % (raw_pts, kept_pts, 100.0 * kept_pts / raw_pts))
-    print('등급별 노선', n, '· 줄', lines_by)
-    print('%s  %.0f KB' % (OUT, OUT.stat().st_size / 1024))
+        n[f['cls']] = n.get(f['cls'], 0) + 1
+    print('조각 %d개 → 이어서 %d줄 → 노선 %d개로 묶음' % (len(data.get('elements', [])), nlines, len(feats)))
+    print('점 %d개 → %d개 (버린 것 없음)' % (raw_pts, kept_pts))
+    print('등급별 노선', n, '· 총 연장 %.0f km' % total_km)
+    print('%s  %.2f MB (점당 %.1f 바이트)'
+          % (OUT, OUT.stat().st_size / 1e6, OUT.stat().st_size / kept_pts))
 
 
 if __name__ == '__main__':
