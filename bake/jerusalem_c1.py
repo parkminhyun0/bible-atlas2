@@ -72,18 +72,24 @@ TEMPLE = [(35.23446, 31.77581), (35.23742, 31.77606), (35.23730, 31.78026), (35.
 # ── 성전 산은 한 번에 이 크기가 아니었다 ──
 # 세 시대를 함께 그려 크기를 견주게 한다. 근거의 성격이 시대마다 다르므로 그것도 적는다.
 #
-#  헤롯 (서기 1세기)  — 발굴. 남벽 네 지점 회귀 + 실측 치수. 14.1 ha
-#  스룹바벨~하스몬    — 문헌 + 발굴 앵커. 미쉬나 미도트 2:1 이 성전 산을 500×500 규빗이라
-#                      한다. 그 네모의 남동 모서리를 동벽의 '이음매'에 건다 — 헤롯의 확장이
-#                      그 이전 벽에 맞붙은 자리로, 남동 모서리에서 북으로 32 m 떨어져 있다.
-#  솔로몬 (제1성전)   — 경내 크기는 남아 있지 않다. 대신 성경이 건물 치수를 정확히 말한다
-#                      (왕상 6:2-3). 그래서 솔로몬만은 경내가 아니라 '건물'을 그린다.
-#                      자리는 바위 돔 아래 반석을 지성소로 보는 통설을 따른다.
+# 치수는 이 프로젝트의 성전 연구 묶음(Temple in Jerusalem/temple_spec.json · 02_치수표.md)을
+# 따른다. 그 묶음이 세운 기준:
+#   · 규빗 0.525 m (리트마이어의 왕실 규빗). 앞서 0.45·0.5 를 섞어 쓴 것은 틀렸다.
+#   · 옛 성전 산 정방형 500×500 규빗 = 262.5 m  [Middot 2:1 · 리트마이어 실측 861 ft, 등급 A]
+#   · 그 정방형은 헤롯 외벽에 대해 4.2° 틀어져 있다 — 정방형 축은 거의 정동서로 달린다
+#   · 헤롯 서벽과 정방형 서변 사이 약 25 m
+#   · 헤롯 외벽 서 485 · 동 470 · 북 315 · 남 280 m  [Warren/Ritmeyer 실측]
 #
-# 규빗을 하나로 쓰지 않는다. 왕상 6 은 상용 규빗(약 0.45 m), 미쉬나의 500규빗은 약 0.5 m 로
-# 읽는 것이 통례다. 팝업에 어느 규빗을 썼는지 적는다.
-CUBIT_COMMON = 0.45      # 왕상 6
-CUBIT_MISHNA = 0.50      # 미쉬나 미도트 2:1
+#  헤롯 (서기 1세기)  — 발굴. 남벽 네 지점 회귀 + 위 실측 치수. 약 14 ha
+#  스룹바벨~하스몬    — 문헌 + 발굴 앵커. 500규빗 정방형을 동벽 이음매에 건다.
+#  솔로몬 (제1성전)   — 경내 크기는 남아 있지 않다. 성경이 건물 치수를 정확히 말하므로
+#                      (왕상 6:2-3) 솔로몬만은 경내가 아니라 '건물'을 그린다. 자리는
+#                      바위 돔 아래 반석을 지성소로 보는 리트마이어 안을 따른다.
+CUBIT = 0.525                     # 왕실 규빗. 연구 묶음의 기준값 하나로 통일한다.
+SQUARE_CUBITS = 500               # Middot 2:1
+SQUARE_SKEW_DEG = -4.2            # 헤롯 외벽 기준. 음수라야 정방형 축이 정동서에 가깝다.
+SQUARE_WEST_OFFSET_SPEC = 25.0    # 헤롯 서벽과 정방형 서변 사이 (명세값, 검산에 쓴다)
+HEROD_WALLS = {'south': 280.0, 'east': 470.0, 'north': 315.0, 'west': 485.0}
 
 SEAM = (35.23758, 31.77635)          # 동벽 이음매 (발굴)
 ROCK = (35.23542, 31.77802)          # 바위 돔 아래 반석 (에스사흐라)
@@ -269,35 +275,54 @@ def offset(pt, u, n, du, dn):
 
 
 def build_temples():
-    """스룹바벨~하스몬기 성전 산(500규빗 네모)과 솔로몬 성전 건물을 만든다."""
-    u, n = temple_frame()
+    """500규빗 정방형과 솔로몬 성전 건물을 만든다.
 
-    # 500 × 500 규빗. 남동 모서리를 동벽 이음매에 건다.
-    #
-    # 이음매의 실측 좌표를 그대로 쓰면 네모가 헤롯 동벽 밖으로 12 m 삐져나온다. 이음매
-    # 점은 ±십수 m 오차가 있는 반면, 이음매 북쪽의 벽은 헤롯이 그대로 이어 쓴 '같은 벽'
-    # 이다. 그래서 이음매에서는 '남동 모서리에서 북으로 얼마'만 가져오고, 동서 자리는
-    # 헤롯 동벽 위로 내린다.
-    side = 500 * CUBIT_MISHNA
-    hse = TEMPLE[1]                                   # 헤롯 남동 모서리
-    dn = ((SEAM[0] - hse[0]) * KX * n[0] + (SEAM[1] - hse[1]) * KY * n[1])   # 북쪽 성분만
-    se = offset(hse, u, n, 0, dn)
-    print('  이음매를 헤롯 동벽에 내림 — 남동 모서리에서 북으로 %.0f m' % dn)
-    pre = [se,
-           offset(se, u, n, 0, side),            # 북동
-           offset(se, u, n, -side, side),        # 북서
-           offset(se, u, n, -side, 0)]           # 남서
+    정방형은 헤롯 외벽과 나란하지 않다. 연구 묶음이 4.2° 스큐를 적는데, 음수 쪽으로
+    돌려야 정방형 축이 거의 정동서가 된다(헤롯 남벽은 정동에서 북으로 5.6° 기울어 있다).
+    양수 쪽으로 돌리면 정방형이 헤롯 대지 밖으로 나가 버린다 — 실제로 그렇게 나왔다.
+    """
+    u, n = temple_frame()
+    side = SQUARE_CUBITS * CUBIT
+
+    a = math.radians(SQUARE_SKEW_DEG)
+    ca, sa = math.cos(a), math.sin(a)
+    au = (u[0] * ca - u[1] * sa, u[1] * ca + u[0] * sa)     # 정방형의 동
+    an = (-au[1], au[0])                                     # 정방형의 북
+
+    # 남동 모서리 = 이음매를 헤롯 동벽 위로 내린 점.
+    hse = TEMPLE[1]
+    dn = ((SEAM[0] - hse[0]) * KX * n[0] + (SEAM[1] - hse[1]) * KY * n[1])
+    se_m = ((hse[0] - TEMPLE[0][0]) * KX + n[0] * dn, (hse[1] - TEMPLE[0][1]) * KY + n[1] * dn)
+
+    def to_ll(mx, my):
+        return [round(TEMPLE[0][0] + mx / KX, 5), round(TEMPLE[0][1] + my / KY, 5)]
+
+    pts = [se_m,
+           (se_m[0] + side * an[0], se_m[1] + side * an[1]),                      # 북동
+           (se_m[0] + side * an[0] - side * au[0], se_m[1] + side * an[1] - side * au[1]),  # 북서
+           (se_m[0] - side * au[0], se_m[1] - side * au[1])]                      # 남서
+    pre = [to_ll(*q) for q in pts]
 
     # 솔로몬 성전 건물. 왕상 6:2 본체 60×20 규빗, 6:3 현관 깊이 10 규빗 → 70×20.
-    # 지성소(서쪽 끝 20규빗)의 한가운데를 반석에 맞춘다.
-    half_w = 10 * CUBIT_COMMON
-    west = -10 * CUBIT_COMMON
-    east = 60 * CUBIT_COMMON
-    sol = [offset(ROCK, u, n, west, -half_w),
-           offset(ROCK, u, n, east, -half_w),
-           offset(ROCK, u, n, east,  half_w),
-           offset(ROCK, u, n, west,  half_w)]
-    return pre, sol, side, (70 * CUBIT_COMMON, 20 * CUBIT_COMMON)
+    # 축은 헤롯 외벽이 아니라 '정방형'을 따른다 — 성전은 그 경내의 건물이다.
+    rock_m = ((ROCK[0] - TEMPLE[0][0]) * KX, (ROCK[1] - TEMPLE[0][1]) * KY)
+    half_w = 10 * CUBIT
+    west, east = -10 * CUBIT, 60 * CUBIT
+    sol = [to_ll(rock_m[0] + au[0] * west + an[0] * -half_w, rock_m[1] + au[1] * west + an[1] * -half_w),
+           to_ll(rock_m[0] + au[0] * east + an[0] * -half_w, rock_m[1] + au[1] * east + an[1] * -half_w),
+           to_ll(rock_m[0] + au[0] * east + an[0] *  half_w, rock_m[1] + au[1] * east + an[1] *  half_w),
+           to_ll(rock_m[0] + au[0] * west + an[0] *  half_w, rock_m[1] + au[1] * west + an[1] *  half_w)]
+
+    # 검산에 쓸 값: 정방형 서변이 헤롯 서벽에서 얼마나 떨어졌나
+    def seg_dist(px, py, ax, ay, bx, by):
+        vx, vy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy)))
+        return math.hypot(px - ax - t * vx, py - ay - t * vy)
+    sw_m = (0.0, 0.0)
+    nw_m = ((TEMPLE[3][0] - TEMPLE[0][0]) * KX, (TEMPLE[3][1] - TEMPLE[0][1]) * KY)
+    west_off = min(seg_dist(pts[3][0], pts[3][1], sw_m[0], sw_m[1], nw_m[0], nw_m[1]),
+                   seg_dist(pts[2][0], pts[2][1], sw_m[0], sw_m[1], nw_m[0], nw_m[1]))
+    return pre, sol, side, (70 * CUBIT, 20 * CUBIT), west_off, dn
 
 
 def main():
@@ -373,7 +398,7 @@ def main():
     }]
 
     # ── 성전 산의 세 시대 ──
-    pre, sol, pre_side, sol_size = build_temples()
+    pre, sol, pre_side, sol_size, west_off, seam_dn = build_temples()
     pre_ha = area_ha([[q[0], q[1]] for q in pre])
     sol_ha = area_ha([[q[0], q[1]] for q in sol])
 
@@ -386,18 +411,25 @@ def main():
     for nm2, q in zip(['남동', '북동', '북서', '남서'], pre):
         if not inside((q[0], q[1]), [[t[0], t[1]] for t in TEMPLE]):
             raise SystemExit('500규빗 네모의 %s 모서리가 헤롯 대지 밖이다' % nm2)
+    if abs(west_off - SQUARE_WEST_OFFSET_SPEC) > 12:
+        raise SystemExit('정방형 서변~헤롯 서벽 %.0f m — 명세 %.0f m 와 12 m 넘게 어긋난다'
+                         % (west_off, SQUARE_WEST_OFFSET_SPEC))
+    print('  정방형 서변~헤롯 서벽 %.0f m (명세 %.0f m) · 이음매는 남동에서 북으로 %.0f m'
+          % (west_off, SQUARE_WEST_OFFSET_SPEC, seam_dn))
     print('성전 시대 검산 통과 — 제1성전기 석조가 동벽에 붙고, 헤롯기 북쪽 확장부는 네모 밖이다')
 
     feats.append({'type': 'Feature',
                   'properties': {'kind': 'temple2', 'ko': '스룹바벨~하스몬기 성전 산',
                                  'ha': round(pre_ha, 1), 'side_m': round(pre_side),
-                                 'cubit': CUBIT_MISHNA, 'cert': '문헌 + 발굴 앵커'},
+                                 'cubit': CUBIT, 'skew': SQUARE_SKEW_DEG,
+                                 'west_off_m': round(west_off),
+                                 'cert': '문헌 + 발굴 앵커'},
                   'geometry': {'type': 'Polygon', 'coordinates': [pre + [pre[0]]]}})
     feats.append({'type': 'Feature',
                   'properties': {'kind': 'temple1', 'ko': '솔로몬 성전 (건물)',
                                  'ha': round(sol_ha, 3),
                                  'len_m': round(sol_size[0], 1), 'wid_m': round(sol_size[1], 1),
-                                 'cubit': CUBIT_COMMON, 'cert': '성경 치수 + 추정 위치'},
+                                 'cubit': CUBIT, 'cert': '성경 치수 + 추정 위치'},
                   'geometry': {'type': 'Polygon', 'coordinates': [sol + [sol[0]]]}})
 
     for lo, la, name, cert, _ in RING:
@@ -431,8 +463,8 @@ def main():
     print('성전  %.1f ha (성읍의 %.1f%%) · 남 %d · 동 %d · 북 %d · 서 %d m'
           % (tha, 100 * tha / ha, feats[1]['properties']['s_m'], feats[1]['properties']['e_m'],
              feats[1]['properties']['n_m'], feats[1]['properties']['w_m']))
-    print('성전  스룹바벨~하스몬 %.1f ha (%d규빗=%.0f m 네모) · 솔로몬 건물 %.1f×%.1f m'
-          % (pre_ha, 500, pre_side, sol_size[0], sol_size[1]))
+    print('성전  스룹바벨~하스몬 %.1f ha (%d규빗=%.1f m 네모, 스큐 %.1f°) · 솔로몬 건물 %.2f×%.2f m'
+          % (pre_ha, SQUARE_CUBITS, pre_side, SQUARE_SKEW_DEG, sol_size[0], sol_size[1]))
     print('      헤롯 %.1f ha 는 그 %.1f 배다' % (tha, tha / pre_ha))
     print('성문  %d개 (발굴 %d · 추정 %d · 불확실 %d)'
           % (len(GATES), sum(1 for g in GATES if g[4] == '발굴'),
