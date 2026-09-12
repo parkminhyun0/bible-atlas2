@@ -560,6 +560,21 @@
   </div>
 
   <div class="aspect">
+    <div class="aspect-h">길찾기</div>
+    <div class="row"><button id="navPick" aria-pressed="false">지명 두 곳 찍기</button>
+      <button id="navClear" hidden>지우기</button></div>
+    <div class="sub" id="navNote" style="margin:6px 0 0">출발 지명을 누르고 도착 지명을 누르세요.
+      오늘의 도로를 따라갑니다.</div>
+    <div class="sub" id="navResult" hidden style="margin:6px 0 0"></div>
+    <div class="sub" id="navCaution" hidden style="margin:6px 0 0">
+      <b>자동차 시간은 오늘의 길, 도보 시간은 옛 걸음입니다.</b> 자동차는 등급별 통상 속도로
+      어림한 값이라 신호·정체·일방통행을 모르고, 도보는 그 길의 실제 오르내림을 지형에서 읽어
+      Tobler 식으로 잰 것입니다. 다만 걷는 길도 <b>오늘 깔린 도로</b>입니다 — 1세기 사람이
+      다닌 길이 아닙니다.
+    </div>
+  </div>
+
+  <div class="aspect">
     <div class="aspect-h">고도 단면도</div>
     <div class="row"><button id="profilePick" aria-pressed="false">지도에서 두 지점 찍기</button></div>
     <div class="btns" role="group" aria-label="성경 노정 예시">
@@ -957,6 +972,7 @@ const style = {
     roadsmod: { type: 'geojson', data: { type: 'FeatureCollection', features: [] },
                 attribution: 'Roads: © OpenStreetMap contributors (ODbL)' },
     roadsloc: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+    navroute: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
   },
@@ -1228,6 +1244,25 @@ const style = {
         'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
       filter: ['all', ['has', 'ref'], ROAD_ZOOM],
       paint: { 'text-color': '#2f3237', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
+    // 찾은 길. 도로 위, 지명 아래에 그린다. 밑에 굵은 흰 테를 깔아야 도로망 위에서도 보인다.
+    { id: 'nav-route-halo', type: 'line', source: 'navroute',
+      filter: ['==', ['geometry-type'], 'LineString'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-opacity': 0.9,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 6, 5, 12, 9, 16, 14] } },
+    { id: 'nav-route', type: 'line', source: 'navroute',
+      filter: ['==', ['geometry-type'], 'LineString'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#1f7a4d', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2.4, 12, 5, 16, 8] } },
+    // 출발·도착 표시
+    { id: 'nav-ends', type: 'circle', source: 'navroute',
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 5, 14, 9],
+               'circle-color': ['match', ['get', 'role'], 'a', '#1f7a4d', '#b3452f'],
+               'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5,
+               'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     { id: 'nt-dot', type: 'circle', source: 'ntplaces',
       // 물·지역·산은 점을 찍지 않는다. 물과 지역은 면이라 점이 어울리지 않고,
@@ -2017,7 +2052,10 @@ map.on('click', showElevation);          // 터치에는 hover 가 없다
 if (TOUCH) $('readout').textContent = '지도를 탭하면 고도를 표시합니다';
 
 window.map = map;   // 브라우저 콘솔·자동 검증에서 지도를 만질 수 있게 한다
-window.roadsToGeojson = roadsToGeojson;   // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
+window.roadsToGeojson = roadsToGeojson;
+// 자동 검증에서 길찾기를 직접 부르기 위해 내놓는다 (window.map 과 같은 이유).
+window.nav = { take: navTakePlace, build: buildNavGraph, snap: navSnap, route: navRoute,
+               walkTime: navWalkTime, draw: navDraw };   // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
 
 // ---------- 지명 설명 팝업 ----------
 // MapLibre 의 Popup 은 remove() 하면 DOM 이 바로 사라져 '들어가는' 연출이 안 된다.
@@ -2171,6 +2209,287 @@ for (const key of Object.keys(ROAD_SETS)) {
     const vis = on ? 'visible' : 'none';
     for (const id of set.layers) map.setLayoutProperty(id, 'visibility', vis);
   });
+}
+
+// ---------- 길찾기 ----------
+// 도로 자료는 이미 길 그물이다. OSM 의 way 는 교차점에서 같은 좌표를 공유하므로,
+// 모든 꼭짓점을 정점으로 삼고 이웃끼리 이으면 그대로 그래프가 된다. 실측해 보니
+// 정점 133만 개 가운데 98.8%가 한 덩어리로 이어져 있다.
+//
+// 자동차 시간은 등급별 통상 속도로 어림한다. 일방통행·회전금지·신호·정체는 자료에
+// 없다. 도보 시간은 그렇게 하지 않는다 — 그 길의 실제 오르내림을 지형에서 읽어
+// Tobler 의 도보 속도식으로 잰다. 성경을 읽는 사람에게 중요한 것은 평지 환산이
+// 아니라 '이 비탈을 걸어 며칠'이기 때문이다.
+const NAV_CAR_KMH = { motorway: 95, trunk: 80, primary: 70, secondary: 60, tertiary: 50 };
+const NAV_CLS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
+const NAV_WALK_DAY_H = 8;      // 하루에 걷는 시간. 옛 여정의 통상 가정이다.
+const NAV_SNAP_MAX_KM = 8;     // 이보다 멀면 그 지명은 도로 자료 밖으로 본다.
+
+let navGraph = null, navBuilding = null;
+let navPicking = false, navA = null, navB = null;
+
+// 두 자료를 모두 읽어 정점·간선을 만든다. 타입 배열로 담아야 브라우저가 견딘다 —
+// [경도,위도] 배열 133만 개를 그대로 들고 있으면 100 MB 가 넘는다.
+async function buildNavGraph() {
+  if (navGraph) return navGraph;
+  if (navBuilding) return navBuilding;
+  navBuilding = (async () => {
+    const docs = [];
+    for (const url of [ROADS_MOD, ROADS_LOC]) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      docs.push(await r.json());
+    }
+    // 1) 좌표에 번호를 매긴다. 1e-6 격자에 올라가 있으므로 정확히 일치한다.
+    const id = new Map();
+    const lonA = [], latA = [];
+    const nid = p => {
+      const k = Math.round(p[0] * 1e6) + ',' + Math.round(p[1] * 1e6);
+      let v = id.get(k);
+      if (v === undefined) { v = lonA.length; id.set(k, v); lonA.push(p[0]); latA.push(p[1]); }
+      return v;
+    };
+    const eFrom = [], eTo = [], eW = [], eC = [];
+    for (const doc of docs) {
+      const factor = Math.pow(10, doc.precision);
+      for (const f of doc.features) {
+        const ci = NAV_CLS.indexOf(f.cls);
+        for (const enc of f.enc) {
+          const pts = decodePolyline(enc, factor);
+          let prev = nid(pts[0]);
+          for (let i = 1; i < pts.length; i++) {
+            const cur = nid(pts[i]);
+            if (cur === prev) continue;
+            eFrom.push(prev); eTo.push(cur); eW.push(navKm(lonA[prev], latA[prev], lonA[cur], latA[cur])); eC.push(ci);
+            prev = cur;
+          }
+        }
+      }
+    }
+    // 2) 인접 리스트 (양방향)
+    const N = lonA.length, M = eFrom.length;
+    const lon = Float64Array.from(lonA), lat = Float64Array.from(latA);
+    const head = new Int32Array(N).fill(-1);
+    const next = new Int32Array(M * 2), to = new Int32Array(M * 2);
+    const w = new Float32Array(M * 2), cls = new Uint8Array(M * 2);
+    let n = 0;
+    const link = (a, b, d, c) => { to[n] = b; w[n] = d; cls[n] = c; next[n] = head[a]; head[a] = n; n++; };
+    for (let i = 0; i < M; i++) { link(eFrom[i], eTo[i], eW[i], eC[i]); link(eTo[i], eFrom[i], eW[i], eC[i]); }
+    // 3) 스냅용 격자 색인
+    const G = 200, cell = new Map();
+    for (let i = 0; i < N; i++) {
+      const k = Math.floor(lon[i] * G) + ':' + Math.floor(lat[i] * G);
+      let a = cell.get(k); if (!a) cell.set(k, a = []); a.push(i);
+    }
+    navGraph = { N, lon, lat, head, next, to, w, cls, cell, G };
+    navBuilding = null;
+    return navGraph;
+  })().catch(e => { console.warn('길 그물을 만들지 못했다:', e); navBuilding = null; return null; });
+  return navBuilding;
+}
+
+function navKm(ax, ay, bx, by) {
+  const la = (ay + by) / 2 * Math.PI / 180;
+  return Math.hypot((bx - ax) * 111.320 * Math.cos(la), (by - ay) * 110.540);
+}
+
+// 지명에서 가장 가까운 길 위의 점. 격자를 한 겹씩 넓혀 가며 찾는다.
+function navSnap(g, x, y) {
+  let best = -1, bd = Infinity;
+  for (let r = 0; r < 8 && best < 0; r++) {
+    const gx = Math.floor(x * g.G), gy = Math.floor(y * g.G);
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+      if (r > 0 && Math.abs(dx) < r && Math.abs(dy) < r) continue;
+      const a = g.cell.get((gx + dx) + ':' + (gy + dy));
+      if (!a) continue;
+      for (const i of a) { const d = navKm(x, y, g.lon[i], g.lat[i]); if (d < bd) { bd = d; best = i; } }
+    }
+  }
+  return { node: best, km: bd };
+}
+
+// Dijkstra. mode 'car' 는 등급별 속도로, 'walk' 는 거리로 푼다(도보 시간은 나중에
+// 고도를 읽어 따로 잰다 — 고도를 미리 알 수 없으니 탐색 중에는 쓸 수 없다).
+// 보행자는 고속도로를 걷지 못하므로 mode 'walk' 에서는 그 간선을 건너뛴다.
+function navRoute(g, s, t, mode) {
+  const N = g.N;
+  const cost = new Float64Array(N).fill(Infinity);
+  const dist = new Float64Array(N).fill(Infinity);
+  const prev = new Int32Array(N).fill(-1);
+  const hk = new Float64Array(N + 1), hv = new Int32Array(N + 1);
+  let hn = 0;
+  const push = (k, v) => { let i = ++hn; hk[i] = k; hv[i] = v;
+    while (i > 1) { const p = i >> 1; if (hk[p] <= hk[i]) break;
+      let a = hk[p]; hk[p] = hk[i]; hk[i] = a; let b = hv[p]; hv[p] = hv[i]; hv[i] = b; i = p; } };
+  const pop = () => { const rv = hv[1], rk = hk[1]; hk[1] = hk[hn]; hv[1] = hv[hn]; hn--;
+    let i = 1;
+    for (;;) { const l = i << 1, r = l | 1; let m = i;
+      if (l <= hn && hk[l] < hk[m]) m = l;
+      if (r <= hn && hk[r] < hk[m]) m = r;
+      if (m === i) break;
+      let a = hk[m]; hk[m] = hk[i]; hk[i] = a; let b = hv[m]; hv[m] = hv[i]; hv[i] = b; i = m; }
+    return { v: rv, k: rk }; };
+  cost[s] = 0; dist[s] = 0; push(0, s);
+  let found = false;
+  while (hn) {
+    const { v: u, k } = pop();
+    if (k > cost[u]) continue;
+    if (u === t) { found = true; break; }
+    for (let e = g.head[u]; e !== -1; e = g.next[e]) {
+      const c = g.cls[e];
+      if (mode === 'walk' && c === 0) continue;
+      const step = mode === 'walk' ? g.w[e] : g.w[e] / NAV_CAR_KMH[NAV_CLS[c]];
+      const nc = cost[u] + step, v = g.to[e];
+      if (nc < cost[v]) { cost[v] = nc; dist[v] = dist[u] + g.w[e]; prev[v] = u; push(nc, v); }
+    }
+  }
+  if (!found) return null;
+  const nodes = [];
+  for (let u = t; u !== -1; u = prev[u]) nodes.push(u);
+  nodes.reverse();
+  return { nodes, km: dist[t], hours: mode === 'car' ? cost[t] : null };
+}
+
+// 길 위를 일정 간격으로 집어 고도를 읽고, Tobler 의 도보 속도식으로 시간을 잰다.
+//   v = 6·exp(-3.5·|S + 0.05|) km/h   (S = 오르내림 기울기)
+// 평지에서 5 km/h 가 조금 안 되고, 완만한 내리막(-5%)에서 가장 빠르다.
+// DEM 은 화면에 올라온 타일에서만 읽히므로 먼저 경로 전체를 화면에 맞춘다.
+async function navWalkTime(g, nodes) {
+  const pts = [];
+  let acc = 0;
+  pts.push([g.lon[nodes[0]], g.lat[nodes[0]]]);
+  const STEP_KM = 0.25;
+  for (let i = 1; i < nodes.length; i++) {
+    acc += navKm(g.lon[nodes[i - 1]], g.lat[nodes[i - 1]], g.lon[nodes[i]], g.lat[nodes[i]]);
+    if (acc >= STEP_KM || i === nodes.length - 1) { pts.push([g.lon[nodes[i]], g.lat[nodes[i]]]); acc = 0; }
+  }
+  let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (const p of pts) { lo[0] = Math.min(lo[0], p[0]); lo[1] = Math.min(lo[1], p[1]);
+                         hi[0] = Math.max(hi[0], p[0]); hi[1] = Math.max(hi[1], p[1]); }
+  await new Promise(res => {
+    const done = () => res();
+    map.once('idle', done);
+    setTimeout(done, 9000);
+    map.fitBounds([lo, hi], { padding: 70, pitch: 0, bearing: 0, duration: 800 });
+  });
+  let hours = 0, up = 0, down = 0, miss = 0, prevE = null;
+  for (let i = 1; i < pts.length; i++) {
+    const d = navKm(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+    if (d <= 0) continue;
+    const e0 = prevE != null ? prevE : map.queryTerrainElevation({ lng: pts[i - 1][0], lat: pts[i - 1][1] }, { exaggerated: false });
+    const e1 = map.queryTerrainElevation({ lng: pts[i][0], lat: pts[i][1] }, { exaggerated: false });
+    prevE = e1;
+    if (e0 == null || e1 == null) { miss++; hours += d / 5; continue; }
+    const dh = e1 - e0;
+    if (dh > 0) up += dh; else down -= dh;
+    const S = dh / (d * 1000);
+    const v = 6 * Math.exp(-3.5 * Math.abs(S + 0.05));
+    hours += d / Math.max(v, 0.4);          // 아주 가파른 곳에서 0 으로 나뉘지 않게
+  }
+  return { hours, up, down, samples: pts.length, miss };
+}
+
+function navFmtH(h) {
+  const m = Math.round(h * 60);
+  if (m < 60) return m + '분';
+  return Math.floor(m / 60) + '시간 ' + (m % 60) + '분';
+}
+
+function navDraw(nodes, g) {
+  const feats = [];
+  if (nodes) feats.push({ type: 'Feature', properties: {},
+    geometry: { type: 'LineString', coordinates: nodes.map(i => [g.lon[i], g.lat[i]]) } });
+  if (navA) feats.push({ type: 'Feature', properties: { role: 'a' },
+    geometry: { type: 'Point', coordinates: navA.pt } });
+  if (navB) feats.push({ type: 'Feature', properties: { role: 'b' },
+    geometry: { type: 'Point', coordinates: navB.pt } });
+  map.getSource('navroute').setData({ type: 'FeatureCollection', features: feats });
+}
+
+function navReset() {
+  navA = navB = null;
+  map.getSource('navroute').setData({ type: 'FeatureCollection', features: [] });
+  $('navResult').hidden = true;
+  $('navCaution').hidden = true;
+  $('navClear').hidden = true;
+  $('navNote').textContent = '출발 지명을 누르고 도착 지명을 누르세요. 오늘의 도로를 따라갑니다.';
+}
+
+function setNavPicking(on) {
+  navPicking = on;
+  $('navPick').setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('navPick').textContent = on ? '취소 (지명 찍는 중)' : '지명 두 곳 찍기';
+  if (on) { navReset(); $('navNote').textContent = '출발 지명을 누르세요.'; }
+}
+
+$('navPick').addEventListener('click', () => setNavPicking(!navPicking));
+$('navClear').addEventListener('click', () => { navReset(); setNavPicking(false); });
+
+// 지명을 찍으면 부른다. 두 곳이 차면 길을 찾는다.
+async function navTakePlace(feature, lngLat) {
+  const name = (feature.properties && (feature.properties.ko || feature.properties.name)) || '이름 없음';
+  const pt = feature.geometry.type === 'Point' ? feature.geometry.coordinates : [lngLat.lng, lngLat.lat];
+  if (!navA) {
+    navA = { name, pt };
+    $('navNote').textContent = '출발: ' + name + ' — 이제 도착 지명을 누르세요.';
+    $('navClear').hidden = false;
+    navDraw(null, { lon: [], lat: [] });
+    return;
+  }
+  navB = { name, pt };
+  setNavPicking(false);
+  $('navClear').hidden = false;
+  $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 길 그물을 만드는 중…';
+  $('navResult').hidden = true;
+
+  const g = await buildNavGraph();
+  if (!g) { $('navNote').textContent = '도로 자료를 읽지 못했습니다. 연결을 확인해 주세요.'; return; }
+
+  const sa = navSnap(g, navA.pt[0], navA.pt[1]);
+  const sb = navSnap(g, navB.pt[0], navB.pt[1]);
+  const far = [];
+  if (sa.node < 0 || sa.km > NAV_SNAP_MAX_KM) far.push(navA.name);
+  if (sb.node < 0 || sb.km > NAV_SNAP_MAX_KM) far.push(navB.name);
+  if (far.length) {
+    $('navNote').innerHTML = far.join(' · ') + ' 는 도로 자료가 있는 범위 밖입니다.<br>' +
+      '도로는 네겝에서 다마스쿠스까지만 담았습니다 — 소아시아·그리스·이집트는 길찾기가 되지 않습니다.';
+    navDraw(null, g);
+    return;
+  }
+
+  $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 길을 찾는 중…';
+  await new Promise(r => setTimeout(r, 0));        // 화면이 안내문을 먼저 그리게 둔다
+  const car = navRoute(g, sa.node, sb.node, 'car');
+  const walk = navRoute(g, sa.node, sb.node, 'walk');
+  if (!car && !walk) {
+    $('navNote').textContent = '두 지명을 잇는 길을 찾지 못했습니다. 도로망이 끊긴 곳일 수 있습니다.';
+    navDraw(null, g);
+    return;
+  }
+  const shown = walk || car;
+  navDraw(shown.nodes, g);
+
+  $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 오르내림을 재는 중…';
+  const wt = walk ? await navWalkTime(g, walk.nodes) : null;
+
+  const rows = [];
+  if (car) rows.push('<b>자동차</b> ' + car.km.toFixed(1) + ' km · ' + navFmtH(car.hours));
+  if (walk && wt) {
+    const days = wt.hours / NAV_WALK_DAY_H;
+    rows.push('<b>도보</b> ' + walk.km.toFixed(1) + ' km · ' + navFmtH(wt.hours) +
+      ' (하루 ' + NAV_WALK_DAY_H + '시간이면 <b>' +
+      (days < 1 ? '하루 안' : (Math.round(days * 10) / 10) + '일') + '</b>)');
+    rows.push('오르막 누계 ' + Math.round(wt.up).toLocaleString('ko-KR') + ' m · 내리막 누계 ' +
+      Math.round(wt.down).toLocaleString('ko-KR') + ' m');
+    if (wt.miss) rows.push('<i>고도를 읽지 못한 구간 ' + wt.miss + '곳은 평지로 셈했습니다.</i>');
+  }
+  if (sa.km > 0.5 || sb.km > 0.5)
+    rows.push('<i>길까지 ' + navA.name + ' ' + sa.km.toFixed(1) + ' km · ' +
+              navB.name + ' ' + sb.km.toFixed(1) + ' km 는 걸어 들어갑니다.</i>');
+  $('navNote').textContent = navA.name + ' → ' + navB.name;
+  $('navResult').innerHTML = rows.join('<br>');
+  $('navResult').hidden = false;
+  $('navCaution').hidden = false;
 }
 
 // ---------- 등고선 ----------
@@ -3630,7 +3949,11 @@ function bindVerses(root) {
 for (const id of PLACE_LAYERS) {
   map.on('click', id, e => {
     placeHit = true;                       // 아래의 지도 클릭 핸들러가 곧바로 닫지 않도록
-    if (e.features && e.features.length) openPlacePopup(e.features[0], e.lngLat);
+    if (!e.features || !e.features.length) return;
+    // 길찾기로 지명을 찍는 중에는 설명 팝업을 열지 않는다. 팝업이 뜨면 다음 지명을
+    // 누르기 전에 한 번 닫아야 해서 두 번 클릭하게 된다.
+    if (navPicking) { closePlacePopup(); navTakePlace(e.features[0], e.lngLat); return; }
+    openPlacePopup(e.features[0], e.lngLat);
   });
   map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
