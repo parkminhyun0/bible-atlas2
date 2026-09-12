@@ -1,113 +1,120 @@
-"""1세기 갈릴리 호수의 항구(고대 정박지).
+"""갈릴리 호수의 헬레니즘·로마기 항구와 정박지 후보.
 
-근거는 멘델 눈(Mendel Nun)의 호숫가 조사다. 1985~86년 가뭄으로 물이 크게 빠지자
-평소 물에 잠겨 있던 방파제와 계선석이 드러났고, 그는 호수를 한 바퀴 돌며 고대
-정박지 열여섯 곳을 기록했다. 지금도 대부분은 **물 밑에 있다** — 이 지도에서 점이
-물가에 찍히는 것은 그 때문이다.
+Mendel Nun의 '16 harbours and anchorages'는 구조물 조사 수이지 서기 1세기에
+동시에 운영된 16개 도시의 수가 아니다. 같은 해안에 복수 시설이 있고 일부는
+Roman–Byzantine 범위로만 연대가 잡힌다. 그래서 장소와 증거 등급을 분리한다.
 
-좌표에 관한 정직한 한계가 하나 있다. 눈이 잰 것은 **방파제 자리**이고, 이 표가
-담은 것은 그 정박지가 딸린 **마을·유적의 자리**다. 물가에서 수십~수백 m 어긋난다.
-방파제 하나하나의 좌표를 공개 자료에서 확인할 수 없어 지어내지 않았다. 팝업에
-그렇게 적는다.
+A verified: 1세기 사용을 직접 지지하는 발굴·층위·유물
+B probable: 조사된 항만 구조 + 헬레니즘/로마기 사용이 유력
+C tentative: 목록에 있으나 구조·연대·정확 좌표가 제한적
 
-벳 예라(세나브리스) 정박지는 뺐다. 유적 좌표를 공개 자료에서 확인하지 못했다.
-
-좌표 출처:
-  atlas — 이 저장소의 data/nt-places.geojson
-  osm   — OpenStreetMap (ODbL)
-
-출력: data/harbours-galilee.geojson
+좌표 기준: harbour(항만 구조), shore(호안 대표점), site(배후 유적 대표점).
 """
-import json, pathlib
+import json
+import pathlib
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'harbours-galilee.geojson'
 
-# (한국어, 영문, 경도, 위도, 호숫가 방향, 설명, 성경 근거, 좌표출처)
+SOURCES = {
+    'RABAN1988': 'Raban 1988, The boat from Migdal Nunia and the anchorages of the Sea of Galilee',
+    'NUN1999': 'Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4',
+    'DELUCA2014': 'De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19',
+    'SARTI2013': 'Sarti et al. 2013, Magdala harbour sedimentation, Quaternary International 303',
+    'GALILI2018': 'Galili et al. 2018, Five Decades of Marine Archaeology in Israel',
+    'IAA2011': 'Israel Antiquities Authority 2011, The Kinneret Trail survey',
+}
+
+# ko, en, lon, lat, side, grade, coordinate_basis, period, description, refs, sources
 HARBOURS = [
-    ('가버나움', 'Capernaum', 35.57543, 32.88073, '북서안',
-     '호수에서 가장 큰 항구다. 돌로 쌓은 부두가 물가를 따라 800 m 가까이 뻗어 있어 '
-     '배를 여러 척 동시에 댈 수 있었다. 예수께서 갈릴리 사역의 본거지로 삼으신 마을이고, '
-     '베드로와 안드레의 집이 여기 있었다.',
-     '막 1:21; 마 4:13', 'osm'),
-
-    ('타브가 (헵타페곤)', 'Tabgha (Heptapegon)', 35.54992, 32.87325, '북서안',
-     '더운 샘이 일곱 군데 흘러 물고기가 모이던 자리다. 정박지가 두 곳 있었다. '
-     '바로 남쪽 후미는 물이 소리를 잘 실어 날라, 배 위에서 말씀하시고 물가의 무리가 '
-     '들었다는 장면의 자리로 흔히 꼽힌다.',
-     '막 4:1', 'osm'),
-
-    ('긴노사르 (게네사렛)', 'Ginosar (Gennesaret)', 35.52363, 32.84764, '서안',
-     '게네사렛 들이 호수와 만나는 자리다. 1986년 가뭄 때 이 갯벌에서 1세기 고깃배 한 척이 '
-     '통째로 나왔다 — 길이 8.2 m, 예수 당시 호수에 떠 있던 배와 같은 종류다.',
-     '막 6:53', 'osm'),
-
-    ('막달라 (타리케애)', 'Magdala (Taricheae)', 35.51482, 32.82647, '서안',
-     '절인 생선을 만들어 팔던 어업 도시다. 그리스 이름 타리케애가 「절임」에서 왔다. '
-     '넓은 항만과 방파제가 드러났다. 막달라 마리아의 고향이다.',
-     '막 15:40', 'osm'),
-
-    ('디베랴', 'Tiberias', 35.5312, 32.7959, '서안',
-     '헤롯 안티파스가 세운 호숫가 수도다. 긴 방파제가 물가를 따라 이어져 있었다. '
-     '복음서에서 예수께서 들어가셨다는 기록은 없는 도시다.',
-     '요 6:23', 'atlas'),
-
-    ('함맛 디베랴', 'Hammat Tiberias', 35.55065, 32.76638, '서안',
-     '더운 샘으로 이름난 곳이다. 디베랴 바로 남쪽에 따로 정박지를 두었다.',
-     '', 'osm'),
-
-    ('벳새다 (엣텔)', 'Bethsaida (et-Tell)', 35.63058, 32.91029, '북안',
-     '빌립이 율리아라 고쳐 부른 어촌이다. 빌립·안드레·베드로의 고향이다. '
-     '지금은 물가에서 1.5 km 남짓 들어가 있어, 1세기에 호수가 어디까지 왔는지가 '
-     '벳새다 자리를 둘러싼 논쟁의 핵심이다.',
-     '요 1:44; 막 8:22', 'osm'),
-
-    ('엘아라즈', 'el-Araj', 35.61957, 32.89286, '북안',
-     '엣텔보다 물가에 가까운 유적이다. 이곳을 벳새다로 보는 발굴진이 1세기 어촌 층과 '
-     '로마식 목욕탕을 찾았다. 두 자리 가운데 어디가 벳새다인지는 아직 갈린다.',
-     '', 'osm'),
-
-    ('텔 하다르', 'Tel Hadar', 35.64969, 32.85063, '동북안',
-     '호수 동북쪽 물가의 오래된 정박지다. 주로 그 이전 시대의 자리지만 정박지 자체는 '
-     '로마 시대까지 쓰였다.',
-     '', 'osm'),
-
-    ('쿠르시 (거라사)', 'Kursi (Gergesa)', 35.65249, 32.82386, '동안',
-     '동쪽 물가에서 산비탈이 호수로 바로 떨어지는 몇 안 되는 자리다. 부두가 드러났다. '
-     '군대 귀신 들린 사람을 고치시고 돼지 떼가 비탈로 내리달은 곳으로 널리 꼽힌다.',
-     '막 5:1-13', 'osm'),
-
-    ('엔 게브', 'Ein Gev', 35.63888, 32.78111, '동안',
-     '동쪽 물가의 어촌 정박지다. 히포스로 올라가는 길목이라, 호수 건너 유대인 마을과 '
-     '데가볼리의 헬라 도시를 잇는 자리였다.',
-     '', 'osm'),
-
-    ('히포스 (수시타)', 'Hippos (Susita)', 35.65981, 32.77841, '동안',
-     '호수 동쪽 350 m 높이 언덕에 앉은 데가볼리의 헬라 도시다. 도시는 언덕 위에 있고 '
-     '정박지는 그 아래 물가에 따로 있었다. 「산 위에 있는 동네」로 자주 지목된다.',
-     '마 5:14', 'osm'),
+    ('가버나움 항구', 'Capernaum harbour', 35.5758, 32.8807, '북서안', 'B', 'shore',
+     '헬레니즘–로마기 유력',
+     '현무암 방파제·부두·계선 시설이 조사된 큰 항구다. 800m라는 수치는 항만과 인접 호안 시설 전체 범위로 보아야 하며, 서기 1세기 단일 부두 길이로 단정하지 않는다.',
+     '막 1:21; 마 4:13', ['NUN1999', 'GALILI2018']),
+    ('타브가·성 베드로 항구', 'Tabgha / St Peter harbour', 35.5508, 32.8737, '북서안', 'B', 'harbour',
+     '로마기 사용 유력',
+     '서로 다른 두 방파제로 보호된 정박 시설 가운데 하나다. 약 60m와 40m 방파제가 보고되며, 인근 온천수 때문에 겨울 어장이 형성되었다.',
+     '막 1:16-20; 요 21:1-17', ['NUN1999', 'DELUCA2014']),
+    ('긴네렛·게네사렛 정박지', 'Tel Kinneret / Gennesaret anchorage', 35.53952, 32.86995, '북서안', 'C', 'site',
+     '자연 정박 후보·1세기 연대 미확정',
+     '텔 동·남쪽 만은 자연 피항에 적합하지만 현대 개발로 해안 흔적이 크게 교란되었다. 항만 구조와 서기 1세기 사용을 확정해 표시해서는 안 된다.',
+     '막 6:53', ['DELUCA2014']),
+    ('긴노사르 배 발견지', 'Ginosar boat find / landing area', 35.52363, 32.84764, '서안', 'A', 'shore',
+     '기원전 40년–서기 70년 선박',
+     '1986년 갯벌에서 길이 약 8.2m의 어선이 발견되었다. 항구 구조의 직접 증거라기보다 예수 시대 호수 운항과 이 해안의 선박 활동을 입증하는 지점이다.',
+     '막 6:53', ['RABAN1988']),
+    ('막달라 하부 항구', 'Magdala lower harbour', 35.5169, 32.8247, '서안', 'A', 'harbour',
+     '후기 헬레니즘–중기 로마기',
+     '안벽·계선석·경사로·계단·플랫폼이 발굴되었다. 로마기 안벽은 수경성 모르타르를 썼고 네 개의 계선석이 확인되어, 서기 1세기 사용 근거가 가장 강한 항구다.',
+     '막 8:10; 마 15:39', ['RABAN1988', 'DELUCA2014', 'SARTI2013']),
+    ('디베랴 항구', 'Tiberias harbour', 35.5312, 32.7959, '서안', 'B', 'shore',
+     '서기 19년 이후 로마기 유력',
+     '헤롯 안티파스가 서기 19년경 세운 수도의 항만권이다. 항구 사용은 도시 성격과 문헌상 확실하지만, 현재 점은 공개된 항만 구조 좌표가 아닌 고대 도시 호안 대표점이다.',
+     '요 6:23', ['NUN1999', 'GALILI2018']),
+    ('함맛·엠마오 정박지', 'Hammat / Emmaus anchorage', 35.55065, 32.76638, '서안', 'B', 'site',
+     '로마기',
+     '디베랴 남쪽 온천 취락의 정박지다. 문헌의 엠마오/암마투스와 연결되지만, 점은 온천 유적 대표 좌표이므로 정확한 방파제 위치로 읽어서는 안 된다.',
+     '', ['NUN1999']),
+    ('벳 예라·필로테리아', 'Bet Yerah / Philoteria', 35.5739, 32.7059, '남서안', 'C', 'site',
+     '헬레니즘기 취락·로마기 관계 불확실',
+     '호수 남단의 텔과 필로테리아·세나브리스 명칭은 연구사에서 서로 복잡하게 연결된다. 항만 목록에는 포함되지만 서기 1세기 시설의 정확한 위치와 동일시가 확정되지 않았다.',
+     '', ['DELUCA2014', 'GALILI2018']),
+    ('하온·가다라 항구', 'Ha-on / Gadara harbour', 35.6238, 32.7286, '동안', 'B', 'shore',
+     '헬레니즘–로마기 유력',
+     '호수 동남안에서 조사된 대형 항만 시설로 가다라의 호수 출입항 후보다. 복음서의 귀신 축출 장소를 이곳으로 특정하는 것은 별도의 지리 가설이므로 항만 증거와 분리한다.',
+     '마 8:28-34; 막 5:1-20', ['NUN1999']),
+    ('수시타·히포스 항구', 'Susita / Hippos harbour', 35.6389, 32.7811, '동안', 'B', 'shore',
+     '헬레니즘–로마기',
+     '히포스 도시는 높은 언덕 위에 있지만 항구는 엔게브 일대 호안에 있었다. 기존처럼 산 위 도시 좌표에 닻을 찍지 않고 실제 출입 해안권을 표시한다.',
+     '', ['NUN1999', 'GALILI2018']),
+    ('엔 고프라 정박지', 'Ein Gofra anchorage', 35.6462, 32.8006, '동안', 'C', 'shore',
+     '고대 항만·세부 연대 제한적',
+     '유황 온천이 솟는 고프라 해안의 석축 정박 후보다. 해양고고학 목록에는 들지만 서기 1세기 사용을 직접 좁혀 주는 공개 층위 자료는 제한적이다.',
+     '', ['NUN1999', 'GALILI2018']),
+    ('쿠르시 항구', 'Kursi harbour', 35.6525, 32.8239, '동안', 'A', 'harbour',
+     '헬레니즘–로마기',
+     '반원형 방파제·보호 수역·안벽과 로마기 토기가 조사되었다. 갈릴리 호수에서 가장 상세히 도면화된 고대 항구 중 하나다.',
+     '막 5:1-13; 막 8:1-10', ['RABAN1988', 'NUN1999']),
+    ('크파르 아카브야', 'Kefar Aqavya / Kinar beach', 35.6505, 32.8558, '동북안', 'C', 'shore',
+     '로마–비잔틴기 범위·1세기 미확정',
+     '키나르 해변의 고대 취락·호안 시설이다. IAA 둘레길 조사에서 풍부한 유구가 기록되었으나 서기 1세기 정박지로 좁혀 확정할 자료는 부족하다.',
+     '', ['IAA2011', 'GALILI2018']),
+    ('아이쉬·벳새다 어업 해안', 'Aish / Bethsaida fishing shore', 35.6100, 32.8950, '북안', 'C', 'shore',
+     '항만 후보·정확 위치 논쟁',
+     '요단 삼각주 서쪽의 유구를 벳새다 어업 교외 항구로 보는 제안이다. 엣텔과 엘아라즈는 도시 후보이지 확인된 항구 자체가 아니므로 별도 닻 두 개로 표시하지 않는다.',
+     '막 6:45; 요 1:44', ['NUN1999', 'DELUCA2014']),
 ]
+
+GRADE = {
+    'A': ('확인', '1세기 사용을 직접 지지하는 발굴·층위·유물'),
+    'B': ('유력', '조사된 항만 구조와 헬레니즘·로마기 사용 근거'),
+    'C': ('추정', '목록·지형·부분 조사에 근거하나 연대나 위치가 제한적'),
+}
 
 
 def main():
-    feats = []
-    for ko, en, lon, lat, side, desc, refs, src in HARBOURS:
-        props = {'ko': ko, 'en': en, 'side': side, 'desc': desc, 'src': src}
+    features = []
+    for ko, en, lon, lat, side, grade, basis, period, desc, refs, source_ids in HARBOURS:
+        label, criterion = GRADE[grade]
+        props = {
+            'ko': ko, 'en': en, 'side': side, 'grade': grade,
+            'confidence': label, 'criterion': criterion,
+            'coordinate_basis': basis, 'period': period, 'desc': desc,
+            'sources': ' · '.join(SOURCES[s] for s in source_ids),
+        }
         if refs:
             props['refs'] = refs
-        feats.append({'type': 'Feature', 'properties': props,
-                      'geometry': {'type': 'Point', 'coordinates': [round(lon, 5), round(lat, 5)]}})
+        features.append({'type': 'Feature', 'properties': props,
+                         'geometry': {'type': 'Point', 'coordinates': [lon, lat]}})
 
-    fc = {'type': 'FeatureCollection',
-          'attribution': '좌표: 이 저장소의 지명 자료 · OpenStreetMap (ODbL) / 정박지 근거: 멘델 눈의 호숫가 조사',
-          'note': '점은 정박지가 딸린 마을·유적의 자리다. 방파제 자리 자체는 아니다.',
-          'features': feats}
-    OUT.write_text(json.dumps(fc, ensure_ascii=False, indent=1), encoding='utf-8')
-
-    by = {}
-    for f in feats:
-        by[f['properties']['side']] = by.get(f['properties']['side'], 0) + 1
-    print('%d곳 · %s' % (len(feats), by))
-    print('%s  %.1f KB' % (OUT, OUT.stat().st_size / 1024))
+    collection = {
+        'type': 'FeatureCollection',
+        'attribution': 'Raban 1988 · Nun 1989/1999 · De Luca & Lena 2014 · Sarti et al. 2013 · Galili et al. 2018 · IAA 2011',
+        'note': 'Nun의 16은 구조물/정박지 조사 수다. 중복 시설을 장소 단위로 묶고 1세기 확실성을 A/B/C로 구분한다.',
+        'features': features,
+    }
+    OUT.write_text(json.dumps(collection, ensure_ascii=False, indent=1), encoding='utf-8')
+    counts = {g: sum(f['properties']['grade'] == g for f in features) for g in GRADE}
+    print(f'{len(features)}곳 · {counts}')
 
 
 if __name__ == '__main__':
