@@ -615,14 +615,20 @@
   <div class="aspect">
     <div class="aspect-h">1세기 예루살렘 성읍</div>
     <div class="row"><label><input type="checkbox" id="jeruExtent" /> 예수 당시 성읍 규모</label></div>
-    <div class="sub" id="jeruNote" style="margin:-2px 0 6px">넓이 78.9 ha · 둘레 3.58 km · 남북 1,144 m · 동서 892 m</div>
+    <div class="sub" id="jeruNote" style="margin:-2px 0 6px">성읍 83.3 ha · 둘레 3.75 km · 남북 1,178 m · 동서 900 m<br>
+      성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳</div>
     <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
-      <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 16개 가운데
-      <b>10개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
-      모즐리 스카프, 실로암 못, 워런 수직갱, 오벨, 다윗 탑, 키슐레 발굴.<br>
-      <b>북쪽 제2성벽만은 확정된 발굴선이 없습니다</b>(점선). 학설이 갈려, 고고 증거가 주는 두
-      조건만 지켰습니다 — 골고다는 성 <b>밖</b>, 히스기야 못은 성 <b>안</b>.<br>
-      눌러 보면 각 꼭짓점이 무엇에 걸렸는지 나옵니다.
+      <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 17개 가운데
+      <b>9개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
+      모즐리 스카프, 워런 수직갱, 오벨, 다윗 탑, 키슐레 발굴.<br>
+      발굴로 고정되지 않은 꼭짓점은 <b>지형(DEM 약 4 m/px)으로 훑어 사면이 꺾이는 자리</b>로
+      옮겼습니다. 남단만은 옮기지 않습니다 — 그곳에서 성벽은 마루를 따르지 않고 실로암 못을
+      감싸려 내려갔습니다.<br>
+      <b>성전 산 대지</b>(노란 면)는 남벽의 발굴 네 지점에 직선을 회귀시켜 잡았고, 재현된 치수가
+      남 281·동 464·북 315·서 482 m 로 실측(281/466/315/485)과 맞습니다.<br>
+      <b>성문</b>은 도면처럼 벽에 낸 구멍으로 그립니다 — 발굴 7 · 추정 1 · 불확실 1.<br>
+      <b>북쪽 제2성벽만은 확정된 발굴선이 없습니다</b>(점선). 고고 증거가 주는 두 조건만
+      지켰습니다 — 골고다는 성 <b>밖</b>, 히스기야 못은 성 <b>안</b>.
     </div>
   </div>
 
@@ -1443,6 +1449,40 @@ const style = {
       paint: { 'line-color': '#f4efe6', 'line-opacity': 0.95, 'line-dasharray': [1.6, 1.4],
                'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2, 17, 5] } },
 
+    // 헤롯 성전의 성전 산 대지. 성읍과 다른 색·다른 테두리로 구별한다.
+    { id: 'jeru-temple-fill', type: 'fill', source: 'jeruc1', minzoom: 11,
+      filter: ['==', ['get', 'kind'], 'temple'],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#c9a227', 'fill-opacity': 0.32 } },
+    { id: 'jeru-temple-line', type: 'line', source: 'jeruc1', minzoom: 11,
+      filter: ['==', ['get', 'kind'], 'temple'],
+      layout: { visibility: 'none', 'line-join': 'miter' },
+      paint: { 'line-color': '#7a5c06', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.4, 14, 2.6, 17, 4] } },
+    { id: 'jeru-temple-label', type: 'symbol', source: 'jeruc1', minzoom: 14,
+      filter: ['==', ['get', 'kind'], 'temple'],
+      layout: { visibility: 'none', 'text-field': '헤롯 성전', 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 14, 11, 17, 14],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#6b5006', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
+    // 성문. 도면처럼 '벽에 낸 구멍'으로 그린다 — 아이콘을 그 벽의 방위로 눕힌다.
+    { id: 'jeru-gate', type: 'symbol', source: 'jeruc1', minzoom: 13,
+      filter: ['==', ['get', 'kind'], 'gate'],
+      layout: { visibility: 'none',
+        'icon-image': ['case', ['==', ['get', 'cert'], '발굴'], 'gate-dug', 'gate-guess'],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 13, 0.6, 16, 1.05, 18, 1.4],
+        'icon-rotate': ['get', 'bearing'],
+        'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map',
+        'icon-allow-overlap': true } },
+    { id: 'jeru-gate-label', type: 'symbol', source: 'jeruc1', minzoom: 15,
+      filter: ['==', ['get', 'kind'], 'gate'],
+      layout: { visibility: 'none', 'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 15, 10, 18, 13],
+        'text-anchor': 'top', 'text-offset': [0, 0.9], 'text-padding': 3,
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#5b3a0c', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
     { id: 'jeru-anchor', type: 'circle', source: 'jeruc1', minzoom: 13,
       filter: ['==', ['get', 'kind'], 'anchor'],
       layout: { visibility: 'none' },
@@ -1872,6 +1912,34 @@ function makeAnchorIcon(px) {
   path(); g.lineWidth = px * 0.085; g.strokeStyle = '#0d4f57'; g.stroke();
   return { width: px, height: px, data: new Uint8Array(g.getImageData(0, 0, px, px).data.buffer) };
 }
+// 성문은 도면 그리듯 그린다 — 벽이 끊기고, 그 끊긴 자리 양쪽에 문설주가 서고,
+// 사이를 문지방이 잇는다. 건축 평면도에서 개구부를 나타내는 그 방식이다.
+// 아이콘 안에서 벽은 세로로 눕혀 두고, 지도에서 icon-rotate 로 그 벽의 방위로 돌린다.
+function makeGateIcon(px, dug) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const cx = px / 2, cy = px / 2;
+  const half = px * 0.30;          // 아이콘이 덮는 벽 길이의 절반
+  const gap = px * 0.14;           // 개구부 절반
+  const jamb = px * 0.13;          // 문설주가 벽에서 튀어나온 길이
+  const wall = () => {
+    g.beginPath();
+    g.moveTo(cx, cy - half); g.lineTo(cx, cy - gap);      // 위쪽 벽
+    g.moveTo(cx, cy + gap);  g.lineTo(cx, cy + half);     // 아래쪽 벽
+    g.moveTo(cx - jamb, cy - gap); g.lineTo(cx + jamb, cy - gap);   // 문설주
+    g.moveTo(cx - jamb, cy + gap); g.lineTo(cx + jamb, cy + gap);
+  };
+  g.lineCap = 'butt'; g.lineJoin = 'miter';
+  wall(); g.lineWidth = px * 0.16; g.strokeStyle = '#ffffff'; g.stroke();
+  wall(); g.lineWidth = px * 0.085; g.strokeStyle = '#5b3a0c'; g.stroke();
+  // 문지방. 발굴로 확인된 문은 실선, 자리가 덜 확실한 문은 점선으로 둔다.
+  g.beginPath(); g.moveTo(cx, cy - gap); g.lineTo(cx, cy + gap);
+  g.lineWidth = px * 0.05; g.strokeStyle = '#5b3a0c';
+  g.setLineDash(dug ? [] : [px * 0.07, px * 0.06]);
+  g.stroke(); g.setLineDash([]);
+  return { width: px, height: px, data: new Uint8Array(g.getImageData(0, 0, px, px).data.buffer) };
+}
 // 레이어가 아이콘을 찾을 때 만들어 준다 — 스타일 로드 시점에 기대지 않아도 된다.
 map.on('styleimagemissing', e => {
   if (e.id === 'peak' && !map.hasImage('peak')) {
@@ -1882,6 +1950,12 @@ map.on('styleimagemissing', e => {
   }
   if (e.id === 'anchor' && !map.hasImage('anchor')) {
     map.addImage('anchor', makeAnchorIcon(48), { pixelRatio: 2 });
+  }
+  if (e.id === 'gate-dug' && !map.hasImage('gate-dug')) {
+    map.addImage('gate-dug', makeGateIcon(56, true), { pixelRatio: 2 });
+  }
+  if (e.id === 'gate-guess' && !map.hasImage('gate-guess')) {
+    map.addImage('gate-guess', makeGateIcon(56, false), { pixelRatio: 2 });
   }
 });
 
@@ -2562,11 +2636,19 @@ for (const key of Object.keys(ROAD_SETS)) {
 // 성벽 복원도가 아니다. 성읍이 얼마나 컸는지를 보이는 것이다.
 // 꼭짓점 16개 가운데 10개를 발굴된 유구에 걸었고(bake/jerusalem_c1.py 에 근거를 적었다),
 // 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
-const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor'];
+const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor',
+                     'jeru-temple-fill', 'jeru-temple-line', 'jeru-temple-label',
+                     'jeru-gate', 'jeru-gate-label'];
 
 $('jeruExtent').addEventListener('change', e => {
   const on = e.target.checked;
   $('jeruCaution').hidden = !on;
+  // 회당·항구에서 겪은 것과 같다 — 아이콘을 먼저 만들어 두지 않으면 이미 배치가 끝난
+  // 타일은 아이콘 없이 남는다.
+  if (on) {
+    if (!map.hasImage('gate-dug')) map.addImage('gate-dug', makeGateIcon(56, true), { pixelRatio: 2 });
+    if (!map.hasImage('gate-guess')) map.addImage('gate-guess', makeGateIcon(56, false), { pixelRatio: 2 });
+  }
   for (const id of JERU_LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
   // 켜는데 예루살렘이 화면 밖이면 아무것도 안 보여 고장으로 보인다. 처음 켤 때 데려간다.
   if (on && map.getZoom() < 11) {
@@ -2579,7 +2661,23 @@ function openJeruPopup(feature) {
   closePlacePopup();
   const pt = feature.geometry.type === 'Point' ? feature.geometry.coordinates : null;
   let html;
-  if (p.kind === 'anchor') {
+  if (p.kind === 'gate') {
+    const CERT = { '발굴': '발굴로 확인된 문', '추정': '자리를 추정한 문',
+                   '불확실': '요세푸스가 이름을 남겼으나 자리는 확정되지 않음' };
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">1세기 예루살렘 성문</div>' +
+      `<div class="meta">${esc(CERT[p.cert] || p.cert)}</div>` +
+      `<p>${esc(p.desc)}</p>` +
+      '<div class="certainty">도면처럼 벽이 끊기고 문설주가 선 모양으로 그렸습니다. ' +
+      '발굴로 확인된 문은 문지방이 실선, 그렇지 않은 문은 점선입니다.</div></div>';
+  } else if (p.kind === 'temple') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">성전 산 대지</div>' +
+      `<div class="meta">넓이 <b>${p.ha} ha</b> · 남 ${p.s_m} · 동 ${p.e_m} · 북 ${p.n_m} · 서 ${p.w_m} m</div>` +
+      '<p>헤롯이 넓힌 성전 산 대지입니다. 남벽의 발굴 네 지점(로빈슨 아치·훌다 이중문·' +
+      '훌다 삼중문·단일문)에 직선을 회귀시켜 잡았습니다.</p>' +
+      '<div class="certainty">재현된 치수가 실측(남 281 · 동 466 · 북 315 · 서 485 m)과 맞습니다.</div></div>';
+  } else if (p.kind === 'anchor') {
     const CERT = { '발굴': '발굴된 유구에 건 자리', '추정': '지형을 따라 이은 자리',
                    '불확실': '확정된 발굴선이 없는 구간' };
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
@@ -2603,7 +2701,7 @@ function openJeruPopup(feature) {
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
 
-for (const id of ['jeru-anchor', 'jeru-fill']) {
+for (const id of ['jeru-gate', 'jeru-gate-label', 'jeru-anchor', 'jeru-temple-fill', 'jeru-fill']) {
   map.on('click', id, e => {
     placeHit = true;
     if (navPicking) return;

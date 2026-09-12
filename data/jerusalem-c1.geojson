@@ -1,6 +1,6 @@
 {
  "type": "FeatureCollection",
- "attribution": "좌표: 발굴 유구 위치 (OpenStreetMap ODbL) · 치수: 성전 산 남벽 실측",
+ "attribution": "좌표: 발굴 유구 (OpenStreetMap ODbL) · 치수: 성전 산 남벽 실측 · 지형: AWS Terrain Tiles",
  "note": "예수 당시 성읍의 규모. 성벽 복원도가 아니다.",
  "features": [
   {
@@ -8,13 +8,15 @@
    "properties": {
     "kind": "extent",
     "ko": "예수 당시 예루살렘 성읍",
-    "ha": 78.9,
-    "km2": 0.789,
-    "perimeter_km": 3.58,
-    "ns_m": 1144,
-    "ew_m": 892,
-    "dug": 10,
-    "guess": 2,
+    "ha": 83.3,
+    "km2": 0.833,
+    "perimeter_km": 3.75,
+    "ns_m": 1178,
+    "ew_m": 900,
+    "temple_ha": 14.1,
+    "temple_pct": 16.9,
+    "dug": 9,
+    "guess": 4,
     "unsure": 4
    },
    "geometry": {
@@ -39,18 +41,22 @@
       ],
       [
        35.23057,
-       31.77037
+       31.77042
       ],
       [
-       35.23512,
-       31.7704
+       35.2338,
+       31.7696
+      ],
+      [
+       35.2356,
+       31.7698
       ],
       [
        35.23641,
        31.7731
       ],
       [
-       35.2368,
+       35.2375,
        31.7745
       ],
       [
@@ -88,6 +94,45 @@
       [
        35.22808,
        31.77607
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "temple",
+    "ko": "헤롯 성전 (성전 산 대지)",
+    "ha": 14.1,
+    "s_m": 281,
+    "e_m": 464,
+    "n_m": 315,
+    "w_m": 482
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       35.23446,
+       31.77581
+      ],
+      [
+       35.23742,
+       31.77606
+      ],
+      [
+       35.2373,
+       31.78026
+      ],
+      [
+       35.23397,
+       31.78015
+      ],
+      [
+       35.23446,
+       31.77581
       ]
      ]
     ]
@@ -164,7 +209,7 @@
     "type": "Point",
     "coordinates": [
      35.23057,
-     31.77037
+     31.77042
     ]
    }
   },
@@ -172,14 +217,29 @@
    "type": "Feature",
    "properties": {
     "kind": "anchor",
-    "ko": "실로암 못",
-    "cert": "발굴"
+    "ko": "실로암 못 남쪽 성문 부근",
+    "cert": "추정"
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.23512,
-     31.7704
+     35.2338,
+     31.7696
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "성읍 남단 (기드론·힌놈 합류부)",
+    "cert": "추정"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2356,
+     31.7698
     ]
    }
   },
@@ -208,7 +268,7 @@
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.2368,
+     35.2375,
      31.7745
     ]
    }
@@ -324,6 +384,159 @@
     "kind": "anchor",
     "ko": "겐나트 문 부근",
     "cert": "불확실"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2288,
+     31.7765
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "훌다 이중문",
+    "cert": "발굴",
+    "bearing": 84,
+    "desc": "성전 산 남벽. 순례자가 정결례를 마치고 올라온 주 출입구다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23588,
+     31.77584
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "훌다 삼중문",
+    "cert": "발굴",
+    "bearing": 84,
+    "desc": "성전 산 남벽의 동쪽 문."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23658,
+     31.77595
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "로빈슨 아치",
+    "cert": "발굴",
+    "bearing": 354,
+    "desc": "성전 산 남서 모서리에 걸린 계단. 아래 저잣거리에서 왕의 주랑으로 올라갔다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23459,
+     31.77582
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "바클레이 문",
+    "cert": "발굴",
+    "bearing": 354,
+    "desc": "성전 산 서벽의 헤롯기 문. 지금은 무그라비 문 아래에 묻혀 있다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23451,
+     31.77638
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "윌슨 아치",
+    "cert": "발굴",
+    "bearing": 354,
+    "desc": "윗성에서 성전 산으로 건너오던 다리."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23432,
+     31.77707
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "워런 문",
+    "cert": "추정",
+    "bearing": 354,
+    "desc": "성전 산 서벽 북쪽의 헤롯기 문. 지금은 막혀 있다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2343,
+     31.7779
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "실로암 문",
+    "cert": "발굴",
+    "bearing": 95,
+    "desc": "Bliss 와 Dickie 가 실로암 못 남쪽에서 파낸 성문."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2338,
+     31.7696
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "에센 문",
+    "cert": "발굴",
+    "bearing": 175,
+    "desc": "시온산 남서쪽. 요세푸스가 이름을 남긴 문이고 발굴로 확인되었다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2289,
+     31.7701
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "gate",
+    "ko": "겐나트 문",
+    "cert": "불확실",
+    "bearing": 95,
+    "desc": "요세푸스가 제2성벽이 여기서 갈라졌다고 한 문. 자리는 확정되지 않았다."
    },
    "geometry": {
     "type": "Point",

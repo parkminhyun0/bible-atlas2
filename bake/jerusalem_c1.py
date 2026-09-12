@@ -1,73 +1,209 @@
-"""1세기(예수 당시) 예루살렘 성읍의 규모.
+"""1세기(예수 당시) 예루살렘 — 성읍의 규모 · 헤롯 성전 자리 · 성문.
 
-성벽을 복원해 그리는 것이 아니라, **성읍이 얼마나 컸는지**를 지도 위에 보이려는
-것이다. 그래서 둘레선 하나와 그 안의 면을 내고, 넓이·둘레·남북·동서를 잰다.
+성벽 복원도가 아니다. **성읍이 얼마나 컸는지**를 지도 위에 보이려는 것이다.
 
-꼭짓점은 되도록 **발굴된 유구**에 건다. 사용자가 준 개설도(예루살렘 도시 경계.png)는
-성벽이 어디를 지나는지 — 어디가 안이고 어디가 밖인지 — 를 정하는 데 썼고, 좌표는
-그림에서 긁지 않았다. 그림을 못 네 곳으로 지리좌표에 맞춰 보니 기준점 잔차가 최대
-111 m 였다. 측량도가 아니라 개설도이기 때문이다. 그 왜곡을 그대로 옮길 이유가 없다.
+세 가지를 낸다.
+  1) 성읍 둘레와 그 안의 면 (넓이·둘레·남북·동서를 잰다)
+  2) 헤롯 성전의 성전 산 대지 (다른 색으로 따로)
+  3) 1세기 성문 (도면처럼 벽에 낸 구멍으로 그린다)
 
-근거로 쓴 것:
+── 좌표를 어디서 가져왔나 ──
+사용자가 준 개설도는 성벽이 **어디를 지나는지**(무엇이 안이고 무엇이 밖인지)를 정하는
+데만 썼다. 그림을 못 네 곳으로 지리좌표에 맞춰 보니 기준점 잔차가 최대 111 m 였다 —
+측량도가 아니라 개설도다. 그 왜곡을 옮길 이유가 없다.
+
+꼭짓점은 되도록 **발굴된 유구**에 건다.
   · 성전 산 남벽 — 로빈슨 아치·훌다 이중문·훌다 삼중문·단일문 네 발굴 지점에 직선을
-    회귀시켰다(잔차 0.9~6.4 m). 거기에 실측 치수(남 281 m·동 466 m·서 485 m)를 얹어
-    네 모서리를 냈다.  [Baruch·Reich·Hagbi·Uziel, 『성전 산 남벽』, IAA 2022]
-  · 남쪽 둘레 — 모즐리 스카프(개신교 묘지)에서 시온산 남쪽을 지나 실로암 못까지.
+    회귀시켰다(잔차 0.9~6.4 m). 거기에 실측 치수(남 281·동 466·서 485 m)를 얹어 네
+    모서리를 냈다.  [Baruch·Reich·Hagbi·Uziel, 『성전 산 남벽』, IAA 2022]
+  · 남쪽 둘레 — 모즐리 스카프(개신교 묘지)에서 시온산 남쪽을 지나 실로암 못 **아래로**.
     Bliss 와 Dickie 가 1894~97년에 실제로 파서 따라간 선이다.
-    [Bliss & Dickie, 『Excavations at Jerusalem 1894-1897』]
-  · 동쪽 둘레 — 다윗 성 능선의 워런 수직갱·계단식 석조 구조물·오벨.
-  · 서쪽 둘레 — 다윗 탑(헤롯기 탑 기초)과 키슐레 발굴.
+  · 동쪽 — 워런 수직갱·계단식 석조 구조물·오벨.   · 서쪽 — 다윗 탑·키슐레 발굴.
 
-제2성벽(북쪽)만은 발굴로 확정된 선이 없다. 학설이 갈린다. 여기서는 고고 증거가 주는
-두 조건만 지켰다 — 골고다(성묘 교회)는 성 **밖**, 히스기야 못은 성 **안**. 그래서 그
-네 꼭짓점은 '불확실'로 표시하고 지도에서도 점선으로 그린다.
+**실로암 못은 성 안이다.** 처음에 못을 경계선 위에 두었던 것은 틀렸다. 같은 보고서가
+못 남쪽에서 성문을 파냈고("City Gate south of Pool of Siloam"), 본문은 "성벽선이 실로암
+못을 성 안에 포함한다"고 못박는다. 테오도시우스(530년경)도 "실로암 못은 성벽 안에
+있다"고 했고, 요세푸스는 성벽이 실로암 못 위쪽에서 꺾였다고 한다.
+
+── 지형에 맞추기 ──
+성벽은 골짜기 위 마루를 따라갔다. 그래서 발굴로 고정되지 않은 꼭짓점만 DEM(약 4 m/px)
+으로 훑어 **사면이 꺾이는 자리**로 옮긴다. 다만 아무 데나 옮기지 않는다.
+  · 어느 벽면을 어느 쪽으로 훑을지 벽면마다 지정한다(서쪽 사면은 서쪽으로, 동쪽은 동쪽).
+  · **남단은 옮기지 않는다.** 그곳에서 성벽은 마루를 따르지 않고 못을 감싸려 내려갔다.
+    실제로 마루로 끌어 보니 실로암 못이 다시 성 밖으로 밀려났다.
+  · 옮긴 뒤 고고 검증(아래 CHECKS)을 다시 돌려, 통과하지 못하면 물러선다.
 
 출력: data/jerusalem-c1.geojson
 """
-import json, math, pathlib
+import json, math, pathlib, pickle, subprocess, os
 
-OUT = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'jerusalem-c1.geojson'
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+OUT = ROOT / 'data' / 'jerusalem-c1.geojson'
+DEM_DIR = pathlib.Path('/tmp/jeru-dem')
+Z = 15
+KX = 111320 * math.cos(math.radians(31.776))
+KY = 110540
 
-# (경도, 위도, 무엇, 근거등급)  — 시계 방향
+# (경도, 위도, 무엇, 근거, 지형맞춤)  — 시계 방향.
+#   지형맞춤: None = 옮기지 않음 / (방위각) = 그 방향으로 사면을 훑어 마루로 옮김
 RING = [
-    (35.22808, 31.77607, '다윗 탑 (헤롯기 탑 기초)',        '발굴'),
-    (35.22799, 31.77516, '키슐레 발굴 (헤롯 궁전 기초)',     '발굴'),
-    (35.22847, 31.77032, '모즐리 스카프 (개신교 묘지)',      '발굴'),
-    (35.22960, 31.76991, '시온산 남쪽 발굴',                '발굴'),
-    (35.23057, 31.77037, '티로포에온 골짜기를 건너는 구간',   '추정'),
-    (35.23512, 31.77040, '실로암 못',                      '발굴'),
-    (35.23641, 31.77310, '워런 수직갱',                    '발굴'),
-    (35.23680, 31.77450, '기드론 위 능선',                  '추정'),
-    (35.23656, 31.77570, '오벨',                          '발굴'),
-    (35.23742, 31.77606, '성전 산 남동 모서리',             '발굴'),
-    (35.23730, 31.78026, '성전 산 북동 모서리',             '발굴'),
-    (35.23397, 31.78015, '성전 산 북서 (안토니아 요새)',     '발굴'),
-    (35.23200, 31.77950, '제2성벽 북',                     '불확실'),
-    (35.23010, 31.77800, '제2성벽 북서',                   '불확실'),
-    (35.22870, 31.77780, '제2성벽 서',                     '불확실'),
-    (35.22880, 31.77650, '겐나트 문 부근',                  '불확실'),
+    (35.22808, 31.77607, '다윗 탑 (헤롯기 탑 기초)',        '발굴',  None),
+    (35.22799, 31.77516, '키슐레 발굴 (헤롯 궁전 기초)',     '발굴',  None),
+    (35.22847, 31.77032, '모즐리 스카프 (개신교 묘지)',      '발굴',  None),
+    (35.22960, 31.76991, '시온산 남쪽 발굴',                '발굴',  None),
+    (35.23057, 31.77037, '티로포에온 골짜기를 건너는 구간',   '추정',  180),   # 남쪽 사면
+    (35.23380, 31.76960, '실로암 못 남쪽 성문 부근',         '추정',  None),  # 못을 감싼다 — 고정
+    (35.23560, 31.76980, '성읍 남단 (기드론·힌놈 합류부)',    '추정',  None),  # 고정
+    (35.23641, 31.77310, '워런 수직갱',                    '발굴',  None),
+    (35.23680, 31.77450, '기드론 위 능선',                  '추정',  90),    # 동쪽 사면
+    (35.23656, 31.77570, '오벨',                          '발굴',  None),
+    (35.23742, 31.77606, '성전 산 남동 모서리',             '발굴',  None),
+    (35.23730, 31.78026, '성전 산 북동 모서리',             '발굴',  None),
+    (35.23397, 31.78015, '성전 산 북서 (안토니아 요새)',     '발굴',  None),
+    (35.23200, 31.77950, '제2성벽 북',                     '불확실', None),
+    (35.23010, 31.77800, '제2성벽 북서',                   '불확실', None),
+    (35.22870, 31.77780, '제2성벽 서',                     '불확실', None),
+    (35.22880, 31.77650, '겐나트 문 부근',                  '불확실', None),
 ]
 
-# 경계가 맞는지 재는 시금석. 안에 있어야 할 것과 밖에 있어야 할 것.
+# 헤롯 성전의 성전 산 대지. 남벽 회귀 + 실측 치수로 낸 네 모서리.
+TEMPLE = [(35.23446, 31.77581), (35.23742, 31.77606), (35.23730, 31.78026), (35.23397, 31.78015)]
+
+# 1세기 성문. bearing 은 그 문이 뚫린 벽의 방위각(도면 기호를 벽과 나란히 눕히려고 쓴다).
+GATES = [
+    ('훌다 이중문',   35.23588, 31.77584,  84, '발굴', '성전 산 남벽. 순례자가 정결례를 마치고 올라온 주 출입구다.'),
+    ('훌다 삼중문',   35.23658, 31.77595,  84, '발굴', '성전 산 남벽의 동쪽 문.'),
+    ('로빈슨 아치',   35.23459, 31.77582, 354, '발굴', '성전 산 남서 모서리에 걸린 계단. 아래 저잣거리에서 왕의 주랑으로 올라갔다.'),
+    ('바클레이 문',   35.23451, 31.77638, 354, '발굴', '성전 산 서벽의 헤롯기 문. 지금은 무그라비 문 아래에 묻혀 있다.'),
+    ('윌슨 아치',     35.23432, 31.77707, 354, '발굴', '윗성에서 성전 산으로 건너오던 다리.'),
+    ('워런 문',       35.23430, 31.77790, 354, '추정', '성전 산 서벽 북쪽의 헤롯기 문. 지금은 막혀 있다.'),
+    ('실로암 문',     35.23380, 31.76960,  95, '발굴', 'Bliss 와 Dickie 가 실로암 못 남쪽에서 파낸 성문.'),
+    ('에센 문',       35.22890, 31.77010, 175, '발굴', '시온산 남서쪽. 요세푸스가 이름을 남긴 문이고 발굴로 확인되었다.'),
+    ('겐나트 문',     35.22880, 31.77650,  95, '불확실', '요세푸스가 제2성벽이 여기서 갈라졌다고 한 문. 자리는 확정되지 않았다.'),
+]
+
+# 경계가 맞는지 재는 시금석. 여유 거리까지 본다 — 아슬아슬하게 걸치면 맞다고 할 수 없다.
 CHECKS = [
-    ('성묘 교회 (골고다)', 35.22972, 31.77833, '밖'),
-    ('베데스다 못',        35.23599, 31.78147, '밖'),
-    ('다메섹 문',          35.23018, 31.78182, '밖'),
-    ('기혼 샘',            35.23683, 31.77323, '밖'),
-    ('계단식 석조 구조물',  35.23590, 31.77377, '안'),
-    ('브로드 월',          35.23165, 31.77594, '안'),
-    ('히스기야 못',        35.22902, 31.77718, '안'),
-    ('로빈슨 아치',        35.23459, 31.77582, '안'),
-    ('기바티 주차장 발굴',  35.23510, 31.77444, '안'),
-    ('다윗 성',            35.23572, 31.77242, '안'),
-    ('윌슨 아치',          35.23432, 31.77707, '안'),
-    ('헤롯 극장터',        35.23370, 31.77236, '안'),
+    ('성묘 교회 (골고다)', 35.22972, 31.77833, '밖', 20),
+    ('베데스다 못',        35.23599, 31.78147, '밖', 20),
+    ('다메섹 문',          35.23018, 31.78182, '밖', 20),
+    ('기혼 샘',            35.23683, 31.77323, '밖', 10),
+    ('실로암 못',          35.23512, 31.77040, '안', 30),
+    ('계단식 석조 구조물',  35.23590, 31.77377, '안', 20),
+    ('브로드 월',          35.23165, 31.77594, '안', 20),
+    ('히스기야 못',        35.22902, 31.77718, '안', 20),
+    ('로빈슨 아치',        35.23459, 31.77582, '안', 5),
+    ('기바티 주차장 발굴',  35.23510, 31.77444, '안', 20),
+    ('다윗 성',            35.23572, 31.77242, '안', 20),
+    ('윌슨 아치',          35.23432, 31.77707, '안', 20),
+    ('헤롯 극장터',        35.23370, 31.77236, '안', 20),
 ]
 
 
-def dist_m(a, b):
-    la = math.radians((a[1] + b[1]) / 2)
-    return math.hypot((b[0] - a[0]) * 111320 * math.cos(la), (b[1] - a[1]) * 110540)
+# ---------- 지형 ----------
+def tile_xy(lon, lat):
+    r = math.radians(lat)
+    return (int((lon + 180) / 360 * 2 ** Z),
+            int((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * 2 ** Z))
+
+
+def load_dem():
+    """AWS terrarium 타일(약 4 m/px). 이 환경은 urllib https 가 막혀 curl 로 받는다."""
+    from PIL import Image
+    DEM_DIR.mkdir(parents=True, exist_ok=True)
+    x0, y1 = tile_xy(35.2180, 31.7620)
+    x1, y0 = tile_xy(35.2470, 31.7880)
+    W = (x1 - x0 + 1) * 256
+    H = (y1 - y0 + 1) * 256
+    grid = [[0.0] * W for _ in range(H)]
+    for tx in range(x0, x1 + 1):
+        for ty in range(y0, y1 + 1):
+            f = DEM_DIR / ('%d_%d_%d.png' % (Z, tx, ty))
+            if not f.exists() or f.stat().st_size < 1000:
+                u = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png' % (Z, tx, ty)
+                subprocess.run(['curl', '-s', '--max-time', '90', u, '-o', str(f)])
+            im = Image.open(f).convert('RGB')
+            px = im.load()
+            ox, oy = (tx - x0) * 256, (ty - y0) * 256
+            for j in range(256):
+                row = grid[oy + j]
+                for i in range(256):
+                    r, g, b = px[i, j]
+                    row[ox + i] = (r * 256 + g + b / 256) - 32768
+    return {'grid': grid, 'W': W, 'H': H, 'ox': x0 * 256, 'oy': y0 * 256}
+
+
+def elev(dem, lon, lat):
+    n = 2 ** Z * 256
+    r = math.radians(lat)
+    x = (lon + 180) / 360 * n - dem['ox']
+    y = (1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * n - dem['oy']
+    xi, yi = int(x), int(y)
+    if not (0 <= xi < dem['W'] - 1 and 0 <= yi < dem['H'] - 1):
+        return None
+    fx, fy = x - xi, y - yi
+    g = dem['grid']
+    a, b, c, d = g[yi][xi], g[yi][xi + 1], g[yi + 1][xi], g[yi + 1][xi + 1]
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+
+
+def crest_offset(dem, lon, lat, bearing, rng=90, step=4):
+    """주어진 방위로 ±rng m 훑어 사면이 꺾이는 자리(마루)까지의 거리를 낸다."""
+    nx = math.sin(math.radians(bearing))
+    ny = math.cos(math.radians(bearing))
+    ts, es = [], []
+    t = -rng
+    while t <= rng:
+        e = elev(dem, lon + nx * t / KX, lat + ny * t / KY)
+        if e is None:
+            return None, nx, ny
+        ts.append(t); es.append(e); t += step
+    best = bi = None
+    for i in range(2, len(es) - 2):
+        d2 = es[i - 2] - 2 * es[i] + es[i + 2]
+        if best is None or d2 < best:
+            best, bi = d2, i
+    return ts[bi], nx, ny
+
+
+# ---------- 기하 ----------
+def inside(pt, ring):
+    x, y = pt
+    c = False
+    n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+        if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1):
+            c = not c
+    return c
+
+
+def dist_to_ring(pt, ring):
+    x, y = pt
+    best = 1e18
+    n = len(ring)
+    for i in range(n):
+        ax, ay = ring[i][0], ring[i][1]
+        bx, by = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+        px, py = (x - ax) * KX, (y - ay) * KY
+        vx, vy = (bx - ax) * KX, (by - ay) * KY
+        L = vx * vx + vy * vy
+        t = 0 if L == 0 else max(0, min(1, (px * vx + py * vy) / L))
+        best = min(best, math.hypot(px - t * vx, py - t * vy))
+    return best
+
+
+def check(ring):
+    bad = []
+    for name, lo, la, want, margin in CHECKS:
+        got = '안' if inside((lo, la), ring) else '밖'
+        d = dist_to_ring((lo, la), ring)
+        if got != want:
+            bad.append('%s: %s (기대 %s)' % (name, got, want))
+        elif d < margin:
+            bad.append('%s: %s 이지만 경계에서 %.0f m 뿐 (최소 %d m)' % (name, got, d, margin))
+    return bad
 
 
 def area_ha(ring):
@@ -82,78 +218,121 @@ def area_ha(ring):
     return abs(s) / 2 / 10000
 
 
-def inside(pt, ring):
-    x, y = pt
-    c = False
-    n = len(ring)
-    for i in range(n):
-        x1, y1 = ring[i]
-        x2, y2 = ring[(i + 1) % n]
-        if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1):
-            c = not c
-    return c
+def perim_m(ring):
+    t = 0.0
+    for i in range(len(ring)):
+        a, b = ring[i], ring[(i + 1) % len(ring)]
+        la = math.radians((a[1] + b[1]) / 2)
+        t += math.hypot((b[0] - a[0]) * 111320 * math.cos(la), (b[1] - a[1]) * 110540)
+    return t
 
 
 def main():
-    ring = [(p[0], p[1]) for p in RING]
+    dem = load_dem()
+    print('DEM 준비 — 바위 돔 %.0f m · 실로암 못 %.0f m · 시온산 %.0f m'
+          % (elev(dem, 35.23542, 31.77802), elev(dem, 35.23512, 31.77040), elev(dem, 35.22866, 31.77162)))
 
-    # 시금석부터. 여기서 틀리면 넓이를 재 봐야 소용없다.
-    bad = []
-    for name, lo, la, want in CHECKS:
-        got = '안' if inside((lo, la), ring) else '밖'
-        if got != want:
-            bad.append('%s: %s (기대 %s)' % (name, got, want))
+    ring = [[p[0], p[1], p[2], p[3]] for p in RING]
+    bad = check(ring)
     if bad:
-        raise SystemExit('경계 검증 실패 — ' + ' / '.join(bad))
-    print('경계 검증 %d/%d 통과' % (len(CHECKS), len(CHECKS)))
+        raise SystemExit('지형 맞춤 전부터 검증 실패 — ' + ' / '.join(bad))
+
+    print('\n지형 맞춤:')
+    for i, (lo, la, name, cert, fit) in enumerate(RING):
+        if fit is None:
+            continue
+        t, nx, ny = crest_offset(dem, lo, la, fit)
+        if t is None:
+            print('  %-24s DEM 없음' % name)
+            continue
+        moved = False
+        for k in range(10, -1, -1):           # 마루에서 시작해 원위치까지 물러난다
+            tt = t * k / 10
+            cand = [lo + nx * tt / KX, la + ny * tt / KY, name, cert]
+            trial = [r[:] for r in ring]
+            trial[i] = cand
+            if not check(trial):
+                ring[i] = [round(cand[0], 5), round(cand[1], 5), name, cert]
+                print('  %-24s %+5.0f m · 고도 %.0f m%s'
+                      % (name, tt, elev(dem, cand[0], cand[1]),
+                         '' if abs(tt - t) < 1 else ' (고고 검증에 막혀 물러섬)'))
+                moved = True
+                break
+        if not moved:
+            print('  %-24s 옮기지 못함 (고고 검증)' % name)
+
+    bad = check(ring)
+    if bad:
+        raise SystemExit('지형 맞춤 뒤 검증 실패 — ' + ' / '.join(bad))
+    print('\n고고 검증 %d/%d 통과 (여유 거리 포함)' % (len(CHECKS), len(CHECKS)))
 
     ha = area_ha(ring)
-    per = sum(dist_m(ring[i], ring[(i + 1) % len(ring)]) for i in range(len(ring)))
+    per = perim_m(ring)
     lats = [p[1] for p in ring]
     lons = [p[0] for p in ring]
     la0 = sum(lats) / len(lats)
     ns = (max(lats) - min(lats)) * 110540
     ew = (max(lons) - min(lons)) * 111320 * math.cos(math.radians(la0))
+    tha = area_ha([[p[0], p[1]] for p in TEMPLE])
 
     feats = [{
         'type': 'Feature',
-        'properties': {
-            'kind': 'extent', 'ko': '예수 당시 예루살렘 성읍',
-            'ha': round(ha, 1), 'km2': round(ha / 100, 3),
-            'perimeter_km': round(per / 1000, 2),
-            'ns_m': round(ns), 'ew_m': round(ew),
-            'dug': sum(1 for p in RING if p[3] == '발굴'),
-            'guess': sum(1 for p in RING if p[3] == '추정'),
-            'unsure': sum(1 for p in RING if p[3] == '불확실'),
-        },
-        'geometry': {'type': 'Polygon', 'coordinates': [[list(p) for p in ring] + [list(ring[0])]]},
+        'properties': {'kind': 'extent', 'ko': '예수 당시 예루살렘 성읍',
+                       'ha': round(ha, 1), 'km2': round(ha / 100, 3),
+                       'perimeter_km': round(per / 1000, 2),
+                       'ns_m': round(ns), 'ew_m': round(ew),
+                       'temple_ha': round(tha, 1),
+                       'temple_pct': round(100 * tha / ha, 1),
+                       'dug': sum(1 for p in RING if p[3] == '발굴'),
+                       'guess': sum(1 for p in RING if p[3] == '추정'),
+                       'unsure': sum(1 for p in RING if p[3] == '불확실')},
+        'geometry': {'type': 'Polygon',
+                     'coordinates': [[[p[0], p[1]] for p in ring] + [[ring[0][0], ring[0][1]]]]},
+    }, {
+        'type': 'Feature',
+        'properties': {'kind': 'temple', 'ko': '헤롯 성전 (성전 산 대지)',
+                       'ha': round(tha, 1),
+                       's_m': round(math.hypot((TEMPLE[1][0]-TEMPLE[0][0])*KX, (TEMPLE[1][1]-TEMPLE[0][1])*KY)),
+                       'e_m': round(math.hypot((TEMPLE[2][0]-TEMPLE[1][0])*KX, (TEMPLE[2][1]-TEMPLE[1][1])*KY)),
+                       'n_m': round(math.hypot((TEMPLE[3][0]-TEMPLE[2][0])*KX, (TEMPLE[3][1]-TEMPLE[2][1])*KY)),
+                       'w_m': round(math.hypot((TEMPLE[0][0]-TEMPLE[3][0])*KX, (TEMPLE[0][1]-TEMPLE[3][1])*KY))},
+        'geometry': {'type': 'Polygon', 'coordinates': [TEMPLE + [TEMPLE[0]]]},
     }]
 
-    # 꼭짓점마다 무엇에 걸었는지 따로 낸다. 지도에서 눌러 볼 수 있게.
-    for lo, la, what, cert in RING:
+    for lo, la, name, cert, _ in RING:
+        i = [r[2] for r in ring].index(name)
         feats.append({'type': 'Feature',
-                      'properties': {'kind': 'anchor', 'ko': what, 'cert': cert},
+                      'properties': {'kind': 'anchor', 'ko': name, 'cert': cert},
+                      'geometry': {'type': 'Point', 'coordinates': [ring[i][0], ring[i][1]]}})
+
+    for name, lo, la, brg, cert, desc in GATES:
+        feats.append({'type': 'Feature',
+                      'properties': {'kind': 'gate', 'ko': name, 'cert': cert,
+                                     'bearing': brg, 'desc': desc},
                       'geometry': {'type': 'Point', 'coordinates': [lo, la]}})
 
-    # 제2성벽 구간만 따로 — 점선으로 그린다.
-    unsure = [[p[0], p[1]] for p in RING if p[3] == '불확실']
+    unsure = [[p[0], p[1]] for p in ring if p[3] == '불확실']
+    i12 = [r[2] for r in ring].index('성전 산 북서 (안토니아 요새)')
     feats.append({'type': 'Feature',
                   'properties': {'kind': 'unsure', 'ko': '제2성벽 (확정된 발굴선 없음)'},
                   'geometry': {'type': 'LineString',
-                               'coordinates': [[RING[11][0], RING[11][1]]] + unsure +
-                                              [[RING[0][0], RING[0][1]]]}})
+                               'coordinates': [[ring[i12][0], ring[i12][1]]] + unsure +
+                                              [[ring[0][0], ring[0][1]]]}})
 
     fc = {'type': 'FeatureCollection',
-          'attribution': '좌표: 발굴 유구 위치 (OpenStreetMap ODbL) · 치수: 성전 산 남벽 실측',
+          'attribution': '좌표: 발굴 유구 (OpenStreetMap ODbL) · 치수: 성전 산 남벽 실측 · 지형: AWS Terrain Tiles',
           'note': '예수 당시 성읍의 규모. 성벽 복원도가 아니다.',
           'features': feats}
     OUT.write_text(json.dumps(fc, ensure_ascii=False, indent=1), encoding='utf-8')
 
-    print('넓이 %.1f ha (%.3f km²) · 둘레 %.2f km · 남북 %.0f m · 동서 %.0f m'
+    print('\n성읍  넓이 %.1f ha (%.3f km²) · 둘레 %.2f km · 남북 %.0f m · 동서 %.0f m'
           % (ha, ha / 100, per / 1000, ns, ew))
-    print('꼭짓점 %d (발굴 %d · 추정 %d · 불확실 %d)'
-          % (len(RING), feats[0]['properties']['dug'],
-             feats[0]['properties']['guess'], feats[0]['properties']['unsure']))
+    print('성전  %.1f ha (성읍의 %.1f%%) · 남 %d · 동 %d · 북 %d · 서 %d m'
+          % (tha, 100 * tha / ha, feats[1]['properties']['s_m'], feats[1]['properties']['e_m'],
+             feats[1]['properties']['n_m'], feats[1]['properties']['w_m']))
+    print('성문  %d개 (발굴 %d · 추정 %d · 불확실 %d)'
+          % (len(GATES), sum(1 for g in GATES if g[4] == '발굴'),
+             sum(1 for g in GATES if g[4] == '추정'), sum(1 for g in GATES if g[4] == '불확실')))
     print('%s  %.1f KB' % (OUT, OUT.stat().st_size / 1024))
 
 
