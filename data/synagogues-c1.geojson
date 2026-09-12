@@ -1,0 +1,251 @@
+{
+ "type": "FeatureCollection",
+ "attribution": "좌표: 이 저장소의 지명 자료 · OpenStreetMap (ODbL) · Wikidata (CC0)",
+ "note": "1세기(제2성전기) 회당. 확실도 세 단계 — 발굴·논쟁·문헌.",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "감라",
+    "en": "Gamla",
+    "cert": "발굴",
+    "period": "기원전 1세기 말 ~ 서기 67년",
+    "desc": "기원전 1세기 말에 지어져 서기 67년 로마군에 함락될 때까지 쓰였다. 지금 남아 있는 제2성전기 회당 가운데 가장 뚜렷한 것이다.",
+    "src": "atlas",
+    "refs": "요세푸스 『유대 전쟁사』 4권"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.74,
+     32.902
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "막달라",
+    "en": "Magdala",
+    "cert": "발굴",
+    "period": "서기 1세기",
+    "desc": "2009년에 드러났다. 예수 당시 갈릴리 호숫가 마을의 회당이다. 성소 기물이 새겨진 이른바 「막달라 돌」이 이 방 안에서 나왔다. 2021년에 같은 마을에서 두 번째 회당이 또 나왔다.",
+    "src": "atlas",
+    "refs": "막 15:40 (막달라 마리아의 고향)"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.5169,
+     32.8247
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "마사다",
+    "en": "Masada",
+    "cert": "발굴",
+    "period": "서기 66~73년",
+    "desc": "헤롯이 지은 요새 안의 방을 항쟁기에 회당으로 고쳐 썼다. 처음부터 회당으로 지은 것은 아니다.",
+    "src": "atlas",
+    "refs": "요세푸스 『유대 전쟁사』 7권"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.354,
+     31.315
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "헤로디온",
+    "en": "Herodium",
+    "cert": "발굴",
+    "period": "서기 66~71년",
+    "desc": "마사다와 마찬가지로, 헤롯의 건물을 항쟁기에 회당으로 고쳐 썼다. 기둥이 둘린 방 벽을 따라 돌의자를 둘렀다.",
+    "src": "atlas",
+    "refs": "요세푸스 『유대 전쟁사』 1권 (헤롯의 건축)"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.241,
+     31.666
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "움 엘우므단",
+    "en": "Khirbet Umm el-'Umdan",
+    "cert": "발굴",
+    "period": "하스몬 시대 ~ 서기 1세기",
+    "desc": "하스몬 시대에 지어져 제2성전기 내내 쓰인 마을 회당이다. 마카베오 집안의 고향 모디인 부근으로 보는 견해가 많다.",
+    "src": "osm",
+    "refs": "마카베오상 2:1 (모디인)"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     34.99785,
+     31.88338
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "키르벳 바드 이사 (키랴트 세페르)",
+    "en": "Khirbet Badd 'Isa (Qiryat Sefer)",
+    "cert": "발굴",
+    "period": "서기 1세기",
+    "desc": "기둥 넷이 받치는 네모난 방에 삼면으로 돌의자를 둘렀다. 작은 마을에도 회당이 있었음을 보여 주는 자리다.",
+    "src": "osm"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.04232,
+     31.92651
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "텔 레케쉬",
+    "en": "Tel Rekhesh",
+    "cert": "발굴",
+    "period": "서기 1세기",
+    "desc": "2016년에 드러난 갈릴리 시골 회당이다. 다볼산 남쪽 농촌 마을 자리로, 복음서가 말하는 「그들의 여러 회당」이 큰 도시에만 있지 않았음을 보여 준다.",
+    "src": "wikidata",
+    "refs": "마 4:23"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.46614,
+     32.65345
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "가버나움",
+    "en": "Capernaum",
+    "cert": "논쟁",
+    "period": "1세기 기초 위 4~5세기 건물",
+    "desc": "지금 서 있는 흰 석회암 회당은 4~5세기 것이다. 그 아래 검은 현무암 기초를 복음서가 말하는 1세기 회당으로 보는 견해가 널리 있으나, 앞선 시기의 다른 건물로 보는 반론도 있다.",
+    "src": "atlas",
+    "refs": "막 1:21; 눅 7:5 (백부장이 지어 준 회당)"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.575,
+     32.8808
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "호르밧 에트리",
+    "en": "Horvat 'Etri",
+    "cert": "논쟁",
+    "period": "서기 1세기",
+    "desc": "유대 구릉지의 1세기 마을 유적이다. 회당으로 제안된 방이 있으나 확정되지 않았다.",
+    "src": "wikidata"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     34.97201,
+     31.64947
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "툴룰 아부 엘알라이크 (여리고)",
+    "en": "Tulul Abu el-'Alayiq (Jericho)",
+    "cert": "논쟁",
+    "period": "기원전 75~50년경",
+    "desc": "하스몬 궁전 구역에서 나온 건물이다. 발굴자는 가장 이른 회당으로 보았으나 연회장으로 보는 반론이 있다. 이 목록에서 가장 이견이 큰 자리다.",
+    "src": "osm"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.43508,
+     31.8535
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "예루살렘",
+    "en": "Jerusalem",
+    "cert": "문헌",
+    "period": "서기 1세기",
+    "desc": "「테오도투스 비문」이 율법을 읽고 순례자를 묵게 하려고 지은 회당을 증언한다. 비문은 오벨(다윗성)에서 나왔으나 건물 자리는 확인되지 않았다. 사도행전은 예루살렘에 여러 회당이 있었다고 말한다.",
+    "src": "atlas",
+    "refs": "행 6:9 (자유민들의 회당)"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2354,
+     31.7784
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "나사렛",
+    "en": "Nazareth",
+    "cert": "문헌",
+    "period": "서기 1세기",
+    "desc": "예수께서 안식일에 들어가 이사야를 읽으신 곳이다. 건물은 발굴되지 않았다.",
+    "src": "atlas",
+    "refs": "눅 4:16-30"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2978,
+     32.7019
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "디베랴",
+    "en": "Tiberias",
+    "cert": "문헌",
+    "period": "서기 1세기",
+    "desc": "요세푸스가 많은 사람이 모이는 큰 기도처(프로슈케)를 말한다. 건물 자리는 확인되지 않았다.",
+    "src": "atlas",
+    "refs": "요세푸스 『자서전』 277"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.5312,
+     32.7959
+    ]
+   }
+  }
+ ]
+}
