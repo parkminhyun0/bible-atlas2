@@ -616,7 +616,8 @@
     <div class="aspect-h">1세기 예루살렘 성읍</div>
     <div class="row"><label><input type="checkbox" id="jeruExtent" /> 예수 당시 성읍 규모</label></div>
     <div class="sub" id="jeruNote" style="margin:-2px 0 6px">성읍 83.3 ha · 둘레 3.75 km · 남북 1,178 m · 동서 900 m<br>
-      성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳</div>
+      성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳<br>
+      성전 산 세 시대 — 솔로몬 건물 31.5×9 m · 스룹바벨~하스몬 6.2 ha · 헤롯 14.1 ha</div>
     <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
       <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 17개 가운데
       <b>9개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
@@ -1448,6 +1449,44 @@ const style = {
       layout: { visibility: 'none', 'line-cap': 'butt', 'line-join': 'round' },
       paint: { 'line-color': '#f4efe6', 'line-opacity': 0.95, 'line-dasharray': [1.6, 1.4],
                'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2, 17, 5] } },
+
+    // 성전 산은 한 번에 이 크기가 아니었다. 세 시대를 색으로 나눠 겹쳐 그린다 —
+    // 넓은 것부터 깔아야 작은 것이 위로 올라와 보인다.
+    //   헤롯 노랑 · 스룹바벨~하스몬 청록 · 솔로몬 건물 붉은 자주
+    { id: 'jeru-t2-fill', type: 'fill', source: 'jeruc1', minzoom: 12,
+      filter: ['==', ['get', 'kind'], 'temple2'],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#2e8b8b', 'fill-opacity': 0.26 } },
+    { id: 'jeru-t2-line', type: 'line', source: 'jeruc1', minzoom: 12,
+      filter: ['==', ['get', 'kind'], 'temple2'],
+      layout: { visibility: 'none', 'line-join': 'miter' },
+      paint: { 'line-color': '#155f5f', 'line-opacity': 0.95, 'line-dasharray': [3, 1.6],
+               'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.4, 15, 2.6, 18, 4] } },
+    { id: 'jeru-t2-label', type: 'symbol', source: 'jeruc1', minzoom: 15,
+      filter: ['==', ['get', 'kind'], 'temple2'],
+      layout: { visibility: 'none', 'text-field': '스룹바벨~하스몬기 성전 산',
+        'text-font': ['Noto Sans Bold'], 'text-max-width': 10,
+        'text-size': ['interpolate', ['linear'], ['zoom'], 15, 10.5, 18, 13],
+        'text-anchor': 'bottom', 'text-offset': [0, -0.6],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#0f4a4a', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
+    { id: 'jeru-t1-fill', type: 'fill', source: 'jeruc1', minzoom: 14,
+      filter: ['==', ['get', 'kind'], 'temple1'],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#9b2d5e', 'fill-opacity': 0.55 } },
+    { id: 'jeru-t1-line', type: 'line', source: 'jeruc1', minzoom: 14,
+      filter: ['==', ['get', 'kind'], 'temple1'],
+      layout: { visibility: 'none', 'line-join': 'miter' },
+      paint: { 'line-color': '#6d1640', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1.2, 17, 2.4, 19, 3.5] } },
+    { id: 'jeru-t1-label', type: 'symbol', source: 'jeruc1', minzoom: 16,
+      filter: ['==', ['get', 'kind'], 'temple1'],
+      layout: { visibility: 'none', 'text-field': '솔로몬 성전', 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10.5, 19, 13],
+        'text-anchor': 'top', 'text-offset': [0, 0.7],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#6d1640', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
     // 헤롯 성전의 성전 산 대지. 성읍과 다른 색·다른 테두리로 구별한다.
     { id: 'jeru-temple-fill', type: 'fill', source: 'jeruc1', minzoom: 11,
@@ -2637,6 +2676,8 @@ for (const key of Object.keys(ROAD_SETS)) {
 // 꼭짓점 16개 가운데 10개를 발굴된 유구에 걸었고(bake/jerusalem_c1.py 에 근거를 적었다),
 // 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
 const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor',
+                     'jeru-t2-fill', 'jeru-t2-line', 'jeru-t2-label',
+                     'jeru-t1-fill', 'jeru-t1-line', 'jeru-t1-label',
                      'jeru-temple-fill', 'jeru-temple-line', 'jeru-temple-label',
                      'jeru-gate', 'jeru-gate-label'];
 
@@ -2670,6 +2711,26 @@ function openJeruPopup(feature) {
       `<p>${esc(p.desc)}</p>` +
       '<div class="certainty">도면처럼 벽이 끊기고 문설주가 선 모양으로 그렸습니다. ' +
       '발굴로 확인된 문은 문지방이 실선, 그렇지 않은 문은 점선입니다.</div></div>';
+  } else if (p.kind === 'temple2') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">성전 산 — 스룹바벨에서 하스몬기까지</div>' +
+      `<div class="meta">넓이 <b>${p.ha} ha</b> · 한 변 <b>${p.side_m} m</b> (500규빗, 1규빗 ${p.cubit} m)</div>` +
+      `<div class="meta">${esc(p.cert)}</div>` +
+      '<p>미쉬나 미도트 2:1 이 성전 산을 500×500 규빗이라 합니다. 그 네모의 남동 모서리를 ' +
+      '동벽의 <b>이음매</b>에 걸었습니다 — 헤롯의 확장이 그 이전 벽에 맞붙은 자리로, 남동 ' +
+      '모서리에서 북으로 32 m 떨어져 있습니다.</p>' +
+      '<div class="certainty">검산: 동벽의 제1성전기 석조가 이 네모의 동변에 붙고, 헤롯기 북쪽 ' +
+      '확장부는 네모 밖에 떨어집니다. 헤롯은 이 크기를 2.3배로 넓혔습니다.</div></div>';
+  } else if (p.kind === 'temple1') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">제1성전 — 건물</div>' +
+      `<div class="meta"><b>${p.len_m} × ${p.wid_m} m</b> (70×20규빗, 1규빗 ${p.cubit} m)</div>` +
+      `<div class="meta">${esc(p.cert)}</div>` +
+      '<p>본체 60×20 규빗에 현관 10 규빗을 더한 크기입니다(왕상 6:2-3). ' +
+      '<b>솔로몬만은 경내가 아니라 건물을 그립니다</b> — 제1성전기 경내의 크기는 남아 있지 ' +
+      '않고, 성경은 건물 치수만 정확히 말하기 때문입니다.</p>' +
+      '<div class="certainty">자리는 바위 돔 아래 반석을 지성소로 보는 통설을 따라 잡았습니다. ' +
+      '치수는 성경이 주지만 자리는 확정된 것이 아닙니다.</div></div>';
   } else if (p.kind === 'temple') {
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
       '<div class="context">성전 산 대지</div>' +
@@ -2701,7 +2762,8 @@ function openJeruPopup(feature) {
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
 
-for (const id of ['jeru-gate', 'jeru-gate-label', 'jeru-anchor', 'jeru-temple-fill', 'jeru-fill']) {
+for (const id of ['jeru-t1-fill', 'jeru-gate', 'jeru-gate-label', 'jeru-anchor',
+                  'jeru-t2-fill', 'jeru-temple-fill', 'jeru-fill']) {
   map.on('click', id, e => {
     placeHit = true;
     if (navPicking) return;
