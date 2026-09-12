@@ -1,0 +1,373 @@
+{
+ "type": "FeatureCollection",
+ "attribution": "좌표: 발굴 유구 위치 (OpenStreetMap ODbL) · 치수: 성전 산 남벽 실측",
+ "note": "예수 당시 성읍의 규모. 성벽 복원도가 아니다.",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "extent",
+    "ko": "예수 당시 예루살렘 성읍",
+    "ha": 78.9,
+    "km2": 0.789,
+    "perimeter_km": 3.58,
+    "ns_m": 1144,
+    "ew_m": 892,
+    "dug": 10,
+    "guess": 2,
+    "unsure": 4
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       35.22808,
+       31.77607
+      ],
+      [
+       35.22799,
+       31.77516
+      ],
+      [
+       35.22847,
+       31.77032
+      ],
+      [
+       35.2296,
+       31.76991
+      ],
+      [
+       35.23057,
+       31.77037
+      ],
+      [
+       35.23512,
+       31.7704
+      ],
+      [
+       35.23641,
+       31.7731
+      ],
+      [
+       35.2368,
+       31.7745
+      ],
+      [
+       35.23656,
+       31.7757
+      ],
+      [
+       35.23742,
+       31.77606
+      ],
+      [
+       35.2373,
+       31.78026
+      ],
+      [
+       35.23397,
+       31.78015
+      ],
+      [
+       35.232,
+       31.7795
+      ],
+      [
+       35.2301,
+       31.778
+      ],
+      [
+       35.2287,
+       31.7778
+      ],
+      [
+       35.2288,
+       31.7765
+      ],
+      [
+       35.22808,
+       31.77607
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "다윗 탑 (헤롯기 탑 기초)",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.22808,
+     31.77607
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "키슐레 발굴 (헤롯 궁전 기초)",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.22799,
+     31.77516
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "모즐리 스카프 (개신교 묘지)",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.22847,
+     31.77032
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "시온산 남쪽 발굴",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2296,
+     31.76991
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "티로포에온 골짜기를 건너는 구간",
+    "cert": "추정"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23057,
+     31.77037
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "실로암 못",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23512,
+     31.7704
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "워런 수직갱",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23641,
+     31.7731
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "기드론 위 능선",
+    "cert": "추정"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2368,
+     31.7745
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "오벨",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23656,
+     31.7757
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "성전 산 남동 모서리",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23742,
+     31.77606
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "성전 산 북동 모서리",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2373,
+     31.78026
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "성전 산 북서 (안토니아 요새)",
+    "cert": "발굴"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.23397,
+     31.78015
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "제2성벽 북",
+    "cert": "불확실"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.232,
+     31.7795
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "제2성벽 북서",
+    "cert": "불확실"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2301,
+     31.778
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "제2성벽 서",
+    "cert": "불확실"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2287,
+     31.7778
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "anchor",
+    "ko": "겐나트 문 부근",
+    "cert": "불확실"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.2288,
+     31.7765
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "kind": "unsure",
+    "ko": "제2성벽 (확정된 발굴선 없음)"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      35.23397,
+      31.78015
+     ],
+     [
+      35.232,
+      31.7795
+     ],
+     [
+      35.2301,
+      31.778
+     ],
+     [
+      35.2287,
+      31.7778
+     ],
+     [
+      35.2288,
+      31.7765
+     ],
+     [
+      35.22808,
+      31.77607
+     ]
+    ]
+   }
+  }
+ ]
+}

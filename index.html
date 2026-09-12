@@ -613,6 +613,20 @@
   </div>
 
   <div class="aspect">
+    <div class="aspect-h">1세기 예루살렘 성읍</div>
+    <div class="row"><label><input type="checkbox" id="jeruExtent" /> 예수 당시 성읍 규모</label></div>
+    <div class="sub" id="jeruNote" style="margin:-2px 0 6px">넓이 78.9 ha · 둘레 3.58 km · 남북 1,144 m · 동서 892 m</div>
+    <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
+      <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 16개 가운데
+      <b>10개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
+      모즐리 스카프, 실로암 못, 워런 수직갱, 오벨, 다윗 탑, 키슐레 발굴.<br>
+      <b>북쪽 제2성벽만은 확정된 발굴선이 없습니다</b>(점선). 학설이 갈려, 고고 증거가 주는 두
+      조건만 지켰습니다 — 골고다는 성 <b>밖</b>, 히스기야 못은 성 <b>안</b>.<br>
+      눌러 보면 각 꼭짓점이 무엇에 걸렸는지 나옵니다.
+    </div>
+  </div>
+
+  <div class="aspect">
     <div class="aspect-h">갈릴리 호수의 항구</div>
     <div class="row"><label><input type="checkbox" id="harbours" /> 1세기 항구·정박 후보 (닻 표시)</label></div>
     <div class="sub" id="harbNote" style="margin:-2px 0 6px">고고학 근거 14곳. 눌러서 확실도와 좌표 성격을 봅니다.</div>
@@ -923,6 +937,7 @@ const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.json';
 const ROADS_LOC  = SITE_ROOT + 'data/roads-local.json';
 const SYNAGOGUES = SITE_ROOT + 'data/synagogues-c1.geojson';
 const HARBOURS   = SITE_ROOT + 'data/harbours-galilee.geojson';
+const JERU_C1    = SITE_ROOT + 'data/jerusalem-c1.geojson';
 
 // 등급마다 나타나는 줌이 다르다. 고속도로는 전체 보기(z6)부터, 간선은 z7, 주요도로는
 // z9 부터. 줌을 filter 에 쓰면 MapLibre 가 정수 줌마다 다시 재는데, 그 대신 그 줌에서
@@ -1134,6 +1149,7 @@ const style = {
     navroute: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     synagogues: { type: 'geojson', data: SYNAGOGUES },
     harbours:   { type: 'geojson', data: HARBOURS },
+    jeruc1:     { type: 'geojson', data: JERU_C1 },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
   },
@@ -1407,6 +1423,34 @@ const style = {
       paint: { 'text-color': '#2f3237', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
     // 찾은 길. 도로 위, 지명 아래에 그린다. 밑에 굵은 흰 테를 깔아야 도로망 위에서도 보인다.
+    // 1세기 예루살렘 성읍의 규모. 면은 옅게 깔고 테두리로 크기를 읽게 한다.
+    // 발굴로 확정된 구간은 실선, 제2성벽(확정된 발굴선 없음)은 점선으로 갈라 그린다.
+    { id: 'jeru-fill', type: 'fill', source: 'jeruc1', minzoom: 10,
+      filter: ['==', ['get', 'kind'], 'extent'],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#a8642a', 'fill-opacity': 0.16 } },
+
+    { id: 'jeru-line', type: 'line', source: 'jeruc1', minzoom: 10,
+      filter: ['==', ['get', 'kind'], 'extent'],
+      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#8a4a16', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2, 17, 5] } },
+
+    // 확정된 발굴선이 없는 구간을 점선으로 덮어 구분한다.
+    { id: 'jeru-unsure', type: 'line', source: 'jeruc1', minzoom: 10,
+      filter: ['==', ['get', 'kind'], 'unsure'],
+      layout: { visibility: 'none', 'line-cap': 'butt', 'line-join': 'round' },
+      paint: { 'line-color': '#f4efe6', 'line-opacity': 0.95, 'line-dasharray': [1.6, 1.4],
+               'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2, 17, 5] } },
+
+    { id: 'jeru-anchor', type: 'circle', source: 'jeruc1', minzoom: 13,
+      filter: ['==', ['get', 'kind'], 'anchor'],
+      layout: { visibility: 'none' },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3.5, 17, 6],
+               'circle-color': ['match', ['get', 'cert'], '발굴', '#8a4a16', '#f4efe6'],
+               'circle-stroke-color': '#8a4a16', 'circle-stroke-width': 1.6,
+               'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
+
     // 갈릴리 호수의 1세기 정박지. 물 빛과 싸우지 않도록 점은 짙은 청록으로 두고,
     // 닻 표시를 위에 얹는다. 회당(노란 점)과 한 화면에 떠도 서로 구별된다.
     { id: 'harb-dot', type: 'circle', source: 'harbours', minzoom: 7,
@@ -2348,6 +2392,7 @@ window.roadsToGeojson = roadsToGeojson;
 // 자동 검증에서 길찾기를 직접 부르기 위해 내놓는다 (window.map 과 같은 이유).
 window.__openSyn = openSynagoguePopup;   // 자동 검증에서 회당 팝업을 직접 연다
 window.__openHarb = openHarbourPopup;    // 항구 팝업도 같은 이유로 내놓는다
+window.__openJeru = openJeruPopup;
 window.nav = { take: navTakePlace, build: buildNavGraph, snap: navSnap, route: navRoute,
                walkTime: navWalkTime, draw: navDraw };   // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
 
@@ -2511,6 +2556,61 @@ for (const key of Object.keys(ROAD_SETS)) {
     const vis = on ? 'visible' : 'none';
     for (const id of set.layers) map.setLayoutProperty(id, 'visibility', vis);
   });
+}
+
+// ---------- 1세기 예루살렘 성읍의 규모 ----------
+// 성벽 복원도가 아니다. 성읍이 얼마나 컸는지를 보이는 것이다.
+// 꼭짓점 16개 가운데 10개를 발굴된 유구에 걸었고(bake/jerusalem_c1.py 에 근거를 적었다),
+// 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
+const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor'];
+
+$('jeruExtent').addEventListener('change', e => {
+  const on = e.target.checked;
+  $('jeruCaution').hidden = !on;
+  for (const id of JERU_LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  // 켜는데 예루살렘이 화면 밖이면 아무것도 안 보여 고장으로 보인다. 처음 켤 때 데려간다.
+  if (on && map.getZoom() < 11) {
+    map.fitBounds([[35.2270, 31.7690], [35.2380, 31.7810]], { padding: 60, pitch: 0, duration: 900 });
+  }
+});
+
+function openJeruPopup(feature) {
+  const p = feature.properties || {};
+  closePlacePopup();
+  const pt = feature.geometry.type === 'Point' ? feature.geometry.coordinates : null;
+  let html;
+  if (p.kind === 'anchor') {
+    const CERT = { '발굴': '발굴된 유구에 건 자리', '추정': '지형을 따라 이은 자리',
+                   '불확실': '확정된 발굴선이 없는 구간' };
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">1세기 예루살렘 성읍 경계</div>' +
+      `<div class="meta">${esc(CERT[p.cert] || p.cert)}</div>` +
+      '<div class="certainty">성벽 복원도가 아니라 성읍의 규모를 보이는 선입니다.</div></div>';
+  } else {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">규모</div>' +
+      `<div class="meta">넓이 <b>${p.ha} ha</b> (${p.km2} km²) · 둘레 <b>${p.perimeter_km} km</b></div>` +
+      `<div class="meta">남북 ${(+p.ns_m).toLocaleString('ko-KR')} m · 동서 ${(+p.ew_m).toLocaleString('ko-KR')} m</div>` +
+      `<p>꼭짓점 ${(+p.dug) + (+p.guess) + (+p.unsure)}개 가운데 <b>${p.dug}개를 발굴된 유구</b>에 걸었습니다. ` +
+      `${p.guess}개는 지형을 따라 이었고, ${p.unsure}개(북쪽 제2성벽)는 확정된 발굴선이 없어 점선으로 그립니다.</p>` +
+      '<div class="certainty">성전 산 남벽은 로빈슨 아치·훌다 두 문·단일문 네 발굴 지점에 직선을 ' +
+      '회귀시켜 잡았습니다(잔차 0.9~6.4 m). 남쪽 둘레는 Bliss 와 Dickie 가 1894~97년에 판 선입니다.</div></div>';
+  }
+  const pop = new maplibregl.Popup({ className: 'place-popup', closeButton: false,
+    closeOnClick: false, maxWidth: 'none', offset: 12, anchor: 'bottom' })
+    .setLngLat(pt || [35.2325, 31.7750]).setHTML(html).addTo(map);
+  placePopup = pop;
+  requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
+}
+
+for (const id of ['jeru-anchor', 'jeru-fill']) {
+  map.on('click', id, e => {
+    placeHit = true;
+    if (navPicking) return;
+    if (e.features && e.features.length) openJeruPopup(e.features[0]);
+  });
+  map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
 }
 
 // ---------- 갈릴리 호수의 항구 ----------
