@@ -2,6 +2,11 @@
  "type": "FeatureCollection",
  "attribution": "Raban 1988 · Nun 1989/1999 · De Luca & Lena 2014 · Sarti et al. 2013 · Galili et al. 2018 · IAA 2011",
  "note": "Nun의 16은 구조물/정박지 조사 수다. 중복 시설을 장소 단위로 묶고 1세기 확실성을 A/B/C로 구분한다.",
+ "evidence_model": {
+  "A": "1세기 사용을 직접 지지하는 발굴·층위·유물",
+  "B": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
+  "C": "목록·지형·부분 조사에 근거하나 연대나 위치가 제한적"
+ },
  "features": [
   {
    "type": "Feature",
