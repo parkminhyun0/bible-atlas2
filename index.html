@@ -544,9 +544,12 @@
 
   <div class="aspect">
     <div class="aspect-h">현대 도로</div>
-    <div class="row"><label><input type="checkbox" id="roadsModern" /> 오늘의 도로 (고속·간선·주요)</label></div>
+    <div class="row"><label><input type="checkbox" id="roadsModern" /> 주요 도로 (고속·간선·주요)</label></div>
     <div class="sub" id="roadNote" style="margin:-2px 0 6px">z6 이상에서 고속도로부터 나타납니다.
       확대할수록 간선·주요도로가 더해집니다.</div>
+    <div class="row"><label><input type="checkbox" id="roadsLocal" /> 일반 도로 (지방·시군)</label></div>
+    <div class="sub" id="roadLocalNote" style="margin:-2px 0 6px">z10 이상에서 지방도, z12 이상에서 시군도가
+      나타납니다. 자료가 5 MB 라 켤 때 잠시 걸립니다.</div>
     <div class="sub" id="roadCaution" hidden style="margin:-2px 0 6px">
       <b>이 길은 오늘의 길입니다.</b> 이 지도의 배경은 서기 30년경이지만 여기 그려지는 도로는
       지금 실제로 깔린 포장도로입니다(OSM). 1세기 노선을 추정해 그린 것이 아닙니다.<br>
@@ -745,6 +748,7 @@ const DS_SOUTH   = SITE_ROOT + 'data/dead-sea-south.geojson';
 const VERSES     = SITE_ROOT + 'data/verses.json';
 const LOC_RIVERS = SITE_ROOT + 'data/rivers-local.geojson';
 const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.json';
+const ROADS_LOC  = SITE_ROOT + 'data/roads-local.json';
 
 // 등급마다 나타나는 줌이 다르다. 고속도로는 전체 보기(z6)부터, 간선은 z7, 주요도로는
 // z9 부터. 줌을 filter 에 쓰면 MapLibre 가 정수 줌마다 다시 재는데, 그 대신 그 줌에서
@@ -753,6 +757,12 @@ const ROAD_ZOOM = ['any',
   ['==', ['get', 'cls'], 'motorway'],
   ['all', ['==', ['get', 'cls'], 'trunk'],   ['>=', ['zoom'], 7]],
   ['all', ['==', ['get', 'cls'], 'primary'], ['>=', ['zoom'], 9]]];
+
+// 일반 도로는 더 늦게 나온다. 지방도를 주요도로와 같은 줌에 그리면 둘이 구별되지 않고,
+// 시군도는 그보다 더 촘촘해 z12 아래에서는 땅을 덮어 버린다.
+const ROAD_LOCAL_ZOOM = ['any',
+  ['all', ['==', ['get', 'cls'], 'secondary'], ['>=', ['zoom'], 10]],
+  ['all', ['==', ['get', 'cls'], 'tertiary'],  ['>=', ['zoom'], 12]]];
 
 // ---------- 육지 고도 색상 (설선 가변) ----------
 // 정확히 0m(=바다로 고정된 값)만 투명하게 두어 아래의 해저 색이 비치게 한다. 사해·요단 계곡(음수)은 육지색 유지.
@@ -946,6 +956,7 @@ const style = {
     lrivers:  { type: 'geojson', data: LOC_RIVERS },
     roadsmod: { type: 'geojson', data: { type: 'FeatureCollection', features: [] },
                 attribution: 'Roads: © OpenStreetMap contributors (ODbL)' },
+    roadsloc: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
   },
@@ -1156,6 +1167,36 @@ const style = {
     // 지형이 도로망에 덮이고, 주요도로를 z6 에 그리면 그냥 회색 덩어리가 된다.
     // 줌 조건은 filter 에 넣는다 — 투명도 0 으로 감추면 그려지지 않으면서도
     // 자리잡기·집기 비용은 그대로 나간다.
+    // 일반 도로. 주요 도로보다 먼저 그려 아래에 깔린다 — 지방도가 고속도로를 덮으면
+    // 어느 쪽이 큰 길인지 읽히지 않는다. 색도 한 단계 옅다.
+    { id: 'road-local-casing', type: 'line', source: 'roadsloc', minzoom: 10,
+      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+      filter: ROAD_LOCAL_ZOOM,
+      paint: { 'line-color': '#ffffff', 'line-opacity': 0.45,
+               'line-width': ['interpolate', ['linear'], ['zoom'],
+                 10, ['match', ['get', 'cls'], 'secondary', 1.6, 1.2],
+                 13, ['match', ['get', 'cls'], 'secondary', 2.8, 2.2],
+                 16, ['match', ['get', 'cls'], 'secondary', 5.0, 4.0]] } },
+
+    { id: 'road-local-line', type: 'line', source: 'roadsloc', minzoom: 10,
+      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+      filter: ROAD_LOCAL_ZOOM,
+      paint: { 'line-color': ['match', ['get', 'cls'], 'secondary', '#8b9098', '#a3a8af'],
+               'line-opacity': 0.9,
+               'line-width': ['interpolate', ['linear'], ['zoom'],
+                 10, ['match', ['get', 'cls'], 'secondary', 0.7, 0.5],
+                 13, ['match', ['get', 'cls'], 'secondary', 1.5, 1.1],
+                 16, ['match', ['get', 'cls'], 'secondary', 3.0, 2.2]] } },
+
+    { id: 'road-local-ref', type: 'symbol', source: 'roadsloc', minzoom: 12,
+      layout: { visibility: 'none',
+        'text-field': ['get', 'ref'], 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 12, 9.5, 16, 12],
+        'symbol-placement': 'line', 'symbol-spacing': 260, 'text-padding': 4,
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      filter: ['all', ['has', 'ref'], ROAD_LOCAL_ZOOM],
+      paint: { 'text-color': '#5c6068', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 } },
+
     { id: 'road-casing', type: 'line', source: 'roadsmod', minzoom: 6,
       layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
       filter: ROAD_ZOOM,
@@ -2042,9 +2083,17 @@ function openPlacePopup(feature, lngLat) {
 //
 // 도형은 OSM 원본 그대로다 — 줄이지 않는다. 미리 줄이면 완만한 곡선이 직선으로
 // 떨어지고 남은 꼭짓점이 뾰족하게 꺾인다. 줌에 따른 간략화는 geojson 소스가
-// 타일마다 알아서 한다. 1.4 MB 라 켤 때만 받는다.
-const ROAD_LAYERS = ['road-casing', 'road-line', 'road-ref'];
-let roadsLoaded = false, roadsLoading = null;
+// 타일마다 알아서 한다. 주요 1.4 MB · 일반 5.3 MB 라 각각 켤 때만 받는다.
+// 두 벌을 따로 켠다. 주요 도로만 보려는 사람에게 일반 도로 5 MB 를 지울 이유가 없다.
+const ROAD_SETS = {
+  roadsModern: { src: 'roadsmod', url: ROADS_MOD, note: 'roadNote',
+                 layers: ['road-casing', 'road-line', 'road-ref'],
+                 ready: 'z6 이상에서 고속도로부터 나타납니다. 확대할수록 간선·주요도로가 더해집니다.' },
+  roadsLocal:  { src: 'roadsloc', url: ROADS_LOC, note: 'roadLocalNote',
+                 layers: ['road-local-casing', 'road-local-line', 'road-local-ref'],
+                 ready: 'z10 이상에서 지방도, z12 이상에서 시군도가 나타납니다.' },
+};
+const roadState = {};   // 체크박스 id → { loaded, loading }
 
 // 인코딩된 폴리라인을 푼다. 앞 점과의 차이를 밑수 32 로 적은 것이라,
 // 글자를 5비트씩 모아 정수를 만들고 그 정수를 앞 점에 더해 간다. 경도가 먼저다.
@@ -2079,40 +2128,50 @@ function roadsToGeojson(doc) {
   };
 }
 
-async function loadRoads() {
-  if (roadsLoaded) return true;
-  if (!roadsLoading) roadsLoading = fetch(ROADS_MOD).then(r => {
+async function loadRoadSet(key) {
+  const set = ROAD_SETS[key];
+  const st = roadState[key] || (roadState[key] = { loaded: false, loading: null });
+  if (st.loaded) return true;
+  if (!st.loading) st.loading = fetch(set.url).then(r => {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }).then(doc => {
-    map.getSource('roadsmod').setData(roadsToGeojson(doc));
-    roadsLoaded = true;
+    map.getSource(set.src).setData(roadsToGeojson(doc));
+    st.loaded = true;
     return true;
   }).catch(e => {
     console.warn('도로 자료를 읽지 못했다:', e);
-    roadsLoading = null;
+    st.loading = null;
     return false;
   });
-  return roadsLoading;
+  return st.loading;
 }
 
-$('roadsModern').addEventListener('change', async e => {
-  const on = e.target.checked;
-  $('roadCaution').hidden = !on;
-  if (on) {
-    $('roadNote').textContent = '도로 자료를 읽는 중…';
-    const ok = await loadRoads();
-    // 기다리는 사이에 사용자가 껐을 수 있다. 그때는 켜지 않는다.
-    if (!ok) {
-      $('roadNote').textContent = '도로 자료를 읽지 못했습니다. 연결을 확인해 주세요.';
-      return;
+// 경고는 둘 중 하나라도 켜져 있으면 뜬다.
+function syncRoadCaution() {
+  $('roadCaution').hidden = !Object.keys(ROAD_SETS).some(k => $(k).checked);
+}
+
+for (const key of Object.keys(ROAD_SETS)) {
+  const set = ROAD_SETS[key];
+  $(key).addEventListener('change', async e => {
+    const on = e.target.checked;
+    syncRoadCaution();
+    if (on) {
+      $(set.note).textContent = '도로 자료를 읽는 중…';
+      const ok = await loadRoadSet(key);
+      if (!ok) {
+        $(set.note).textContent = '도로 자료를 읽지 못했습니다. 연결을 확인해 주세요.';
+        return;
+      }
+      // 기다리는 사이에 사용자가 껐을 수 있다. 그때는 켜지 않는다.
+      if (!$(key).checked) return;
+      $(set.note).textContent = set.ready;
     }
-    if (!$('roadsModern').checked) return;
-    $('roadNote').innerHTML = 'z6 이상에서 고속도로부터 나타납니다. 확대할수록 간선·주요도로가 더해집니다.';
-  }
-  const vis = on ? 'visible' : 'none';
-  for (const id of ROAD_LAYERS) map.setLayoutProperty(id, 'visibility', vis);
-});
+    const vis = on ? 'visible' : 'none';
+    for (const id of set.layers) map.setLayoutProperty(id, 'visibility', vis);
+  });
+}
 
 // ---------- 등고선 ----------
 // MapLibre 코어에는 등고선이 없다. maplibre-contour 가 DEM 타일을 워커에서 벡터 타일로

@@ -17,28 +17,39 @@
 줌에 따른 간략화는 MapLibre 의 geojson 소스가 타일마다 알아서 한다. 우리가 미리
 줄일 이유가 없다 — 미리 줄이면 확대했을 때 되돌릴 방법이 없다.
 
+두 벌을 낸다. 주요 도로(고속·간선·주요)와 일반 도로(지방·시군)를 한 파일에 담으면
+1.4 MB 짜리를 켜려는 사람에게 6.4 MB 를 지운다. 일반 도로는 가까이 들여다볼 때만
+쓸모가 있으므로 따로 두고 따로 켠다.
+
 입력:  Overpass API (https 는 이 환경에서 urllib 이 막혀 curl 로 받는다)
-출력:  data/roads-modern.json   (GeoJSON 이 아니다. 읽는 쪽에서 펼친다)
+출력:  data/roads-modern.json  (주요)   ·   data/roads-local.json  (일반)
+       GeoJSON 이 아니다. 읽는 쪽에서 펼친다.
 """
 import json, math, pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT  = ROOT / 'data' / 'roads-modern.json'
 
 # 성경 지리권을 덮는 상자. 남쪽은 네게브·아라바, 북쪽은 다마스쿠스·시돈까지.
 BBOX = (29.3, 33.8, 34.0, 37.0)          # 남, 서, 북, 동
-CLASSES = ('motorway', 'trunk', 'primary')
 PRECISION = 6                            # 소수 6자리 ≈ 0.11 m
+
+# residential 은 넣지 않는다 — 이 상자 안에만 way 가 325,960개(마을 골목까지) 있어
+# 20 MB 가 넘고, 성지를 찾는 데 쓸모가 없다. unclassified 도 같은 이유로 뺐다.
+SETS = {
+    'roads-modern.json': ('motorway', 'trunk', 'primary'),
+    'roads-local.json':  ('secondary', 'tertiary'),
+}
+CLASSES = tuple(c for cs in SETS.values() for c in cs)
 
 OVERPASS = 'https://overpass-api.de/api/interpreter'
 
 
-def fetch():
-    q = ('[out:json][timeout:600];\n'
+def fetch(classes):
+    q = ('[out:json][timeout:900];\n'
          'way["highway"~"^(%s)$"](%s,%s,%s,%s);\n'
-         'out geom;' % ('|'.join(CLASSES), *BBOX))
-    print('Overpass 에서 받는 중… (수십 MB, 몇 분 걸린다)')
-    r = subprocess.run(['curl', '-s', '--max-time', '900', '-X', 'POST',
+         'out geom;' % ('|'.join(classes), *BBOX))
+    print('Overpass 에서 %s 받는 중… (수십 MB, 몇 분 걸린다)' % ', '.join(classes))
+    r = subprocess.run(['curl', '-s', '--max-time', '1200', '-X', 'POST',
                         '-d', q, OVERPASS], capture_output=True, text=True)
     if r.returncode != 0 or not r.stdout.strip():
         sys.exit('Overpass 응답을 받지 못했다: %s' % r.stderr[:400])
@@ -117,8 +128,7 @@ def length_km(line):
     return t
 
 
-def main():
-    data = fetch()
+def build(data, classes, out_path):
     groups = {}
     raw_pts = 0
     for e in data.get('elements', []):
@@ -127,7 +137,7 @@ def main():
             continue
         tags = e.get('tags', {})
         cls = tags.get('highway')
-        if cls not in CLASSES:
+        if cls not in classes:
             continue
         line = [[p['lon'], p['lat']] for p in geom]
         raw_pts += len(line)
@@ -156,19 +166,24 @@ def main():
         feats.append(f)
 
     doc = {'format': 'roads-encoded-polyline', 'precision': PRECISION,
-           'attribution': '© OpenStreetMap contributors (ODbL)',
-           'note': '오늘의 도로다. 1세기 노선이 아니다. 도형은 OSM 원본 그대로, 줄이지 않았다.',
+           'attribution': '\u00a9 OpenStreetMap contributors (ODbL)',
+           'note': '\uc624\ub298\uc758 \ub3c4\ub85c\ub2e4. 1\uc138\uae30 \ub178\uc120\uc774 \uc544\ub2c8\ub2e4. \ub3c4\ud615\uc740 OSM \uc6d0\ubcf8 \uadf8\ub300\ub85c, \uc904\uc774\uc9c0 \uc54a\uc558\ub2e4.',
            'features': feats}
-    OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    out_path.write_text(json.dumps(doc, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
 
     n = {}
     for f in feats:
         n[f['cls']] = n.get(f['cls'], 0) + 1
-    print('조각 %d개 → 이어서 %d줄 → 노선 %d개로 묶음' % (len(data.get('elements', [])), nlines, len(feats)))
-    print('점 %d개 → %d개 (버린 것 없음)' % (raw_pts, kept_pts))
-    print('등급별 노선', n, '· 총 연장 %.0f km' % total_km)
-    print('%s  %.2f MB (점당 %.1f 바이트)'
-          % (OUT, OUT.stat().st_size / 1e6, OUT.stat().st_size / kept_pts))
+    print('  조각 %d개 \u2192 이어서 %d줄 \u2192 노선 %d개로 묶음' % (len(groups), nlines, len(feats)))
+    print('  점 %d개 (버린 것 없음) \u00b7 등급별 노선 %s \u00b7 총 연장 %.0f km' % (kept_pts, n, total_km))
+    print('  %s  %.2f MB (점당 %.1f 바이트)'
+          % (out_path, out_path.stat().st_size / 1e6, out_path.stat().st_size / kept_pts))
+
+
+def main():
+    for name, classes in SETS.items():
+        print('[%s] %s' % (name, ', '.join(classes)))
+        build(fetch(classes), classes, ROOT / 'data' / name)
 
 
 if __name__ == '__main__':
