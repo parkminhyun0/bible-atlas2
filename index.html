@@ -599,14 +599,13 @@
 
   <div class="aspect">
     <div class="aspect-h">1세기 회당</div>
-    <div class="row"><label><input type="checkbox" id="synagogues" /> 회당 자리 (노란 점)</label></div>
-    <div class="sub" id="synNote" style="margin:-2px 0 6px">제2성전기 회당 13곳. 눌러서 근거를 봅니다.</div>
+    <div class="row"><label><input type="checkbox" id="synagogues" /> 1세기 회당·후보 (메노라 표시)</label></div>
+    <div class="sub" id="synNote" style="margin:-2px 0 6px">고고학·문헌 근거 13곳. 확실도와 좌표 성격을 봅니다.</div>
     <div class="sub" id="synCaution" hidden style="margin:-2px 0 6px">
-      <b>목록이 짧은 것은 자료가 없어서가 아니라 수가 적어서입니다.</b> 서기 70년 이전 회당
-      건물로 확인된 곳은 학계에서 열 곳 남짓으로 봅니다. 확실도를 세 가지로 나눠 칠했습니다 —
-      <b style="color:#c8951b">발굴</b>(회당 건물로 발굴되어 널리 받아들여짐) ·
-      <b style="color:#c8951b">논쟁</b>(회당으로 제안되었으나 이견이 있음, 테두리 없는 속빈 점) ·
-      <b style="color:#c8951b">문헌</b>(성경·요세푸스가 말하지만 건물 자리는 확인되지 않음, 점선 점).<br>
+      정박지와 동일하게 <b style="color:#9b6a00">A 확인</b>(서기 70년 이전 직접 증거) ·
+      <b style="color:#a97910">B 논쟁</b>(기능·연대·동일시 이견) ·
+      <b style="color:#7b7565">C 문헌</b>(문헌 증언만 있고 건물 미확인)으로 나눕니다.<br>
+      점마다 <b>발굴 건물·명문 발견점·도시 대표점</b> 중 무엇인지 팝업에 밝힙니다.<br>
       회당이 <b>이 열세 곳에만 있었다는 뜻이 아닙니다.</b> 복음서는 갈릴리의 «그들의 여러 회당»을
       말합니다(마 4:23) — 대부분은 땅에 남지 않았거나 아직 찾지 못했습니다.
     </div>
@@ -1355,16 +1354,14 @@ const style = {
         'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
       paint: { 'text-color': '#0d4f57', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 } },
 
-    // 1세기 회당. 노란 점 + 메노라 아이콘. 확실도를 점 모양으로 구분한다 —
-    // 발굴은 꽉 찬 점, 논쟁은 속이 빈 점, 문헌은 옅은 점. 색만으로는 셋을 못 가린다.
+    // 회당도 정박지와 같은 A/B/C 증거 계약을 쓴다.
     { id: 'syn-dot', type: 'circle', source: 'synagogues', minzoom: 6,
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4.5, 10, 6.5, 14, 9],
-        'circle-color': ['match', ['get', 'cert'],
-          '발굴', '#f2c230', '논쟁', 'rgba(242,194,48,0.35)', 'rgba(242,194,48,0.18)'],
-        'circle-stroke-color': ['match', ['get', 'cert'], '발굴', '#8a6a12', '#b08a1c'],
-        'circle-stroke-width': ['match', ['get', 'cert'], '발굴', 2, 1.4],
+        'circle-color': ['match', ['get', 'grade'], 'A', '#f2c230', 'B', 'rgba(242,194,48,0.38)', '#ffffff'],
+        'circle-stroke-color': ['match', ['get', 'grade'], 'C', '#7b7565', '#8a6a12'],
+        'circle-stroke-width': ['match', ['get', 'grade'], 'C', 2.5, 2],
         'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     { id: 'syn-icon', type: 'symbol', source: 'synagogues', minzoom: 8,
@@ -1372,7 +1369,8 @@ const style = {
         'icon-image': 'menorah', 'icon-anchor': 'bottom',
         'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.42, 12, 0.58, 16, 0.74],
         'icon-offset': [0, -6], 'icon-allow-overlap': true,
-        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport' } },
+        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport' },
+      paint: { 'icon-opacity': ['match', ['get', 'grade'], 'A', 1, 'B', 0.75, 0.38] } },
 
     { id: 'syn-label', type: 'symbol', source: 'synagogues', minzoom: 9,
       layout: { visibility: 'none',
@@ -2451,9 +2449,7 @@ for (const id of HARB_LAYERS) {
 }
 
 // ---------- 1세기 회당 ----------
-// 목록이 짧은 것은 자료가 없어서가 아니라 수가 적어서다. 서기 70년 이전 회당 건물로
-// 확인된 곳은 학계에서 열 곳 남짓으로 본다. 확실도를 뭉개면 지도가 거짓말을 하므로
-// 발굴·논쟁·문헌 셋으로 나누고, 색이 아니라 점 모양으로 가른다(색만으로는 못 가린다).
+// A 확인·B 논쟁·C 문헌으로 나누고 좌표 성격도 함께 밝힌다.
 const SYN_LAYERS = ['syn-dot', 'syn-icon', 'syn-label'];
 
 $('synagogues').addEventListener('change', e => {
@@ -2471,21 +2467,18 @@ $('synagogues').addEventListener('change', e => {
 function openSynagoguePopup(feature, lngLat) {
   const p = feature.properties || {};
   closePlacePopup();
-  const CERT = {
-    '발굴': '발굴된 회당 건물 — 널리 받아들여짐',
-    '논쟁': '회당으로 제안됨 — 이견이 있음',
-    '문헌': '문헌이 말하지만 건물 자리는 확인되지 않음',
-  };
-  const SRC = { atlas: '이 지도의 지명 자료', osm: 'OpenStreetMap (ODbL)', wikidata: 'Wikidata (CC0)' };
+  const BASIS = { building: '발굴 건물 지점', findspot: '명문·유물 발견 대표점', site: '도시·유적 대표점' };
   const pt = feature.geometry.coordinates;
   const html =
     `<div class="pp"><h3>${esc(p.ko)}${p.en ? `<span class="en">${esc(p.en)}</span>` : ''}</h3>` +
-    '<div class="context">1세기 회당</div>' +
-    `<div class="meta">${esc(CERT[p.cert] || p.cert)}</div>` +
-    `<div class="meta">${esc(p.period)} · 경도 ${(+pt[0]).toFixed(3)}° · 위도 ${(+pt[1]).toFixed(3)}°</div>` +
+    `<div class="context">1세기 회당·후보 · ${esc(p.grade)} ${esc(p.confidence)}</div>` +
+    `<div class="meta">${esc(p.region)} · ${esc(p.period)} · ${esc(BASIS[p.coordinate_basis] || p.coordinate_basis)}</div>` +
+    `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E</div>` +
     `<p>${esc(p.desc)}</p>` +
     (p.refs ? `<div class="refs" data-refs="${esc(p.refs)}">${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
-    `<div class="certainty">좌표 출처: ${esc(SRC[p.src] || p.src)}. 교육용 대표 위치입니다.</div></div>`;
+    `<div class="certainty"><b>판정 기준:</b> ${esc(p.criterion)}.<br>` +
+    `<b>주요 근거:</b> ${esc(p.sources)}.<br>` +
+    `<b>주의:</b> ${esc(p.caution)}</div></div>`;
   const pop = new maplibregl.Popup({
     className: 'place-popup', closeButton: false, closeOnClick: false,
     maxWidth: 'none', offset: 12, anchor: 'bottom'

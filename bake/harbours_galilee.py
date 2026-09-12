@@ -110,6 +110,7 @@ def main():
         'type': 'FeatureCollection',
         'attribution': 'Raban 1988 · Nun 1989/1999 · De Luca & Lena 2014 · Sarti et al. 2013 · Galili et al. 2018 · IAA 2011',
         'note': 'Nun의 16은 구조물/정박지 조사 수다. 중복 시설을 장소 단위로 묶고 1세기 확실성을 A/B/C로 구분한다.',
+        'evidence_model': {g: GRADE[g][1] for g in GRADE},
         'features': features,
     }
     OUT.write_text(json.dumps(collection, ensure_ascii=False, indent=1), encoding='utf-8')

@@ -1,17 +1,27 @@
 {
  "type": "FeatureCollection",
- "attribution": "좌표: 이 저장소의 지명 자료 · OpenStreetMap (ODbL) · Wikidata (CC0)",
- "note": "1세기(제2성전기) 회당. 확실도 세 단계 — 발굴·논쟁·문헌.",
+ "attribution": "Kinneret College Bornblum database · Magness 2024 · excavation publications and literary witnesses",
+ "note": "장소 단위 13곳. A/B/C는 1세기 회당 건물에 대한 증거 유형과 확실성을 나타낸다.",
+ "evidence_model": {
+  "A": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+  "B": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+  "C": "1세기 문헌은 회당을 증언하지만 건물 위치가 확인되지 않음"
+ },
  "features": [
   {
    "type": "Feature",
    "properties": {
-    "ko": "감라",
-    "en": "Gamla",
-    "cert": "발굴",
-    "period": "기원전 1세기 말 ~ 서기 67년",
-    "desc": "기원전 1세기 말에 지어져 서기 67년 로마군에 함락될 때까지 쓰였다. 지금 남아 있는 제2성전기 회당 가운데 가장 뚜렷한 것이다.",
-    "src": "atlas",
+    "ko": "감라 회당",
+    "en": "Gamla synagogue",
+    "region": "골란",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "기원전 1세기 말–서기 67년",
+    "desc": "성벽 가까이의 장방형 건물로 네 면의 계단식 벤치와 내부 열주가 확인되었다. 서기 67년 로마군 함락층이 사용 종료 시점을 고정한다.",
+    "sources": "Bornblum Eretz Israel Synagogues research database, Kinneret College · Gutman 1981, The Synagogue at Gamla · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "요세푸스는 감라를 서술하지만 이 건물을 회당이라고 직접 지목하지는 않는다.",
     "refs": "요세푸스 『유대 전쟁사』 4권"
    },
    "geometry": {
@@ -25,13 +35,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "막달라",
-    "en": "Magdala",
-    "cert": "발굴",
-    "period": "서기 1세기",
-    "desc": "2009년에 드러났다. 예수 당시 갈릴리 호숫가 마을의 회당이다. 성소 기물이 새겨진 이른바 「막달라 돌」이 이 방 안에서 나왔다. 2021년에 같은 마을에서 두 번째 회당이 또 나왔다.",
-    "src": "atlas",
-    "refs": "막 15:40 (막달라 마리아의 고향)"
+    "ko": "막달라 회당군",
+    "en": "Magdala synagogues",
+    "region": "갈릴리",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "기원전 1세기 중엽–서기 1세기 후반",
+    "desc": "2009년 발굴 회당은 벤치·프레스코·모자이크와 성전 기물이 새겨진 막달라 돌을 갖추었다. 2021년에는 같은 도시의 다른 구역에서 두 번째 제2성전기 회당이 확인되었다.",
+    "sources": "Avshalom-Gorni & Najar 2013; Runesson 2020, Magdala synagogue phases · University of Haifa / IAA 2021, second Magdala synagogue excavation · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "복음서는 예수께서 이 특정 건물에서 가르치셨다고 말하지 않는다. 점은 2009년 발굴지를 대표한다.",
+    "refs": "막 15:40"
    },
    "geometry": {
     "type": "Point",
@@ -44,12 +59,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "마사다",
-    "en": "Masada",
-    "cert": "발굴",
-    "period": "서기 66~73년",
-    "desc": "헤롯이 지은 요새 안의 방을 항쟁기에 회당으로 고쳐 썼다. 처음부터 회당으로 지은 것은 아니다.",
-    "src": "atlas",
+    "ko": "마사다 회당",
+    "en": "Masada synagogue",
+    "region": "유대 광야",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "서기 66–73/74년 회당 단계",
+    "desc": "헤롯 궁전·요새의 기존 공간을 제1차 유대전쟁 중 회당으로 개조했다. 벽면 벤치와 게니자에서 나온 성서 두루마리 조각이 기능 판정의 핵심이다.",
+    "sources": "Yadin 1966; Netzer 1991, Masada synagogue excavations · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "예수 공생애기의 회당 건물이 아니라 서기 66년 이후 개조 단계다.",
     "refs": "요세푸스 『유대 전쟁사』 7권"
    },
    "geometry": {
@@ -63,13 +83,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "헤로디온",
-    "en": "Herodium",
-    "cert": "발굴",
-    "period": "서기 66~71년",
-    "desc": "마사다와 마찬가지로, 헤롯의 건물을 항쟁기에 회당으로 고쳐 썼다. 기둥이 둘린 방 벽을 따라 돌의자를 둘렀다.",
-    "src": "atlas",
-    "refs": "요세푸스 『유대 전쟁사』 1권 (헤롯의 건축)"
+    "ko": "헤로디온 회당",
+    "en": "Herodium synagogue",
+    "region": "유대",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "서기 66–71년 회당 단계",
+    "desc": "헤롯 시대 접견 공간으로 보이는 방을 제1차 유대전쟁 때 벤치가 둘린 집회 공간으로 개조했다.",
+    "sources": "Corbo 1967; Netzer 1981, Herodium synagogue conversion · Bornblum Eretz Israel Synagogues research database, Kinneret College · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "예수 공생애기부터 사용된 회당이 아니라 전쟁기 전용 단계다.",
+    "refs": "요세푸스 『유대 전쟁사』 1권"
    },
    "geometry": {
     "type": "Point",
@@ -82,13 +107,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "움 엘우므단",
-    "en": "Khirbet Umm el-'Umdan",
-    "cert": "발굴",
-    "period": "하스몬 시대 ~ 서기 1세기",
-    "desc": "하스몬 시대에 지어져 제2성전기 내내 쓰인 마을 회당이다. 마카베오 집안의 고향 모디인 부근으로 보는 견해가 많다.",
-    "src": "osm",
-    "refs": "마카베오상 2:1 (모디인)"
+    "ko": "움 엘우므단 회당",
+    "en": "Khirbet Umm el-'Umdan synagogue",
+    "region": "모디인 인근",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "하스몬기–서기 2세기 초; 제2성전기 단계 포함",
+    "desc": "여러 건축 단계와 삼면 벤치, 인접 미크베가 조사된 마을 회당이다. 후기 제2성전기까지 이어진 단계가 확인된다.",
+    "sources": "Onn & Weksler-Bdolah 2004, Khirbet Umm el-Umdan · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "고대 모디인과의 정확한 동일시는 논쟁 중이며 회당 판정과 도시 동일시를 분리해야 한다.",
+    "refs": "마카베오상 2:1"
    },
    "geometry": {
     "type": "Point",
@@ -101,12 +131,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "키르벳 바드 이사 (키랴트 세페르)",
-    "en": "Khirbet Badd 'Isa (Qiryat Sefer)",
-    "cert": "발굴",
-    "period": "서기 1세기",
-    "desc": "기둥 넷이 받치는 네모난 방에 삼면으로 돌의자를 둘렀다. 작은 마을에도 회당이 있었음을 보여 주는 자리다.",
-    "src": "osm"
+    "ko": "키르벳 바드 이사 회당",
+    "en": "Khirbet Badd 'Isa / Qiryat Sefer synagogue",
+    "region": "베냐민",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "후기 제2성전기–바르코크바 전후",
+    "desc": "중앙 열주와 삼면 벤치를 갖춘 농촌 정착지의 공공 집회 건물로 발굴되었다. 회당 판정은 널리 수용되지만 사용 단계는 서기 70년 전후를 걸친다.",
+    "sources": "Magen, Zionit & Sirkis 2004, Khirbet Badd 'Isa–Qiryat Sefer · Bornblum Eretz Israel Synagogues research database, Kinneret College · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "서기 1세기 한 시점의 단일 건축 단계로 단순화하지 않는다."
    },
    "geometry": {
     "type": "Point",
@@ -119,12 +154,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "텔 레케쉬",
-    "en": "Tel Rekhesh",
-    "cert": "발굴",
-    "period": "서기 1세기",
-    "desc": "2016년에 드러난 갈릴리 시골 회당이다. 다볼산 남쪽 농촌 마을 자리로, 복음서가 말하는 「그들의 여러 회당」이 큰 도시에만 있지 않았음을 보여 준다.",
-    "src": "wikidata",
+    "ko": "텔 레케쉬 회당",
+    "en": "Tel Rekhesh synagogue",
+    "region": "하부 갈릴리",
+    "grade": "A",
+    "confidence": "확인",
+    "criterion": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
+    "coordinate_basis": "building",
+    "period": "서기 1세기; 서기 70년 이전",
+    "desc": "농촌 정착지의 현무암·석회암 건물로 벽면 벤치와 내부 열주가 확인되었다. 토기와 동전이 서기 1세기 사용을 지지한다.",
+    "sources": "Paz et al. 2018, Tel Rekhesh early Roman synagogue · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "마태복음의 여러 회당을 보여 주는 비교 자료이지 본문 속 특정 회당으로 동일시된 것은 아니다.",
     "refs": "마 4:23"
    },
    "geometry": {
@@ -138,13 +178,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "가버나움",
-    "en": "Capernaum",
-    "cert": "논쟁",
-    "period": "1세기 기초 위 4~5세기 건물",
-    "desc": "지금 서 있는 흰 석회암 회당은 4~5세기 것이다. 그 아래 검은 현무암 기초를 복음서가 말하는 1세기 회당으로 보는 견해가 널리 있으나, 앞선 시기의 다른 건물로 보는 반론도 있다.",
-    "src": "atlas",
-    "refs": "막 1:21; 눅 7:5 (백부장이 지어 준 회당)"
+    "ko": "가버나움 회당 후보",
+    "en": "Capernaum synagogue candidate",
+    "region": "갈릴리",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "site",
+    "period": "현존 건물은 후기 로마기; 하부 단계 연대 논쟁",
+    "desc": "현재 보이는 흰 석회암 회당은 대체로 후기 로마기에 속한다. 아래 현무암 벽과 바닥을 1세기 회당으로 연결하는 견해가 있으나 층위와 기능 해석에 이견이 크다.",
+    "sources": "Loffreda 1970–2003, Capernaum synagogue excavations and dating debate · Bornblum Eretz Israel Synagogues research database, Kinneret College · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "흰 회당 자체를 예수께서 가르치신 1세기 건물로 표시해서는 안 된다.",
+    "refs": "막 1:21; 눅 7:5"
    },
    "geometry": {
     "type": "Point",
@@ -157,12 +202,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "호르밧 에트리",
-    "en": "Horvat 'Etri",
-    "cert": "논쟁",
-    "period": "서기 1세기",
-    "desc": "유대 구릉지의 1세기 마을 유적이다. 회당으로 제안된 방이 있으나 확정되지 않았다.",
-    "src": "wikidata"
+    "ko": "호르밧 에트리 회당 후보",
+    "en": "Horvat 'Etri synagogue candidate",
+    "region": "유대 구릉",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "building",
+    "period": "후기 제2성전기–바르코크바기",
+    "desc": "마을의 공공 건물에 벤치와 회당으로 해석되는 요소가 있으나 건물 기능과 정확한 사용 단계가 확정적이지 않다.",
+    "sources": "Zissu & Ganor 2009, Horvat 'Etri public-building proposal · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "확인된 서기 70년 이전 회당 목록과 동일한 등급으로 세지 않는다."
    },
    "geometry": {
     "type": "Point",
@@ -175,12 +225,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "툴룰 아부 엘알라이크 (여리고)",
-    "en": "Tulul Abu el-'Alayiq (Jericho)",
-    "cert": "논쟁",
-    "period": "기원전 75~50년경",
-    "desc": "하스몬 궁전 구역에서 나온 건물이다. 발굴자는 가장 이른 회당으로 보았으나 연회장으로 보는 반론이 있다. 이 목록에서 가장 이견이 큰 자리다.",
-    "src": "osm"
+    "ko": "여리고 하스몬 궁전 회당 후보",
+    "en": "Jericho Hasmonean synagogue candidate",
+    "region": "여리고",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "building",
+    "period": "기원전 75–50년경 제안",
+    "desc": "하스몬 궁전 단지의 장방형 건물을 발굴자는 초기 회당으로 해석했다. 그러나 연회·접견 공간 등 다른 기능 해석이 있다.",
+    "sources": "Netzer 1999/2004, Hasmonean Jericho building; identification disputed · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "세계에서 가장 오래된 회당처럼 확정적으로 서술하지 않는다."
    },
    "geometry": {
     "type": "Point",
@@ -193,13 +248,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "예루살렘",
-    "en": "Jerusalem",
-    "cert": "문헌",
-    "period": "서기 1세기",
-    "desc": "「테오도투스 비문」이 율법을 읽고 순례자를 묵게 하려고 지은 회당을 증언한다. 비문은 오벨(다윗성)에서 나왔으나 건물 자리는 확인되지 않았다. 사도행전은 예루살렘에 여러 회당이 있었다고 말한다.",
-    "src": "atlas",
-    "refs": "행 6:9 (자유민들의 회당)"
+    "ko": "예루살렘 회당·테오도투스 비문",
+    "en": "Jerusalem synagogue / Theodotus inscription",
+    "region": "예루살렘",
+    "grade": "C",
+    "confidence": "문헌",
+    "criterion": "1세기 문헌은 회당을 증언하지만 건물 위치가 확인되지 않음",
+    "coordinate_basis": "findspot",
+    "period": "후기 제2성전기",
+    "desc": "테오도투스 비문은 율법 낭독·계명 교육과 순례자 숙박을 위한 회당 및 부속시설을 명시한다. 비문은 오벨에서 발견되었지만 원래 건물의 정확한 자리는 확인되지 않았다.",
+    "sources": "CIJ II 1404 / IAA S 842, Theodotus synagogue inscription · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "점은 비문 발견권의 대표 위치이며 회당 건물 좌표가 아니다.",
+    "refs": "행 6:9"
    },
    "geometry": {
     "type": "Point",
@@ -212,12 +272,17 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "나사렛",
-    "en": "Nazareth",
-    "cert": "문헌",
-    "period": "서기 1세기",
-    "desc": "예수께서 안식일에 들어가 이사야를 읽으신 곳이다. 건물은 발굴되지 않았다.",
-    "src": "atlas",
+    "ko": "나사렛 회당 문헌 위치",
+    "en": "Nazareth synagogue literary location",
+    "region": "갈릴리",
+    "grade": "C",
+    "confidence": "문헌",
+    "criterion": "1세기 문헌은 회당을 증언하지만 건물 위치가 확인되지 않음",
+    "coordinate_basis": "site",
+    "period": "서기 1세기 문헌 증언",
+    "desc": "누가복음은 예수께서 안식일에 나사렛 회당에서 이사야서를 읽으셨다고 전한다. 현재까지 그 1세기 회당 건물은 확인되지 않았다.",
+    "sources": "New Testament literary witness",
+    "caution": "점은 고대 나사렛 취락 대표점이지 회당 발굴점이 아니다.",
     "refs": "눅 4:16-30"
    },
    "geometry": {
@@ -231,13 +296,18 @@
   {
    "type": "Feature",
    "properties": {
-    "ko": "디베랴",
-    "en": "Tiberias",
-    "cert": "문헌",
-    "period": "서기 1세기",
-    "desc": "요세푸스가 많은 사람이 모이는 큰 기도처(프로슈케)를 말한다. 건물 자리는 확인되지 않았다.",
-    "src": "atlas",
-    "refs": "요세푸스 『자서전』 277"
+    "ko": "디베랴 프로슈케 문헌 위치",
+    "en": "Tiberias proseuche literary location",
+    "region": "갈릴리",
+    "grade": "C",
+    "confidence": "문헌",
+    "criterion": "1세기 문헌은 회당을 증언하지만 건물 위치가 확인되지 않음",
+    "coordinate_basis": "site",
+    "period": "서기 1세기 문헌 증언",
+    "desc": "요세푸스는 서기 66년 디베랴에서 많은 사람이 모인 큰 프로슈케를 언급한다. 회당 또는 기도처로 해석되지만 건물은 확인되지 않았다.",
+    "sources": "Josephus, Life 277–280 · Magness 2024, Ancient Synagogues in Palestine, British Academy",
+    "caution": "프로슈케와 회당 건물의 관계를 단정하지 않으며 점은 도시 대표점이다.",
+    "refs": "요세푸스 『자서전』 277–280"
    },
    "geometry": {
     "type": "Point",
