@@ -226,6 +226,46 @@
 
   /* ---------- 지명 검색 ---------- */
   /* 오른쪽 위에는 MapLibre 의 확대·나침반 버튼이 있으므로 그 왼쪽에 자리를 잡는다. */
+  /* 길찾기 결과 서랍. 오른쪽에서 밀려 들어온다.
+     화면 밖에 둘 때 display:none 을 쓰면 안 된다 — 미끄러지는 전이가 재생되지 않는다.
+     대신 translateX 로 밀어 두고, 보이지 않는 동안에는 집히지 않게 막는다. */
+  #navPanel {
+    position: absolute; top: 0; right: 0; z-index: 6;
+    width: 340px; max-width: 86vw; height: 100%;
+    box-sizing: border-box; padding: 14px 16px 16px;
+    background: var(--panel-solid); border-left: 1px solid var(--line);
+    box-shadow: -3px 0 16px rgba(0, 0, 0, .16);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    transform: translateX(100%); transition: transform .28s ease;
+    visibility: hidden;
+  }
+  body.nav-open #navPanel { transform: translateX(0); visibility: visible; }
+  /* 서랍이 덮는 자리에 있던 것들을 같이 비켜 준다. */
+  #search, .maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right {
+    transition: transform .28s ease;
+  }
+  body.nav-open #search,
+  body.nav-open .maplibregl-ctrl-top-right,
+  body.nav-open .maplibregl-ctrl-bottom-right { transform: translateX(-340px); }
+
+  #navPanel h2 { margin: 0 34px 2px 0; font-size: 14px; font-weight: 600; line-height: 1.35; }
+  #navPanel .nav-sub { margin: 0 0 10px; font-size: 11.5px; color: var(--ink-soft); }
+  #navClose {
+    position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; padding: 0;
+    border: 0; background: none; color: var(--ink-soft); font-size: 15px; line-height: 1; cursor: pointer;
+  }
+  #navClose:hover { color: var(--accent); }
+  .nav-card {
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; margin: 0 0 8px;
+  }
+  .nav-card .nav-h { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 3px; }
+  .nav-card .nav-big { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .nav-card .nav-big span { font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+  .nav-card .nav-detail { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-soft); }
+  .nav-card .nav-detail b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  #navPanel .nav-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.55; margin: 10px 0 0; }
+  #navPanel .nav-note b { color: var(--ink); }
+
   #search {
     position: absolute; top: 14px; right: 58px; width: 244px; z-index: 3;
     font-size: 13px;
@@ -322,6 +362,13 @@
     #searchClear { top: auto; bottom: 0; }
     /* 시트가 올라오면 검색창을 덮으므로 같이 숨긴다. */
     body.sheet-open #search { display: none; }
+
+    /* 좁은 화면에서는 서랍이 화면을 다 덮는다. 옆으로 비켜 줄 자리가 없다. */
+    #navPanel { width: 100%; max-width: none; }
+    body.nav-open #search,
+    body.nav-open .maplibregl-ctrl-top-right,
+    body.nav-open .maplibregl-ctrl-bottom-right { transform: none; }
+    body.nav-open #search { display: none; }
 
 
     /* 단면도는 검색창 위로 올린다. 데스크톱 max-width(패널 자리 확보용)는 여기서 푼다. */
@@ -430,6 +477,14 @@
     </div>
   </div>
 </div>
+
+<aside id="navPanel" role="dialog" aria-modal="false" aria-labelledby="navTitle" aria-hidden="true">
+  <button id="navClose" type="button" aria-label="길찾기 결과 닫기">✕</button>
+  <h2 id="navTitle"></h2>
+  <p class="nav-sub" id="navSub"></p>
+  <div id="navCards"></div>
+  <p class="nav-note" id="navCaution"></p>
+</aside>
 
 <div id="terrainCompare" hidden role="dialog" aria-modal="true" aria-labelledby="compareTitle">
   <div id="compareBox">
@@ -565,13 +620,7 @@
       <button id="navClear" hidden>지우기</button></div>
     <div class="sub" id="navNote" style="margin:6px 0 0">출발 지명을 누르고 도착 지명을 누르세요.
       오늘의 도로를 따라갑니다.</div>
-    <div class="sub" id="navResult" hidden style="margin:6px 0 0"></div>
-    <div class="sub" id="navCaution" hidden style="margin:6px 0 0">
-      <b>자동차 시간은 오늘의 길, 도보 시간은 옛 걸음입니다.</b> 자동차는 등급별 통상 속도로
-      어림한 값이라 신호·정체·일방통행을 모르고, 도보는 그 길의 실제 오르내림을 지형에서 읽어
-      Tobler 식으로 잰 것입니다. 다만 걷는 길도 <b>오늘 깔린 도로</b>입니다 — 1세기 사람이
-      다닌 길이 아닙니다.
-    </div>
+    <div class="row" style="margin-top:6px"><button id="navReopen" hidden>결과 다시 보기</button></div>
   </div>
 
   <div class="aspect">
@@ -2406,11 +2455,23 @@ function navDraw(nodes, g) {
   map.getSource('navroute').setData({ type: 'FeatureCollection', features: feats });
 }
 
+// 서랍은 화면 밖에 밀어 두는 방식이라 열고 닫기가 클래스 하나로 끝난다.
+function navDrawerOpen(on) {
+  document.body.classList.toggle('nav-open', on);
+  $('navPanel').setAttribute('aria-hidden', on ? 'false' : 'true');
+  // 닫아 두었더라도 결과가 남아 있으면 다시 열 수 있어야 한다.
+  $('navReopen').hidden = on || !navResultHtml;
+  if (on) $('navClose').focus({ preventScroll: true });
+}
+
+let navResultHtml = '';
+
 function navReset() {
   navA = navB = null;
+  navResultHtml = '';
   map.getSource('navroute').setData({ type: 'FeatureCollection', features: [] });
-  $('navResult').hidden = true;
-  $('navCaution').hidden = true;
+  navDrawerOpen(false);
+  $('navReopen').hidden = true;
   $('navClear').hidden = true;
   $('navNote').textContent = '출발 지명을 누르고 도착 지명을 누르세요. 오늘의 도로를 따라갑니다.';
 }
@@ -2424,6 +2485,9 @@ function setNavPicking(on) {
 
 $('navPick').addEventListener('click', () => setNavPicking(!navPicking));
 $('navClear').addEventListener('click', () => { navReset(); setNavPicking(false); });
+// X 로 닫아도 찾은 길은 지도에 남긴다. 지우는 것은 '지우기'가 한다.
+$('navClose').addEventListener('click', () => navDrawerOpen(false));
+$('navReopen').addEventListener('click', () => navDrawerOpen(true));
 
 // 지명을 찍으면 부른다. 두 곳이 차면 길을 찾는다.
 async function navTakePlace(feature, lngLat) {
@@ -2440,7 +2504,9 @@ async function navTakePlace(feature, lngLat) {
   setNavPicking(false);
   $('navClear').hidden = false;
   $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 길 그물을 만드는 중…';
-  $('navResult').hidden = true;
+  // 새로 찾는 동안에는 앞선 결과를 치운다. 지도 위의 길은 곧 새 길로 바뀐다.
+  navResultHtml = '';
+  navDrawerOpen(false);
 
   const g = await buildNavGraph();
   if (!g) { $('navNote').textContent = '도로 자료를 읽지 못했습니다. 연결을 확인해 주세요.'; return; }
@@ -2472,24 +2538,37 @@ async function navTakePlace(feature, lngLat) {
   $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 오르내림을 재는 중…';
   const wt = walk ? await navWalkTime(g, walk.nodes) : null;
 
-  const rows = [];
-  if (car) rows.push('<b>자동차</b> ' + car.km.toFixed(1) + ' km · ' + navFmtH(car.hours));
+  const cards = [];
+  if (car) cards.push(
+    '<div class="nav-card"><p class="nav-h">자동차</p>' +
+    '<div class="nav-big">' + navFmtH(car.hours) + ' <span>· ' + car.km.toFixed(1) + ' km</span></div>' +
+    '<p class="nav-detail">등급별 통상 속도로 어림한 값입니다. 신호·정체·일방통행은 셈하지 않습니다.</p></div>');
   if (walk && wt) {
     const days = wt.hours / NAV_WALK_DAY_H;
-    rows.push('<b>도보</b> ' + walk.km.toFixed(1) + ' km · ' + navFmtH(wt.hours) +
-      ' (하루 ' + NAV_WALK_DAY_H + '시간이면 <b>' +
-      (days < 1 ? '하루 안' : (Math.round(days * 10) / 10) + '일') + '</b>)');
-    rows.push('오르막 누계 ' + Math.round(wt.up).toLocaleString('ko-KR') + ' m · 내리막 누계 ' +
-      Math.round(wt.down).toLocaleString('ko-KR') + ' m');
-    if (wt.miss) rows.push('<i>고도를 읽지 못한 구간 ' + wt.miss + '곳은 평지로 셈했습니다.</i>');
+    cards.push(
+      '<div class="nav-card"><p class="nav-h">도보 (오르내림 반영)</p>' +
+      '<div class="nav-big">' + navFmtH(wt.hours) + ' <span>· ' + walk.km.toFixed(1) + ' km</span></div>' +
+      '<p class="nav-detail">하루 ' + NAV_WALK_DAY_H + '시간을 걸으면 <b>' +
+      (days < 1 ? '하루 안' : (Math.round(days * 10) / 10) + '일') + '</b>' +
+      ' · 오르막 <b>' + Math.round(wt.up).toLocaleString('ko-KR') + ' m</b>' +
+      ' · 내리막 <b>' + Math.round(wt.down).toLocaleString('ko-KR') + ' m</b>' +
+      (wt.miss ? '<br>고도를 읽지 못한 구간 ' + wt.miss + '곳은 평지로 셈했습니다.' : '') +
+      '</p></div>');
   }
   if (sa.km > 0.5 || sb.km > 0.5)
-    rows.push('<i>길까지 ' + navA.name + ' ' + sa.km.toFixed(1) + ' km · ' +
-              navB.name + ' ' + sb.km.toFixed(1) + ' km 는 걸어 들어갑니다.</i>');
+    cards.push('<p class="nav-detail">길까지 ' + navA.name + ' ' + sa.km.toFixed(1) + ' km · ' +
+               navB.name + ' ' + sb.km.toFixed(1) + ' km 는 걸어 들어갑니다.</p>');
+
+  navResultHtml = cards.join('');
+  $('navTitle').textContent = navA.name + ' → ' + navB.name;
+  $('navSub').textContent = '오늘의 도로를 따라 잰 거리와 시간입니다.';
+  $('navCards').innerHTML = navResultHtml;
+  $('navCaution').innerHTML =
+    '<b>자동차 시간은 오늘의 길, 도보 시간은 옛 걸음입니다.</b> 자동차는 등급별 통상 속도로 ' +
+    '어림한 값이고, 도보는 그 길의 실제 오르내림을 지형에서 읽어 Tobler 식으로 잰 것입니다. ' +
+    '다만 걷는 길도 <b>오늘 깔린 도로</b>입니다 — 1세기 사람이 다닌 길이 아닙니다.';
   $('navNote').textContent = navA.name + ' → ' + navB.name;
-  $('navResult').innerHTML = rows.join('<br>');
-  $('navResult').hidden = false;
-  $('navCaution').hidden = false;
+  navDrawerOpen(true);
 }
 
 // ---------- 등고선 ----------
@@ -3511,6 +3590,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (!terrainCompare.hidden) closeTerrainCompare();
   else if (!solidBox.hidden) closeSolid();
+  else if (document.body.classList.contains('nav-open')) navDrawerOpen(false);
 });
 $('solidSpeed').addEventListener('input', e => {
   solidSpeed = parseFloat(e.target.value);
