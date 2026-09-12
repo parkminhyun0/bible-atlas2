@@ -613,6 +613,20 @@
   </div>
 
   <div class="aspect">
+    <div class="aspect-h">갈릴리 호수의 항구</div>
+    <div class="row"><label><input type="checkbox" id="harbours" /> 1세기 정박지 (닻 표시)</label></div>
+    <div class="sub" id="harbNote" style="margin:-2px 0 6px">호수를 둘러싼 12곳. 눌러서 설명을 봅니다.</div>
+    <div class="sub" id="harbCaution" hidden style="margin:-2px 0 6px">
+      근거는 <b>멘델 눈의 호숫가 조사</b>입니다. 1985~86년 가뭄으로 물이 크게 빠지자 평소
+      잠겨 있던 방파제와 계선석이 드러났고, 그는 호수를 한 바퀴 돌며 고대 정박지 열여섯 곳을
+      기록했습니다. <b>지금도 대부분은 물 밑에 있습니다.</b><br>
+      점은 정박지가 딸린 <b>마을·유적의 자리</b>이지 방파제 자리 자체가 아닙니다 —
+      물가에서 수십~수백 m 어긋납니다. 방파제 하나하나의 좌표는 공개 자료에서 확인할 수
+      없어 지어내지 않았습니다. 벳 예라(세나브리스) 정박지는 같은 이유로 뺐습니다.
+    </div>
+  </div>
+
+  <div class="aspect">
     <div class="aspect-h">현대 도로</div>
     <div class="row"><label><input type="checkbox" id="roadsModern" /> 주요 도로 (고속·간선·주요)</label></div>
     <div class="sub" id="roadNote" style="margin:-2px 0 6px">z6 이상에서 고속도로부터 나타납니다.
@@ -829,6 +843,7 @@ const LOC_RIVERS = SITE_ROOT + 'data/rivers-local.geojson';
 const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.json';
 const ROADS_LOC  = SITE_ROOT + 'data/roads-local.json';
 const SYNAGOGUES = SITE_ROOT + 'data/synagogues-c1.geojson';
+const HARBOURS   = SITE_ROOT + 'data/harbours-galilee.geojson';
 
 // 등급마다 나타나는 줌이 다르다. 고속도로는 전체 보기(z6)부터, 간선은 z7, 주요도로는
 // z9 부터. 줌을 filter 에 쓰면 MapLibre 가 정수 줌마다 다시 재는데, 그 대신 그 줌에서
@@ -1039,6 +1054,7 @@ const style = {
     roadsloc: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     navroute: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     synagogues: { type: 'geojson', data: SYNAGOGUES },
+    harbours:   { type: 'geojson', data: HARBOURS },
     world:   { type: 'raster', tiles: [WORLD_TILES], tileSize: 512, minzoom: 0, maxzoom: 5,
                attribution: 'Earth imagery: NASA Blue Marble Next Generation' },
   },
@@ -1312,6 +1328,30 @@ const style = {
       paint: { 'text-color': '#2f3237', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
     // 찾은 길. 도로 위, 지명 아래에 그린다. 밑에 굵은 흰 테를 깔아야 도로망 위에서도 보인다.
+    // 갈릴리 호수의 1세기 정박지. 물 빛과 싸우지 않도록 점은 짙은 청록으로 두고,
+    // 닻 표시를 위에 얹는다. 회당(노란 점)과 한 화면에 떠도 서로 구별된다.
+    { id: 'harb-dot', type: 'circle', source: 'harbours', minzoom: 7,
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 4, 10, 6, 14, 8.5],
+        'circle-color': '#12626b', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
+        'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
+
+    { id: 'harb-icon', type: 'symbol', source: 'harbours', minzoom: 8,
+      layout: { visibility: 'none',
+        'icon-image': 'anchor', 'icon-anchor': 'bottom',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.42, 12, 0.58, 16, 0.74],
+        'icon-offset': [0, -6], 'icon-allow-overlap': true,
+        'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport' } },
+
+    { id: 'harb-label', type: 'symbol', source: 'harbours', minzoom: 9,
+      layout: { visibility: 'none',
+        'text-field': ['get', 'ko'], 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 9, 11, 14, 13.5],
+        'text-anchor': 'top', 'text-offset': [0, 0.75], 'text-max-width': 9, 'text-padding': 4,
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#0d4f57', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 } },
+
     // 1세기 회당. 노란 점 + 메노라 아이콘. 확실도를 점 모양으로 구분한다 —
     // 발굴은 꽉 찬 점, 논쟁은 속이 빈 점, 문헌은 옅은 점. 색만으로는 셋을 못 가린다.
     { id: 'syn-dot', type: 'circle', source: 'synagogues', minzoom: 6,
@@ -1686,6 +1726,27 @@ function makeMenorahIcon(px) {
   path(); g.lineWidth = px * 0.085; g.strokeStyle = '#5e4a0e'; g.stroke();
   return { width: px, height: px, data: new Uint8Array(g.getImageData(0, 0, px, px).data.buffer) };
 }
+// 항구는 닻으로 그린다. 고리·가로대·굽은 팔 넷이면 작은 크기에서도 닻으로 읽힌다.
+function makeAnchorIcon(px) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const cx = px / 2, top = px * 0.20, base = px * 0.78, arm = px * 0.26;
+  const path = () => {
+    g.beginPath();
+    g.arc(cx, top + px * 0.07, px * 0.075, 0, Math.PI * 2);      // 고리
+    g.moveTo(cx, top + px * 0.14); g.lineTo(cx, base);           // 자루
+    g.moveTo(cx - px * 0.19, top + px * 0.27);                   // 가로대
+    g.lineTo(cx + px * 0.19, top + px * 0.27);
+    g.moveTo(cx - arm, base - px * 0.14);                        // 굽은 팔
+    g.quadraticCurveTo(cx - arm, base, cx, base);
+    g.quadraticCurveTo(cx + arm, base, cx + arm, base - px * 0.14);
+  };
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  path(); g.lineWidth = px * 0.13; g.strokeStyle = '#ffffff'; g.stroke();
+  path(); g.lineWidth = px * 0.085; g.strokeStyle = '#0d4f57'; g.stroke();
+  return { width: px, height: px, data: new Uint8Array(g.getImageData(0, 0, px, px).data.buffer) };
+}
 // 레이어가 아이콘을 찾을 때 만들어 준다 — 스타일 로드 시점에 기대지 않아도 된다.
 map.on('styleimagemissing', e => {
   if (e.id === 'peak' && !map.hasImage('peak')) {
@@ -1693,6 +1754,9 @@ map.on('styleimagemissing', e => {
   }
   if (e.id === 'menorah' && !map.hasImage('menorah')) {
     map.addImage('menorah', makeMenorahIcon(48), { pixelRatio: 2 });
+  }
+  if (e.id === 'anchor' && !map.hasImage('anchor')) {
+    map.addImage('anchor', makeAnchorIcon(48), { pixelRatio: 2 });
   }
 });
 
@@ -2177,6 +2241,7 @@ window.map = map;   // 브라우저 콘솔·자동 검증에서 지도를 만질
 window.roadsToGeojson = roadsToGeojson;
 // 자동 검증에서 길찾기를 직접 부르기 위해 내놓는다 (window.map 과 같은 이유).
 window.__openSyn = openSynagoguePopup;   // 자동 검증에서 회당 팝업을 직접 연다
+window.__openHarb = openHarbourPopup;    // 항구 팝업도 같은 이유로 내놓는다
 window.nav = { take: navTakePlace, build: buildNavGraph, snap: navSnap, route: navRoute,
                walkTime: navWalkTime, draw: navDraw };   // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
 
@@ -2332,6 +2397,52 @@ for (const key of Object.keys(ROAD_SETS)) {
     const vis = on ? 'visible' : 'none';
     for (const id of set.layers) map.setLayoutProperty(id, 'visibility', vis);
   });
+}
+
+// ---------- 갈릴리 호수의 항구 ----------
+// 근거는 멘델 눈의 호숫가 조사다. 1985~86년 가뭄으로 물이 빠지자 잠겨 있던 방파제가
+// 드러났고 그는 정박지 열여섯 곳을 기록했다. 점은 정박지가 딸린 마을·유적의 자리이지
+// 방파제 자리 자체가 아니다 — 그 좌표는 공개 자료에 없어 지어내지 않았다.
+const HARB_LAYERS = ['harb-dot', 'harb-icon', 'harb-label'];
+
+$('harbours').addEventListener('change', e => {
+  const on = e.target.checked;
+  $('harbCaution').hidden = !on;
+  // 회당과 같은 이유로 아이콘을 먼저 만들어 둔다.
+  if (on && !map.hasImage('anchor')) map.addImage('anchor', makeAnchorIcon(48), { pixelRatio: 2 });
+  for (const id of HARB_LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+});
+
+function openHarbourPopup(feature) {
+  const p = feature.properties || {};
+  closePlacePopup();
+  const SRC = { atlas: '이 지도의 지명 자료', osm: 'OpenStreetMap (ODbL)' };
+  const pt = feature.geometry.coordinates;
+  const html =
+    `<div class="pp"><h3>${esc(p.ko)}${p.en ? `<span class="en">${esc(p.en)}</span>` : ''}</h3>` +
+    '<div class="context">갈릴리 호수의 1세기 정박지</div>' +
+    `<div class="meta">${esc(p.side)} · 경도 ${(+pt[0]).toFixed(3)}° · 위도 ${(+pt[1]).toFixed(3)}°</div>` +
+    `<p>${esc(p.desc)}</p>` +
+    (p.refs ? `<div class="refs" data-refs="${esc(p.refs)}">${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
+    '<div class="certainty">점은 정박지가 딸린 마을·유적의 자리입니다. 방파제 자리 자체는 아니며, ' +
+    '대부분 지금도 물 밑에 있습니다. 좌표 출처: ' + esc(SRC[p.src] || p.src) + '.</div></div>';
+  const pop = new maplibregl.Popup({
+    className: 'place-popup', closeButton: false, closeOnClick: false,
+    maxWidth: 'none', offset: 12, anchor: 'bottom'
+  }).setLngLat(pt).setHTML(html).addTo(map);
+  placePopup = pop;
+  bindVerses(pop.getElement());
+  requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
+}
+
+for (const id of HARB_LAYERS) {
+  map.on('click', id, e => {
+    placeHit = true;
+    if (navPicking) return;
+    if (e.features && e.features.length) openHarbourPopup(e.features[0]);
+  });
+  map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
 }
 
 // ---------- 1세기 회당 ----------
