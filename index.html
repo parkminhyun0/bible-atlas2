@@ -638,7 +638,8 @@
       성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳<br>
       성전 산 세 시대 — 스룹바벨~하스몬 6.9 ha · 헤롯 14.1 ha (1규빗 0.525 m)<br>
       성전 건물 — 솔로몬 36.8×10.5 m · 헤롯 성소 52.5×52.5 m (바닥 넓이 7.1배)<br>
-      베데스다 못 83×52 m — 성읍 <b>밖</b>, 경계에서 143 m</div>
+      베데스다 못 83×52 m — 성읍 <b>밖</b>, 경계에서 143 m<br>
+      <b>느헤미야 성벽(기원전 445)</b> 18.3 ha · 둘레 2.35 km — 예수 당시 성읍의 <b>22%</b></div>
     <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
       <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 17개 가운데
       <b>9개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
@@ -1476,6 +1477,28 @@ const style = {
       layout: { visibility: 'none', 'line-cap': 'butt', 'line-join': 'round' },
       paint: { 'line-color': '#f4efe6', 'line-opacity': 0.95, 'line-dasharray': [1.6, 1.4],
                'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2, 17, 5] } },
+
+    // 느헤미야가 다시 쌓은 성벽(기원전 445). 1세기 성읍과 갈리는 것을 한눈에 보이려고
+    // 색을 아주 다르게 준다 — 성읍은 갈색, 느헤미야는 남색이다. 페르시아기 성벽은
+    // 아직 하나도 확실히 발굴되지 않았으므로 선을 **점선**으로 둔다. 발굴선(실선)과
+    // 같은 굵기·같은 모양으로 그리면 같은 등급의 근거처럼 읽힌다.
+    { id: 'jeru-neh-fill', type: 'fill', source: 'jeruc1', minzoom: 11,
+      filter: ['all', ['==', ['get', 'kind'], 'nehemiah'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#2f5fb3', 'fill-opacity': 0.18 } },
+    { id: 'jeru-neh-line', type: 'line', source: 'jeruc1', minzoom: 11,
+      filter: ['all', ['==', ['get', 'kind'], 'nehemiah'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none', 'line-cap': 'butt', 'line-join': 'round' },
+      paint: { 'line-color': '#1b3f7d', 'line-opacity': 0.95, 'line-dasharray': [2.4, 1.4],
+               'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.6, 14, 3.2, 17, 5] } },
+    { id: 'jeru-neh-label', type: 'symbol', source: 'jeruc1', minzoom: 13,
+      filter: ['all', ['==', ['get', 'kind'], 'nehemiah'], ['==', ['geometry-type'], 'Point']],
+      layout: { visibility: 'none', 'text-field': '느헤미야 성벽 (기원전 445)',
+        'text-font': ['Noto Sans Bold'], 'text-max-width': 9,
+        'text-size': ['interpolate', ['linear'], ['zoom'], 13, 10.5, 18, 13.5],
+        'text-anchor': 'right', 'text-offset': [-0.8, 0],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#16336a', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
     // 성전 산은 한 번에 이 크기가 아니었다. 세 시대를 색으로 나눠 겹쳐 그린다 —
     // 넓은 것부터 깔아야 작은 것이 위로 올라와 보인다.
@@ -2876,6 +2899,7 @@ for (const key of Object.keys(ROAD_SETS)) {
 // 꼭짓점 16개 가운데 10개를 발굴된 유구에 걸었고(bake/jerusalem_c1.py 에 근거를 적었다),
 // 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
 const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor',
+                     'jeru-neh-fill', 'jeru-neh-line', 'jeru-neh-label',
                      'jeru-t2-fill', 'jeru-t2-line', 'jeru-t2-label',
                      'jeru-pool-fill', 'jeru-pool-line', 'jeru-pool-label',
                      'jeru-sanct-fill', 'jeru-sanct-line', 'jeru-sanct-label',
@@ -2921,6 +2945,24 @@ function openJeruPopup(feature, at) {
         : '성읍 바깥벽에 난 문이라 성읍 경계선 위에 섭니다. ') +
       '도면처럼 벽이 끊기고 문설주가 선 모양으로 그렸습니다. ' +
       '발굴로 확인된 문은 문지방이 실선, 그렇지 않은 문은 점선입니다.</div></div>';
+  } else if (p.kind === 'nehemiah') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">페르시아기 예루살렘 — 느헤미야 2~6장 · 12:31-40</div>' +
+      `<div class="meta">두른 넓이 <b>${p.ha} ha</b> · 둘레 <b>${p.perimeter_km} km</b> · ` +
+      `남북 ${p.ns_m} m · 동서 ${p.ew_m} m</div>` +
+      `<div class="meta">예수 당시 성읍의 <b>${p.vs_c1_pct}%</b> 에 지나지 않습니다 · ${esc(p.cert)}</div>` +
+      '<p>바벨론에서 돌아온 사람들이 쌓은 성벽입니다. 성읍은 <b>다윗 성 등성이와 성전 산</b>에 ' +
+      '머물렀습니다 — 히스기야가 넓혔던 서쪽 언덕은 기원전 586년에 무너진 뒤 비어 있다가 ' +
+      '하스몬기에야 다시 사람이 삽니다. 그래서 아비갓이 찾은 <b>브로드 월</b>과 <b>히스기야 못</b>은 ' +
+      '이 성벽 밖에 있습니다. 예수 당시 성읍과 견주어 보면 그 차이가 한눈에 들어옵니다.</p>' +
+      `<div class="certainty"><b>선을 점선으로 둔 까닭:</b> ${esc(p.dug)}. ` +
+      '케니언이 페르시아기로 본 동쪽 사면의 탑은 후기 헬레니즘기로 보는 견해가 있고, ' +
+      '에일랏 마자르가 2007년에 느헤미야 성벽이라 발표한 30 m 구간도 토기가 탑 <b>아래</b>에 ' +
+      '있었으므로 그 탑이 그보다 늦다는 것만 말해 줍니다. 이 선은 발굴선이 아니라 ' +
+      '<b>느헤미야 3장의 차례와 지형</b>으로 세운 재구성입니다.<br>' +
+      `<b>사람이 산 자리는 더 좁습니다:</b> ${esc(p.settled)}.<br>` +
+      '19세기의 바클레이·블리스는 이 성벽이 시온산까지 둘렀다고 읽었지만, 그 재구성은 ' +
+      '지금 학계가 받아들이지 않습니다.</div></div>';
   } else if (p.kind === 'temple2') {
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
       '<div class="context">성전 산 — 스룹바벨에서 하스몬기까지</div>' +
@@ -3010,7 +3052,7 @@ function openJeruPopup(feature, at) {
 // 찾아 맨 먼저 걸리는 하나만 연다.
 const JERU_PICK_ORDER = ['jeru-gate', 'jeru-gate-label', 'jeru-anchor',
                          'jeru-pool-fill', 'jeru-t1-fill', 'jeru-sanct-fill', 'jeru-t2-fill',
-                         'jeru-temple-fill', 'jeru-fill'];
+                         'jeru-temple-fill', 'jeru-neh-fill', 'jeru-fill'];
 
 map.on('click', e => {
   if (navPicking || !$('jeruExtent').checked) return;
