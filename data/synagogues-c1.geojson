@@ -1,7 +1,7 @@
 {
  "type": "FeatureCollection",
  "attribution": "Kinneret College Bornblum database · Magness 2024 · excavation publications and literary witnesses",
- "note": "장소 단위 13곳. A/B/C는 1세기 회당 건물에 대한 증거 유형과 확실성을 나타낸다.",
+ "note": "장소 단위 17곳. A/B/C는 1세기 회당 건물에 대한 증거 유형과 확실성을 나타낸다.",
  "evidence_model": {
   "A": "서기 70년 이전 회당을 직접 지지하는 건물·층위·명문",
   "B": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
@@ -314,6 +314,98 @@
     "coordinates": [
      35.5312,
      32.7959
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "키르벳 와디 하맘 회당 후보",
+    "en": "Khirbet Wadi Hamam synagogue candidate",
+    "region": "하부 갈릴리",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "site",
+    "period": "초기 로마기 단계 제안; 현존 회당은 3~4세기",
+    "desc": "니타이 산 기슭 마을의 중심에 도리아식 홈기둥과 벤치, 회벽을 갖춘 현무암 공공 건물이 있다. 발굴자는 갈릴리에서 두 번째로 알려진 제2성전기 회당으로 본다. 다만 널리 알려진 모자이크 회당은 더 늦은 단계이고, 마을은 서기 125~135년경 파괴되었다가 2세기 말에 다시 산다.",
+    "sources": "Ryan 2023, Jesus in the Synagogue, Biblical Archaeology Review 49:1 (135년 이전 회당 16곳 목록) · Leibner 2010, JRA 23; Leibner (ed.) 2018, Khirbet Wadi Hamam, Qedem Reports 13 · Bornblum Eretz Israel Synagogues research database, Kinneret College",
+    "caution": "초기 로마기 단계와 후기 회당을 한 건물로 뭉뚱그려 읽지 않는다. 점은 유적 대표점이다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.48936,
+     32.82728
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "키르벳 카나 회당 후보",
+    "en": "Khirbet Qana synagogue candidate",
+    "region": "하부 갈릴리",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "site",
+    "period": "초기 로마기",
+    "desc": "인구 백 명 남짓한 농촌 마을의 한복판에 선 공공 건물이다. 라이언은 이곳을 1세기 회당으로 세지만, 건물 자체의 회당 판정 근거는 감라·막달라처럼 두텁지 않다. 이 유적은 복음서의 가나 후보지이기도 하다.",
+    "sources": "Ryan 2023, Jesus in the Synagogue, Biblical Archaeology Review 49:1 (135년 이전 회당 16곳 목록) · Edwards, Khirbet Qana 발굴 (하부 갈릴리 마을 중심 공공 건물)",
+    "caution": "가나 동일시와 회당 판정은 별개 문제다. 둘을 묶어 확정된 것처럼 읽지 않는다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.30328,
+     32.82137
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "시킨 회당 후보",
+    "en": "Shikhin synagogue candidate",
+    "region": "갈릴리",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "site",
+    "period": "초기 로마기",
+    "desc": "세포리스 바로 곁의 유대인 마을이다. 초기 로마기 공공 건물의 조각난 유구가 나왔고 발굴자는 회당으로 본다. 라이언도 135년 이전 목록에 넣는다.",
+    "sources": "Ryan 2023, Jesus in the Synagogue, Biblical Archaeology Review 49:1 (135년 이전 회당 16곳 목록) · Strange, Shikhin Excavation Project (세포리스 인근 시킨)",
+    "caution": "유구가 조각난 상태라 건물 평면이 복원되지 않았다. 확인된 회당과 같은 등급으로 세지 않는다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.27331,
+     32.76889
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ko": "키르벳 마즈둘리야 회당 후보",
+    "en": "Khirbet Majduliyya synagogue candidate",
+    "region": "골란",
+    "grade": "B",
+    "confidence": "논쟁",
+    "criterion": "회당 후보이나 기능·연대 또는 동일시에 중요한 이견이 있음",
+    "coordinate_basis": "building",
+    "period": "연대가 갈린다 — 라이언 135년 이전 · Bornblum DB 후기 로마~비잔틴",
+    "desc": "가울라니티스와 히포스의 경계에 있던 농촌 유적이다. 2014년부터 동쪽 끝에서 바깥 치수 약 23×13 m 의 현무암 공공 건물이 드러났다 — 도리아식 기둥과 주두, 잘 다듬은 현무암 벤치 여러 단, 지붕 기와와 모자이크 바닥 조각이 나왔다. 서쪽 긴 변에만 문이 있고 기둥이 두 줄뿐인 점이 다른 회당과 다르다.",
+    "sources": "Ryan 2023, Jesus in the Synagogue, Biblical Archaeology Review 49:1 (135년 이전 회당 16곳 목록) · Osband 2014- , Khirbet Majduliyya 발굴 (제17차 세계유대학대회 발표) · Bornblum Eretz Israel Synagogues research database, Kinneret College",
+    "caution": "두 자료가 갈린다 — 라이언은 135년 이전 목록에 넣지만 Bornblum DB 는 후기 로마~비잔틴으로 적는다. 어느 한쪽을 확정해 옮기지 않는다."
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7674,
+     32.86342
     ]
    }
   }
