@@ -963,6 +963,9 @@ const VERSES     = SITE_ROOT + 'data/verses.json';
 const LOC_RIVERS = SITE_ROOT + 'data/rivers-local.geojson';
 const ROADS_MOD  = SITE_ROOT + 'data/roads-modern.json';
 const ROADS_LOC  = SITE_ROOT + 'data/roads-local.json';
+// 마을 안 연결로. 지도에 그리지 않고 길찾기에만 쓴다 — 성지 사이 마지막 한두
+// 킬로미터가 대개 이 등급이라, 없으면 짧은 구간에서 길이 통째로 끊긴다.
+const ROADS_CON  = SITE_ROOT + 'data/roads-connect.json';
 const SYNAGOGUES = SITE_ROOT + 'data/synagogues-c1.geojson';
 const HARBOURS   = SITE_ROOT + 'data/harbours-galilee.geojson';
 const JERU_C1    = SITE_ROOT + 'data/jerusalem-c1.geojson';
@@ -2992,7 +2995,8 @@ for (const id of ['syn-dot', 'syn-icon', 'syn-label']) {
 // 없다. 도보 시간은 그렇게 하지 않는다 — 그 길의 실제 오르내림을 지형에서 읽어
 // Tobler 의 도보 속도식으로 잰다. 성경을 읽는 사람에게 중요한 것은 평지 환산이
 // 아니라 '이 비탈을 걸어 며칠'이기 때문이다.
-const NAV_CAR_KMH = { motorway: 95, trunk: 80, primary: 70, secondary: 60, tertiary: 50 };
+const NAV_CAR_KMH = { motorway: 95, trunk: 80, primary: 70, secondary: 60, tertiary: 50,
+                      residential: 30 };
 
 // 길을 고르는 세 가지 방식. 같은 그물에서 '무엇을 아끼느냐'만 다르다.
 //   주요 도로 — 시간을 아낀다. 큰 길이 빠르니 자연히 고속·간선을 탄다.
@@ -3002,13 +3006,17 @@ const NAV_CAR_KMH = { motorway: 95, trunk: 80, primary: 70, secondary: 60, terti
 // 구간에서는 그대로 탄다 — 아예 막으면 길이 끊겨 경로를 못 찾는다.
 const NAV_MODES = {
   main:  { ko: '주요 도로', desc: '큰 길을 따라 빨리 가는 길',
-           penalty: { motorway: 1, trunk: 1, primary: 1, secondary: 1.5, tertiary: 2.2 } },
+           penalty: { motorway: 1, trunk: 1, primary: 1, secondary: 1.5, tertiary: 2.2,
+                      residential: 3.5 } },
   local: { ko: '일반 도로', desc: '마을을 지나는 작은 길 위주',
-           penalty: { motorway: 3.5, trunk: 2.2, primary: 1.3, secondary: 1, tertiary: 1 } },
+           penalty: { motorway: 3.5, trunk: 2.2, primary: 1.3, secondary: 1, tertiary: 1,
+                      residential: 1.2 } },
   short: { ko: '최단 거리', desc: '느려도 가장 짧은 길', distanceOnly: true },
 };
 const NAV_MODE_KEYS = ['main', 'local', 'short'];
-const NAV_CLS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
+const NAV_CLS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'];
+// 마을길은 OSM 에서 네 이름으로 나뉘어 있지만 길찾기에서는 다를 것이 없다 — 한 등급으로 본다.
+const NAV_CLS_ALIAS = { unclassified: 'residential', living_street: 'residential', road: 'residential' };
 const NAV_WALK_DAY_H = 8;      // 하루에 걷는 시간. 옛 여정의 통상 가정이다.
 const NAV_SNAP_MAX_KM = 8;     // 이보다 멀면 그 지명은 도로 자료 밖으로 본다.
 
@@ -3022,54 +3030,118 @@ async function buildNavGraph() {
   if (navGraph) return navGraph;
   if (navBuilding) return navBuilding;
   navBuilding = (async () => {
-    const docs = [];
-    for (const url of [ROADS_MOD, ROADS_LOC]) {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      docs.push(await r.json());
-    }
     // 1) 좌표에 번호를 매긴다. 1e-6 격자에 올라가 있으므로 정확히 일치한다.
-    const id = new Map();
-    const lonA = [], latA = [];
+    //
+    // Map<'경도,위도', 번호> 로 하면 정점 392만 개마다 열여덟 글자짜리 열쇠 문자열이
+    // 하나씩 만들어진다. 실측하니 그물을 만드는 동안 RSS 가 796 MB 늘었고, 그 대부분이
+    // 이 열쇠였다 — 휴대폰이 여기서 죽는다. 그래서 열린 주소 방식 해시표를 타입 배열로
+    // 직접 둔다. 정수 좌표 두 개를 그대로 열쇠로 쓰므로 문자열이 한 개도 만들어지지 않고,
+    // 칸 하나가 12바이트다. 비어 있음은 0x7fffffff 로 표시한다 — 경도·위도를 1e6 배 해도
+    // 절댓값이 1.8억을 넘지 않으니 실제 값과 겹치지 않는다.
+    const EMPTY = 0x7fffffff;
+    let hCap = 1 << 22, hMask = hCap - 1, hN = 0;
+    let hX = new Int32Array(hCap).fill(EMPTY), hY = new Int32Array(hCap), hV = new Int32Array(hCap);
+    const hash = (x, y) => {
+      let h = Math.imul(x ^ 0x9e3779b9, 2246822507) ^ Math.imul(y ^ 0x85ebca6b, 3266489909);
+      h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
+      return h >>> 0;
+    };
+    const rehash = () => {
+      const oX = hX, oY = hY, oV = hV, oCap = hCap;
+      hCap <<= 1; hMask = hCap - 1;
+      hX = new Int32Array(hCap).fill(EMPTY); hY = new Int32Array(hCap); hV = new Int32Array(hCap);
+      for (let i = 0; i < oCap; i++) {
+        if (oX[i] === EMPTY) continue;
+        let j = hash(oX[i], oY[i]) & hMask;
+        while (hX[j] !== EMPTY) j = (j + 1) & hMask;
+        hX[j] = oX[i]; hY[j] = oY[i]; hV[j] = oV[i];
+      }
+    };
+    // 좌표도 자라는 타입 배열에 바로 담는다. 보통 배열에 담았다가 옮기면 같은 것을
+    // 두 벌 들고 있는 순간이 생긴다.
+    let lonA = new Float64Array(1 << 20), latA = new Float64Array(1 << 20), nPt = 0;
     const nid = p => {
-      const k = Math.round(p[0] * 1e6) + ',' + Math.round(p[1] * 1e6);
-      let v = id.get(k);
-      if (v === undefined) { v = lonA.length; id.set(k, v); lonA.push(p[0]); latA.push(p[1]); }
+      const x = Math.round(p[0] * 1e6), y = Math.round(p[1] * 1e6);
+      let i = hash(x, y) & hMask;
+      while (hX[i] !== EMPTY) {
+        if (hX[i] === x && hY[i] === y) return hV[i];
+        i = (i + 1) & hMask;
+      }
+      if (nPt === lonA.length) {
+        const nl = new Float64Array(nPt * 2); nl.set(lonA); lonA = nl;
+        const na = new Float64Array(nPt * 2); na.set(latA); latA = na;
+      }
+      lonA[nPt] = p[0]; latA[nPt] = p[1];
+      hX[i] = x; hY[i] = y; hV[i] = nPt; hN++;
+      const v = nPt++;
+      if (hN * 10 > hCap * 6) rehash();            // 6할이 차면 넓힌다
       return v;
     };
-    const eFrom = [], eTo = [], eW = [], eC = [];
-    for (const doc of docs) {
+    // 간선도 마찬가지로 자라는 타입 배열에 담는다.
+    let eFrom = new Int32Array(1 << 20), eTo = new Int32Array(1 << 20);
+    let eW = new Float32Array(1 << 20), eC = new Uint8Array(1 << 20), nE = 0;
+    const addEdge = (a, b, d, c) => {
+      if (nE === eFrom.length) {
+        const n2 = nE * 2;
+        const a1 = new Int32Array(n2); a1.set(eFrom); eFrom = a1;
+        const a2 = new Int32Array(n2); a2.set(eTo); eTo = a2;
+        const a3 = new Float32Array(n2); a3.set(eW); eW = a3;
+        const a4 = new Uint8Array(n2); a4.set(eC); eC = a4;
+      }
+      eFrom[nE] = a; eTo[nE] = b; eW[nE] = d; eC[nE] = c; nE++;
+    };
+    // 한 벌씩 받아 곧바로 풀고 버린다. 셋을 한꺼번에 들고 있으면 마을길 자료(14 MB)를
+    // 푼 객체가 겹쳐 힙 고점이 300 MB 를 넘는다 — 휴대폰이 여기서 죽는다.
+    for (const url of [ROADS_MOD, ROADS_LOC, ROADS_CON]) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      let doc = await r.json();
       const factor = Math.pow(10, doc.precision);
       for (const f of doc.features) {
-        const ci = NAV_CLS.indexOf(f.cls);
+        const ci = NAV_CLS.indexOf(NAV_CLS_ALIAS[f.cls] || f.cls);
+        if (ci < 0) continue;                     // 모르는 등급은 그물에 넣지 않는다
         for (const enc of f.enc) {
           const pts = decodePolyline(enc, factor);
           let prev = nid(pts[0]);
           for (let i = 1; i < pts.length; i++) {
             const cur = nid(pts[i]);
             if (cur === prev) continue;
-            eFrom.push(prev); eTo.push(cur); eW.push(navKm(lonA[prev], latA[prev], lonA[cur], latA[cur])); eC.push(ci);
+            addEdge(prev, cur, navKm(lonA[prev], latA[prev], lonA[cur], latA[cur]), ci);
             prev = cur;
           }
         }
       }
+      doc = null;                                 // 다음 벌을 받기 전에 놓아 준다
     }
+    hX = hY = hV = null;                          // 번호를 다 매겼으니 해시표를 놓아 준다
     // 2) 인접 리스트 (양방향)
-    const N = lonA.length, M = eFrom.length;
-    const lon = Float64Array.from(lonA), lat = Float64Array.from(latA);
+    const N = nPt, M = nE;
+    const lon = lonA.subarray(0, N), lat = latA.subarray(0, N);
     const head = new Int32Array(N).fill(-1);
     const next = new Int32Array(M * 2), to = new Int32Array(M * 2);
     const w = new Float32Array(M * 2), cls = new Uint8Array(M * 2);
     let n = 0;
     const link = (a, b, d, c) => { to[n] = b; w[n] = d; cls[n] = c; next[n] = head[a]; head[a] = n; n++; };
     for (let i = 0; i < M; i++) { link(eFrom[i], eTo[i], eW[i], eC[i]); link(eTo[i], eFrom[i], eW[i], eC[i]); }
-    // 3) 스냅용 격자 색인
-    const G = 200, cell = new Map();
+    // 3) 스냅용 격자 색인. 세기·누적합으로 타입 배열 둘에 눕힌다(칸의 시작 자리 +
+    //    정점 번호). 여기서도 문자열 열쇠를 만들지 않는다.
+    const G = 200;
+    let cx0 = Infinity, cy0 = Infinity, cx1 = -Infinity, cy1 = -Infinity;
     for (let i = 0; i < N; i++) {
-      const k = Math.floor(lon[i] * G) + ':' + Math.floor(lat[i] * G);
-      let a = cell.get(k); if (!a) cell.set(k, a = []); a.push(i);
+      const cx = Math.floor(lon[i] * G), cy = Math.floor(lat[i] * G);
+      if (cx < cx0) cx0 = cx;
+      if (cx > cx1) cx1 = cx;
+      if (cy < cy0) cy0 = cy;
+      if (cy > cy1) cy1 = cy;
     }
-    navGraph = { N, lon, lat, head, next, to, w, cls, cell, G };
+    const CW = cx1 - cx0 + 1, CH = cy1 - cy0 + 1;
+    const cellAt = i => (Math.floor(lat[i] * G) - cy0) * CW + (Math.floor(lon[i] * G) - cx0);
+    const cellStart = new Int32Array(CW * CH + 1);
+    for (let i = 0; i < N; i++) cellStart[cellAt(i) + 1]++;
+    for (let c = 0; c < CW * CH; c++) cellStart[c + 1] += cellStart[c];
+    const cellNode = new Int32Array(N), fillAt = cellStart.slice(0, CW * CH);
+    for (let i = 0; i < N; i++) cellNode[fillAt[cellAt(i)]++] = i;
+    navGraph = { N, lon, lat, head, next, to, w, cls, G, cx0, cy0, CW, CH, cellStart, cellNode };
     navBuilding = null;
     return navGraph;
   })().catch(e => { console.warn('길 그물을 만들지 못했다:', e); navBuilding = null; return null; });
@@ -3084,13 +3156,21 @@ function navKm(ax, ay, bx, by) {
 // 지명에서 가장 가까운 길 위의 점. 격자를 한 겹씩 넓혀 가며 찾는다.
 function navSnap(g, x, y) {
   let best = -1, bd = Infinity;
+  const gx = Math.floor(x * g.G) - g.cx0, gy = Math.floor(y * g.G) - g.cy0;
   for (let r = 0; r < 8 && best < 0; r++) {
-    const gx = Math.floor(x * g.G), gy = Math.floor(y * g.G);
-    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
-      if (r > 0 && Math.abs(dx) < r && Math.abs(dy) < r) continue;
-      const a = g.cell.get((gx + dx) + ':' + (gy + dy));
-      if (!a) continue;
-      for (const i of a) { const d = navKm(x, y, g.lon[i], g.lat[i]); if (d < bd) { bd = d; best = i; } }
+    for (let dy = -r; dy <= r; dy++) {
+      const cy = gy + dy;
+      if (cy < 0 || cy >= g.CH) continue;
+      for (let dx = -r; dx <= r; dx++) {
+        if (r > 0 && Math.abs(dx) < r && Math.abs(dy) < r) continue;
+        const cx = gx + dx;
+        if (cx < 0 || cx >= g.CW) continue;
+        const c = cy * g.CW + cx;
+        for (let k = g.cellStart[c], e = g.cellStart[c + 1]; k < e; k++) {
+          const i = g.cellNode[k], d = navKm(x, y, g.lon[i], g.lat[i]);
+          if (d < bd) { bd = d; best = i; }
+        }
+      }
     }
   }
   return { node: best, km: bd };
@@ -3261,7 +3341,10 @@ async function navTakePlace(feature, lngLat) {
   navB = { name, pt };
   setNavPicking(false);
   $('navClear').hidden = false;
-  $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 길 그물을 만드는 중…';
+  // 마을길 자료가 14 MB 다. 처음 한 번만 받지만, 느린 연결에서는 기다림이 길다 —
+  // 무엇을 기다리는지 말해 주지 않으면 멈춘 것으로 보인다.
+  $('navNote').textContent = navA.name + ' → ' + navB.name +
+    (navGraph ? ' · 길 그물을 만드는 중…' : ' · 도로 자료를 받는 중… (처음 한 번만 받습니다)');
   // 새로 찾는 동안에는 앞선 결과를 치운다. 지도 위의 길은 곧 새 길로 바뀐다.
   navResultHtml = '';
   navDrawerOpen(false);
