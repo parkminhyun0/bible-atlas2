@@ -617,7 +617,8 @@
     <div class="row"><label><input type="checkbox" id="jeruExtent" /> 예수 당시 성읍 규모</label></div>
     <div class="sub" id="jeruNote" style="margin:-2px 0 6px">성읍 83.3 ha · 둘레 3.75 km · 남북 1,178 m · 동서 900 m<br>
       성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳<br>
-      성전 산 세 시대 — 솔로몬 건물 36.8×10.5 m · 스룹바벨~하스몬 6.9 ha · 헤롯 14.1 ha (1규빗 0.525 m)</div>
+      성전 산 세 시대 — 스룹바벨~하스몬 6.9 ha · 헤롯 14.1 ha (1규빗 0.525 m)<br>
+      성전 건물 — 솔로몬 36.8×10.5 m · 헤롯 성소 52.5×52.5 m (바닥 넓이 7.1배)</div>
     <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
       <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 17개 가운데
       <b>9개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
@@ -1454,16 +1455,16 @@ const style = {
     // 넓은 것부터 깔아야 작은 것이 위로 올라와 보인다.
     //   헤롯 노랑 · 스룹바벨~하스몬 청록 · 솔로몬 건물 붉은 자주
     { id: 'jeru-t2-fill', type: 'fill', source: 'jeruc1', minzoom: 12,
-      filter: ['==', ['get', 'kind'], 'temple2'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple2'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none' },
       paint: { 'fill-color': '#2e8b8b', 'fill-opacity': 0.26 } },
     { id: 'jeru-t2-line', type: 'line', source: 'jeruc1', minzoom: 12,
-      filter: ['==', ['get', 'kind'], 'temple2'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple2'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none', 'line-join': 'miter' },
       paint: { 'line-color': '#155f5f', 'line-opacity': 0.95, 'line-dasharray': [3, 1.6],
                'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.4, 15, 2.6, 18, 4] } },
     { id: 'jeru-t2-label', type: 'symbol', source: 'jeruc1', minzoom: 15,
-      filter: ['==', ['get', 'kind'], 'temple2'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple2'], ['==', ['geometry-type'], 'Point']],
       layout: { visibility: 'none', 'text-field': '스룹바벨~하스몬기 성전 산',
         'text-font': ['Noto Sans Bold'], 'text-max-width': 10,
         'text-size': ['interpolate', ['linear'], ['zoom'], 15, 10.5, 18, 13],
@@ -1471,17 +1472,35 @@ const style = {
         'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
       paint: { 'text-color': '#0f4a4a', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
+    // 헤롯 성소 '건물'. 솔로몬 건물과 견주려고 같이 그린다.
+    { id: 'jeru-sanct-fill', type: 'fill', source: 'jeruc1', minzoom: 14,
+      filter: ['all', ['==', ['get', 'kind'], 'sanctuary'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#b8860b', 'fill-opacity': 0.42 } },
+    { id: 'jeru-sanct-line', type: 'line', source: 'jeruc1', minzoom: 14,
+      filter: ['all', ['==', ['get', 'kind'], 'sanctuary'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none', 'line-join': 'miter' },
+      paint: { 'line-color': '#7a5c06', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1.2, 17, 2.4, 19, 3.5] } },
+    { id: 'jeru-sanct-label', type: 'symbol', source: 'jeruc1', minzoom: 16,
+      filter: ['all', ['==', ['get', 'kind'], 'sanctuary'], ['==', ['geometry-type'], 'Point']],
+      layout: { visibility: 'none', 'text-field': '헤롯 성소', 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10.5, 19, 13],
+        'text-anchor': 'bottom', 'text-offset': [0, -0.7],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#6b5006', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
     { id: 'jeru-t1-fill', type: 'fill', source: 'jeruc1', minzoom: 14,
-      filter: ['==', ['get', 'kind'], 'temple1'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple1'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none' },
       paint: { 'fill-color': '#9b2d5e', 'fill-opacity': 0.55 } },
     { id: 'jeru-t1-line', type: 'line', source: 'jeruc1', minzoom: 14,
-      filter: ['==', ['get', 'kind'], 'temple1'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple1'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none', 'line-join': 'miter' },
       paint: { 'line-color': '#6d1640', 'line-opacity': 0.95,
                'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1.2, 17, 2.4, 19, 3.5] } },
     { id: 'jeru-t1-label', type: 'symbol', source: 'jeruc1', minzoom: 16,
-      filter: ['==', ['get', 'kind'], 'temple1'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple1'], ['==', ['geometry-type'], 'Point']],
       layout: { visibility: 'none', 'text-field': '솔로몬 성전', 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10.5, 19, 13],
         'text-anchor': 'top', 'text-offset': [0, 0.7],
@@ -1490,16 +1509,16 @@ const style = {
 
     // 헤롯 성전의 성전 산 대지. 성읍과 다른 색·다른 테두리로 구별한다.
     { id: 'jeru-temple-fill', type: 'fill', source: 'jeruc1', minzoom: 11,
-      filter: ['==', ['get', 'kind'], 'temple'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none' },
       paint: { 'fill-color': '#c9a227', 'fill-opacity': 0.32 } },
     { id: 'jeru-temple-line', type: 'line', source: 'jeruc1', minzoom: 11,
-      filter: ['==', ['get', 'kind'], 'temple'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple'], ['==', ['geometry-type'], 'Polygon']],
       layout: { visibility: 'none', 'line-join': 'miter' },
       paint: { 'line-color': '#7a5c06', 'line-opacity': 0.95,
                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.4, 14, 2.6, 17, 4] } },
     { id: 'jeru-temple-label', type: 'symbol', source: 'jeruc1', minzoom: 14,
-      filter: ['==', ['get', 'kind'], 'temple'],
+      filter: ['all', ['==', ['get', 'kind'], 'temple'], ['==', ['geometry-type'], 'Point']],
       layout: { visibility: 'none', 'text-field': '헤롯 성전', 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 14, 11, 17, 14],
         'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
@@ -2677,6 +2696,7 @@ for (const key of Object.keys(ROAD_SETS)) {
 // 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
 const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor',
                      'jeru-t2-fill', 'jeru-t2-line', 'jeru-t2-label',
+                     'jeru-sanct-fill', 'jeru-sanct-line', 'jeru-sanct-label',
                      'jeru-t1-fill', 'jeru-t1-line', 'jeru-t1-label',
                      'jeru-temple-fill', 'jeru-temple-line', 'jeru-temple-label',
                      'jeru-gate', 'jeru-gate-label'];
@@ -2697,19 +2717,27 @@ $('jeruExtent').addEventListener('change', e => {
   }
 });
 
-function openJeruPopup(feature) {
+function openJeruPopup(feature, at) {
   const p = feature.properties || {};
   closePlacePopup();
-  const pt = feature.geometry.type === 'Point' ? feature.geometry.coordinates : null;
+  // 점이면 그 점에, 면이면 누른 자리에 띄운다. 예전에는 면일 때 고정 좌표로 떨어져
+  // 엉뚱한 곳에 팝업이 떴다.
+  const pt = feature.geometry.type === 'Point' ? feature.geometry.coordinates
+           : (at ? [at.lng, at.lat] : null);
   let html;
   if (p.kind === 'gate') {
     const CERT = { '발굴': '발굴로 확인된 문', '추정': '자리를 추정한 문',
                    '불확실': '요세푸스가 이름을 남겼으나 자리는 확정되지 않음' };
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
       '<div class="context">1세기 예루살렘 성문</div>' +
-      `<div class="meta">${esc(CERT[p.cert] || p.cert)}</div>` +
+      `<div class="meta"><b>${esc(p.wall)}</b>의 벽에 난 문 · ${esc(CERT[p.cert] || p.cert)}</div>` +
       `<p>${esc(p.desc)}</p>` +
-      '<div class="certainty">도면처럼 벽이 끊기고 문설주가 선 모양으로 그렸습니다. ' +
+      '<div class="certainty">' +
+      (p.wall === '성전 산'
+        ? '성전 산의 문입니다. 성전 산은 성읍 안에 있으므로 이 문들은 성읍 경계선이 아니라 ' +
+          '<b>성전 산 대지의 벽</b> 위에 섭니다 — 성읍 경계 안쪽에 보이는 것이 맞습니다. '
+        : '성읍 바깥벽에 난 문이라 성읍 경계선 위에 섭니다. ') +
+      '도면처럼 벽이 끊기고 문설주가 선 모양으로 그렸습니다. ' +
       '발굴로 확인된 문은 문지방이 실선, 그렇지 않은 문은 점선입니다.</div></div>';
   } else if (p.kind === 'temple2') {
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
@@ -2723,14 +2751,27 @@ function openJeruPopup(feature) {
       '<div class="certainty">검산 넷을 통과합니다 — 동벽의 제1성전기 석조가 네모의 동변에 붙고, ' +
       '헤롯기 북쪽 확장부는 네모 밖이며, 네 모서리가 모두 헤롯 대지 안이고, 헤롯 서벽과의 간격이 ' +
       '연구 자료의 25 m 와 맞습니다. 헤롯은 이 크기를 2.0배로 넓혔습니다.</div></div>';
+  } else if (p.kind === 'sanctuary') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">헤롯 성전 — 성소 건물</div>' +
+      `<div class="meta"><b>${p.len_m} × ${p.wid_m} m</b> (100×100규빗, 1규빗 ${p.cubit} m)</div>` +
+      `<div class="meta">${esc(p.cert)}</div>` +
+      `<p>정면 100×100 규빗, 동서 총장 100 규빗입니다(Middot 4:6-7; 요세푸스 War 5.207). ' +
+      '바닥 넓이로 <b>솔로몬 성전의 ${p.vs_solomon}배</b>입니다 — 솔로몬 성전이 작아 보이는 것은 ' +
+      '그리기가 틀려서가 아니라 실제로 그만큼 작았기 때문입니다.</p>` +
+      '<div class="certainty">치수는 문헌이 주지만 자리는 리트마이어 안을 따른 추정입니다.</div></div>';
   } else if (p.kind === 'temple1') {
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
       '<div class="context">제1성전 — 건물</div>' +
       `<div class="meta"><b>${p.len_m} × ${p.wid_m} m</b> (70×20규빗, 1규빗 ${p.cubit} m)</div>` +
       `<div class="meta">${esc(p.cert)}</div>` +
       '<p>본체 60×20 규빗에 현관 10 규빗을 더한 크기입니다(왕상 6:2-3). ' +
+      '<b>이 크기가 맞습니다</b> — 솔로몬 성전 건물은 실제로 이만했습니다. 헤롯 성소는 ' +
+      '100×100 규빗으로 바닥 넓이가 <b>이것의 7.1배</b>입니다(옆에 함께 그렸습니다).</p>' +
+      '<p>다만 이것은 <b>건물 몸체</b>입니다. 세 면을 두른 골방(왕상 6:5-6)과 그 둘레의 뜰은 ' +
+      '더 넓었지만, 열왕기는 그 치수를 주지 않아 그리지 않았습니다. ' +
       '<b>솔로몬만은 경내가 아니라 건물을 그립니다</b> — 제1성전기 경내의 크기는 남아 있지 ' +
-      '않고, 성경은 건물 치수만 정확히 말하기 때문입니다.</p>' +
+      '않기 때문입니다.</p>' +
       '<div class="certainty">규빗은 0.525 m(왕실 규빗)로 통일했습니다. 자리는 바위 돔 아래 반석을 ' +
       '지성소로 보는 리트마이어 안을 따랐고, 축은 헤롯 외벽이 아니라 <b>500규빗 정방형</b>을 ' +
       '따릅니다 — 성전은 그 경내의 건물이기 때문입니다. 치수는 성경이 주지만 자리는 확정된 것이 ' +
@@ -2761,18 +2802,31 @@ function openJeruPopup(feature) {
   }
   const pop = new maplibregl.Popup({ className: 'place-popup', closeButton: false,
     closeOnClick: false, maxWidth: 'none', offset: 12, anchor: 'bottom' })
-    .setLngLat(pt || [35.2325, 31.7750]).setHTML(html).addTo(map);
+    .setLngLat(pt || map.getCenter()).setHTML(html).addTo(map);
   placePopup = pop;
   requestAnimationFrame(() => { if (placePopup === pop) pop.getElement().classList.add('is-open'); });
 }
 
-for (const id of ['jeru-t1-fill', 'jeru-gate', 'jeru-gate-label', 'jeru-anchor',
-                  'jeru-t2-fill', 'jeru-temple-fill', 'jeru-fill']) {
-  map.on('click', id, e => {
-    placeHit = true;
-    if (navPicking) return;
-    if (e.features && e.features.length) openJeruPopup(e.features[0]);
-  });
+// 이 레이어들은 서로 겹쳐 있다. 레이어마다 클릭 핸들러를 따로 달면 한 번 누를 때
+// 여러 개가 함께 돌고, 마지막에 등록된 것(성읍)이 앞의 것을 덮어써 버린다 — 실제로
+// 솔로몬 성전을 눌러도 성읍 설명이 떴다. 그래서 핸들러는 하나만 두고, 작은 것부터
+// 찾아 맨 먼저 걸리는 하나만 연다.
+const JERU_PICK_ORDER = ['jeru-gate', 'jeru-gate-label', 'jeru-anchor',
+                         'jeru-t1-fill', 'jeru-sanct-fill', 'jeru-t2-fill',
+                         'jeru-temple-fill', 'jeru-fill'];
+
+map.on('click', e => {
+  if (navPicking || !$('jeruExtent').checked) return;
+  const box = [[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]];
+  for (const id of JERU_PICK_ORDER) {
+    if (!map.getLayer(id)) continue;
+    // 점·기호는 조금 넉넉히 집어 준다. 면은 누른 자리 그대로.
+    const pt = (id === 'jeru-fill' || id.endsWith('-fill')) ? e.point : box;
+    const hit = map.queryRenderedFeatures(pt, { layers: [id] });
+    if (hit.length) { placeHit = true; openJeruPopup(hit[0], e.lngLat); return; }
+  }
+});
+for (const id of JERU_PICK_ORDER) {
   map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
 }
