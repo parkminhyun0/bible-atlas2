@@ -32,6 +32,11 @@ SOURCES = {
     "THE": "CIJ II 1404 / IAA S 842, Theodotus synagogue inscription",
     "JOS": "Josephus, Life 277–280",
     "NT": "New Testament literary witness",
+    "RYAN": "Ryan 2023, Jesus in the Synagogue, Biblical Archaeology Review 49:1 (135년 이전 회당 16곳 목록)",
+    "LEI": "Leibner 2010, JRA 23; Leibner (ed.) 2018, Khirbet Wadi Hamam, Qedem Reports 13",
+    "EDW": "Edwards, Khirbet Qana 발굴 (하부 갈릴리 마을 중심 공공 건물)",
+    "STR": "Strange, Shikhin Excavation Project (세포리스 인근 시킨)",
+    "OSB": "Osband 2014- , Khirbet Majduliyya 발굴 (제17차 세계유대학대회 발표)",
 }
 
 # ko, en, lon, lat, region, grade, basis, period, description, refs, source ids, caution
@@ -96,6 +101,37 @@ SITES = [
      "요세푸스는 서기 66년 디베랴에서 많은 사람이 모인 큰 프로슈케를 언급한다. 회당 또는 기도처로 해석되지만 건물은 확인되지 않았다.",
      "요세푸스 『자서전』 277–280", ["JOS", "MAG"],
      "프로슈케와 회당 건물의 관계를 단정하지 않으며 점은 도시 대표점이다."),
+    ("키르벳 와디 하맘 회당 후보", "Khirbet Wadi Hamam synagogue candidate", 35.48936, 32.82728,
+     "하부 갈릴리", "B", "site",
+     "초기 로마기 단계 제안; 현존 회당은 3~4세기",
+     "니타이 산 기슭 마을의 중심에 도리아식 홈기둥과 벤치, 회벽을 갖춘 현무암 공공 건물이 있다. "
+     "발굴자는 갈릴리에서 두 번째로 알려진 제2성전기 회당으로 본다. 다만 널리 알려진 모자이크 회당은 "
+     "더 늦은 단계이고, 마을은 서기 125~135년경 파괴되었다가 2세기 말에 다시 산다.",
+     "", ["RYAN", "LEI", "DB"],
+     "초기 로마기 단계와 후기 회당을 한 건물로 뭉뚱그려 읽지 않는다. 점은 유적 대표점이다."),
+    ("키르벳 카나 회당 후보", "Khirbet Qana synagogue candidate", 35.30328, 32.82137,
+     "하부 갈릴리", "B", "site",
+     "초기 로마기",
+     "인구 백 명 남짓한 농촌 마을의 한복판에 선 공공 건물이다. 라이언은 이곳을 1세기 회당으로 세지만, "
+     "건물 자체의 회당 판정 근거는 감라·막달라처럼 두텁지 않다. 이 유적은 복음서의 가나 후보지이기도 하다.",
+     "", ["RYAN", "EDW"],
+     "가나 동일시와 회당 판정은 별개 문제다. 둘을 묶어 확정된 것처럼 읽지 않는다."),
+    ("시킨 회당 후보", "Shikhin synagogue candidate", 35.27331, 32.76889,
+     "갈릴리", "B", "site",
+     "초기 로마기",
+     "세포리스 바로 곁의 유대인 마을이다. 초기 로마기 공공 건물의 조각난 유구가 나왔고 발굴자는 "
+     "회당으로 본다. 라이언도 135년 이전 목록에 넣는다.",
+     "", ["RYAN", "STR"],
+     "유구가 조각난 상태라 건물 평면이 복원되지 않았다. 확인된 회당과 같은 등급으로 세지 않는다."),
+    ("키르벳 마즈둘리야 회당 후보", "Khirbet Majduliyya synagogue candidate", 35.76740, 32.86342,
+     "골란", "B", "building",
+     "연대가 갈린다 — 라이언 135년 이전 · Bornblum DB 후기 로마~비잔틴",
+     "가울라니티스와 히포스의 경계에 있던 농촌 유적이다. 2014년부터 동쪽 끝에서 바깥 치수 약 23×13 m 의 "
+     "현무암 공공 건물이 드러났다 — 도리아식 기둥과 주두, 잘 다듬은 현무암 벤치 여러 단, 지붕 기와와 "
+     "모자이크 바닥 조각이 나왔다. 서쪽 긴 변에만 문이 있고 기둥이 두 줄뿐인 점이 다른 회당과 다르다.",
+     "", ["RYAN", "OSB", "DB"],
+     "두 자료가 갈린다 — 라이언은 135년 이전 목록에 넣지만 Bornblum DB 는 후기 로마~비잔틴으로 적는다. "
+     "어느 한쪽을 확정해 옮기지 않는다."),
 ]
 
 
@@ -117,7 +153,7 @@ def main():
     collection = {
         "type": "FeatureCollection",
         "attribution": "Kinneret College Bornblum database · Magness 2024 · excavation publications and literary witnesses",
-        "note": "장소 단위 13곳. A/B/C는 1세기 회당 건물에 대한 증거 유형과 확실성을 나타낸다.",
+        "note": "장소 단위 17곳. A/B/C는 1세기 회당 건물에 대한 증거 유형과 확실성을 나타낸다.",
         "evidence_model": {g: GRADE[g][1] for g in GRADE},
         "features": features,
     }
