@@ -692,6 +692,9 @@
     <div class="sub" id="navNote" style="margin:6px 0 0">출발 지명을 누르고 도착 지명을 누르세요.
       오늘의 도로를 따라갑니다.</div>
     <div class="row" style="margin-top:6px"><button id="navReopen" hidden>결과 다시 보기</button></div>
+    <div class="row" id="navDetailRow" hidden><label><input type="checkbox" id="navDetail" />
+      마을 안 연결로까지 쓰기</label></div>
+    <div class="sub" id="navDetailNote" hidden style="margin:4px 0 0"></div>
   </div>
 
   <div class="aspect">
@@ -2646,7 +2649,8 @@ window.nav = { take: navTakePlace, build: buildNavGraph, snap: navSnap, route: n
                walkTime: navWalkTime, draw: navDraw,
                // 둘 다 화살표로 감싼다 — 이 객체를 만드는 시점에는 아래의 const 가
                // 아직 없어서, 그대로 적으면 TDZ 오류로 스크립트가 통째로 멈춘다.
-               lowMemory: () => NAV_LOW_MEMORY, urls: () => NAV_ROAD_URLS() };
+               lowMemory: () => NAV_LOW_MEMORY, useConnect: () => NAV_USE_CONNECT(),
+               urls: () => NAV_ROAD_URLS() };
                                                         // 도로 자료가 온전히 풀리는지 자동 검증에서 확인한다
 
 // ---------- 지명 설명 팝업 ----------
@@ -3119,7 +3123,14 @@ const NAV_SNAP_MAX_KM = 8;     // 이보다 멀면 그 지명은 도로 자료 �
 const NAV_LOW_MEMORY = typeof navigator === 'undefined' ? false
   : typeof navigator.deviceMemory === 'number' ? navigator.deviceMemory <= 4
   : TOUCH;
-const NAV_ROAD_URLS = () => NAV_LOW_MEMORY ? [ROADS_MOD, ROADS_LOC] : [ROADS_MOD, ROADS_LOC, ROADS_CON];
+// 다만 기기를 보고 대신 정하는 것은 어림짐작이다. 자기 휴대폰이 견딜지는 쓰는 사람이
+// 제일 잘 안다 — 뺀 기기에서는 체크상자를 내주어 직접 켤 수 있게 한다. 고른 것은
+// 남겨 두되, 켠 뒤에 그 기기가 죽으면 다시 들어와도 켜져 있어 또 죽는다. 그래서
+// 켤 때만 기억하고, 다음에 들어오면 껐을 때의 안내를 다시 보여 준다.
+let navWantDetail = false;
+const NAV_USE_CONNECT = () => !NAV_LOW_MEMORY || navWantDetail;
+const NAV_ROAD_URLS = () => NAV_USE_CONNECT() ? [ROADS_MOD, ROADS_LOC, ROADS_CON]
+                                              : [ROADS_MOD, ROADS_LOC];
 
 let navGraph = null, navBuilding = null;
 let navPicking = false, navA = null, navB = null;
@@ -3422,6 +3433,24 @@ function setNavPicking(on) {
   if (on) { navReset(); $('navNote').textContent = '출발 지명을 누르세요.'; }
 }
 
+// 자료를 뺀 기기에서만 체크상자를 보인다. 넉넉한 기기에서는 이미 다 쓰고 있으므로
+// 내놓을 이유가 없다.
+if (NAV_LOW_MEMORY) {
+  $('navDetailRow').hidden = false;
+  $('navDetailNote').hidden = false;
+  $('navDetailNote').innerHTML =
+    '이 기기는 메모리가 넉넉하지 않아 <b>큰 길만</b>으로 찾습니다. 켜면 마을 안 연결로까지 ' +
+    '넣어 짧은 구간이 실제 길을 따라갑니다 — 자료 14 MB 를 더 받고 자리도 더 씁니다.';
+  $('navDetail').addEventListener('change', e => {
+    navWantDetail = e.target.checked;
+    // 그물은 이미 만들어져 있을 수 있다. 자료가 바뀌었으니 버리고 다시 만든다.
+    navGraph = null; navBuilding = null;
+    navReset();
+    $('navNote').textContent = navWantDetail
+      ? '마을 안 연결로까지 씁니다. 다음에 길을 찾을 때 자료를 더 받습니다.'
+      : '큰 길만으로 찾습니다. 출발 지명을 누르고 도착 지명을 누르세요.';
+  });
+}
 $('navPick').addEventListener('click', () => setNavPicking(!navPicking));
 $('navClear').addEventListener('click', () => { navReset(); setNavPicking(false); });
 // X 로 닫아도 찾은 길은 지도에 남긴다. 지우는 것은 '지우기'가 한다.
@@ -3446,7 +3475,7 @@ async function navTakePlace(feature, lngLat) {
   // 무엇을 기다리는지 말해 주지 않으면 멈춘 것으로 보인다.
   $('navNote').textContent = navA.name + ' → ' + navB.name +
     (navGraph ? ' · 길 그물을 만드는 중…'
-              : NAV_LOW_MEMORY ? ' · 도로 자료를 받는 중…'
+              : !NAV_USE_CONNECT() ? ' · 도로 자료를 받는 중…'
                                : ' · 도로 자료를 받는 중… (처음 한 번만 받습니다)');
   // 새로 찾는 동안에는 앞선 결과를 치운다. 지도 위의 길은 곧 새 길로 바뀐다.
   navResultHtml = '';
@@ -3556,8 +3585,9 @@ function renderNavCards() {
     '어림한 값이고, 도보는 그 길의 실제 오르내림을 지형에서 읽어 Tobler 식으로 잰 것입니다. ' +
     '다만 걷는 길도 <b>오늘 깔린 도로</b>입니다 — 1세기 사람이 다닌 길이 아닙니다.' +
     // 뺐으면 뺐다고 말한다. 마을 안 구간이 왜 크게 도는지 모르면 고장으로 보인다.
-    (NAV_LOW_MEMORY ? '<br>이 기기는 메모리가 넉넉하지 않아 <b>마을 안 연결로를 빼고</b> ' +
-      '큰 길만으로 찾았습니다. 짧은 구간이 실제보다 크게 돌 수 있습니다.' : '');
+    (!NAV_USE_CONNECT() ? '<br>이 기기는 메모리가 넉넉하지 않아 <b>마을 안 연결로를 빼고</b> ' +
+      '큰 길만으로 찾았습니다. 짧은 구간이 실제보다 크게 돌 수 있습니다. ' +
+      '왼쪽 <b>길찾기</b>에서 ‘마을 안 연결로까지 쓰기’를 켜면 넣고 다시 찾습니다.' : '');
   $('navNote').textContent = navRoutes.a + ' → ' + navRoutes.b;
   navDrawerOpen(true);
   // 방식 단추를 여기서 잇는다 — 서랍 내용을 다시 그릴 때마다 새로 생기기 때문이다.
