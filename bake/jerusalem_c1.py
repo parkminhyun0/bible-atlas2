@@ -97,16 +97,18 @@ FIRST_TEMPLE_MASONRY = (35.23752, 31.77683)   # 동벽의 제1성전기 석조 (
 HERODIAN_NORTH_EXT = (35.23719, 31.77959)     # 동벽의 헤롯기 북쪽 확장부 (발굴)
 
 # 1세기 성문. bearing 은 그 문이 뚫린 벽의 방위각(도면 기호를 벽과 나란히 눕히려고 쓴다).
+# wall: 이 문이 뚫린 벽. 성전 산의 문과 성읍의 문은 다른 벽에 난 문이다 —
+# 구별해 주지 않으면 성전 산 문들이 '성읍 경계 안에 떠 있는' 것처럼 보인다.
 GATES = [
-    ('훌다 이중문',   35.23588, 31.77584,  84, '발굴', '성전 산 남벽. 순례자가 정결례를 마치고 올라온 주 출입구다.'),
-    ('훌다 삼중문',   35.23658, 31.77595,  84, '발굴', '성전 산 남벽의 동쪽 문.'),
-    ('로빈슨 아치',   35.23459, 31.77582, 354, '발굴', '성전 산 남서 모서리에 걸린 계단. 아래 저잣거리에서 왕의 주랑으로 올라갔다.'),
-    ('바클레이 문',   35.23451, 31.77638, 354, '발굴', '성전 산 서벽의 헤롯기 문. 지금은 무그라비 문 아래에 묻혀 있다.'),
-    ('윌슨 아치',     35.23432, 31.77707, 354, '발굴', '윗성에서 성전 산으로 건너오던 다리.'),
-    ('워런 문',       35.23430, 31.77790, 354, '추정', '성전 산 서벽 북쪽의 헤롯기 문. 지금은 막혀 있다.'),
-    ('실로암 문',     35.23380, 31.76960,  95, '발굴', 'Bliss 와 Dickie 가 실로암 못 남쪽에서 파낸 성문.'),
-    ('에센 문',       35.22890, 31.77010, 175, '발굴', '시온산 남서쪽. 요세푸스가 이름을 남긴 문이고 발굴로 확인되었다.'),
-    ('겐나트 문',     35.22880, 31.77650,  95, '불확실', '요세푸스가 제2성벽이 여기서 갈라졌다고 한 문. 자리는 확정되지 않았다.'),
+    ('훌다 이중문',   35.23588, 31.77584,  84, '발굴', '성전 산 남벽. 순례자가 정결례를 마치고 올라온 주 출입구다.', '성전 산'),
+    ('훌다 삼중문',   35.23658, 31.77595,  84, '발굴', '성전 산 남벽의 동쪽 문.', '성전 산'),
+    ('로빈슨 아치',   35.23459, 31.77582, 354, '발굴', '성전 산 남서 모서리에 걸린 계단. 아래 저잣거리에서 왕의 주랑으로 올라갔다.', '성전 산'),
+    ('바클레이 문',   35.23451, 31.77638, 354, '발굴', '성전 산 서벽의 헤롯기 문. 지금은 무그라비 문 아래에 묻혀 있다.', '성전 산'),
+    ('윌슨 아치',     35.23432, 31.77707, 354, '발굴', '윗성에서 성전 산으로 건너오던 다리.', '성전 산'),
+    ('워런 문',       35.23430, 31.77790, 354, '추정', '성전 산 서벽 북쪽의 헤롯기 문. 지금은 막혀 있다.', '성전 산'),
+    ('실로암 문',     35.23380, 31.76960,  95, '발굴', 'Bliss 와 Dickie 가 실로암 못 남쪽에서 파낸 성문.', '성읍'),
+    ('에센 문',       35.22890, 31.77010, 175, '발굴', '시온산 남서쪽. 요세푸스가 이름을 남긴 문이고 발굴로 확인되었다.', '성읍'),
+    ('겐나트 문',     35.22880, 31.77650,  95, '불확실', '요세푸스가 제2성벽이 여기서 갈라졌다고 한 문. 자리는 확정되지 않았다.', '성읍'),
 ]
 
 # 경계가 맞는지 재는 시금석. 여유 거리까지 본다 — 아슬아슬하게 걸치면 맞다고 할 수 없다.
@@ -313,6 +315,18 @@ def build_temples():
            to_ll(rock_m[0] + au[0] * east + an[0] *  half_w, rock_m[1] + au[1] * east + an[1] *  half_w),
            to_ll(rock_m[0] + au[0] * west + an[0] *  half_w, rock_m[1] + au[1] * west + an[1] *  half_w)]
 
+    # 헤롯 성소 '건물'. 솔로몬 건물과 견주려고 같이 낸다 — 크기를 물으신 뜻이
+    # 건물끼리 견주는 것이기 때문이다. 연구 묶음 02_치수표: 정면 100×100 규빗,
+    # 동서 총장 100 규빗 (Middot 4:6-7 · War 5.207, 등급 A).
+    # 솔로몬과 같은 기준으로 건다 — 지성소가 서쪽 끝이고 그 한가운데가 반석이다.
+    # 반석에 '한가운데'를 맞추면 지성소가 반석에서 50규빗 서쪽으로 밀려난다.
+    hw = 50 * CUBIT                       # 정면 폭 100규빗의 절반
+    hwest, heast = -10 * CUBIT, 90 * CUBIT
+    her = [to_ll(rock_m[0] + au[0] * hwest + an[0] * -hw, rock_m[1] + au[1] * hwest + an[1] * -hw),
+           to_ll(rock_m[0] + au[0] * heast + an[0] * -hw, rock_m[1] + au[1] * heast + an[1] * -hw),
+           to_ll(rock_m[0] + au[0] * heast + an[0] *  hw, rock_m[1] + au[1] * heast + an[1] *  hw),
+           to_ll(rock_m[0] + au[0] * hwest + an[0] *  hw, rock_m[1] + au[1] * hwest + an[1] *  hw)]
+
     # 검산에 쓸 값: 정방형 서변이 헤롯 서벽에서 얼마나 떨어졌나
     def seg_dist(px, py, ax, ay, bx, by):
         vx, vy = bx - ax, by - ay
@@ -322,7 +336,7 @@ def build_temples():
     nw_m = ((TEMPLE[3][0] - TEMPLE[0][0]) * KX, (TEMPLE[3][1] - TEMPLE[0][1]) * KY)
     west_off = min(seg_dist(pts[3][0], pts[3][1], sw_m[0], sw_m[1], nw_m[0], nw_m[1]),
                    seg_dist(pts[2][0], pts[2][1], sw_m[0], sw_m[1], nw_m[0], nw_m[1]))
-    return pre, sol, side, (70 * CUBIT, 20 * CUBIT), west_off, dn
+    return pre, sol, her, side, (70 * CUBIT, 20 * CUBIT), (100 * CUBIT, 100 * CUBIT), west_off, dn
 
 
 def main():
@@ -398,7 +412,7 @@ def main():
     }]
 
     # ── 성전 산의 세 시대 ──
-    pre, sol, pre_side, sol_size, west_off, seam_dn = build_temples()
+    pre, sol, her, pre_side, sol_size, her_size, west_off, seam_dn = build_temples()
     pre_ha = area_ha([[q[0], q[1]] for q in pre])
     sol_ha = area_ha([[q[0], q[1]] for q in sol])
 
@@ -426,6 +440,13 @@ def main():
                                  'cert': '문헌 + 발굴 앵커'},
                   'geometry': {'type': 'Polygon', 'coordinates': [pre + [pre[0]]]}})
     feats.append({'type': 'Feature',
+                  'properties': {'kind': 'sanctuary', 'ko': '헤롯 성소 (건물)',
+                                 'len_m': round(her_size[0], 1), 'wid_m': round(her_size[1], 1),
+                                 'cubit': CUBIT, 'cert': '문헌 치수 + 추정 위치',
+                                 'vs_solomon': round((her_size[0] * her_size[1]) /
+                                                     (sol_size[0] * sol_size[1]), 1)},
+                  'geometry': {'type': 'Polygon', 'coordinates': [her + [her[0]]]}})
+    feats.append({'type': 'Feature',
                   'properties': {'kind': 'temple1', 'ko': '솔로몬 성전 (건물)',
                                  'ha': round(sol_ha, 3),
                                  'len_m': round(sol_size[0], 1), 'wid_m': round(sol_size[1], 1),
@@ -438,11 +459,22 @@ def main():
                       'properties': {'kind': 'anchor', 'ko': name, 'cert': cert},
                       'geometry': {'type': 'Point', 'coordinates': [ring[i][0], ring[i][1]]}})
 
-    for name, lo, la, brg, cert, desc in GATES:
+    for name, lo, la, brg, cert, desc, wall in GATES:
         feats.append({'type': 'Feature',
                       'properties': {'kind': 'gate', 'ko': name, 'cert': cert,
-                                     'bearing': brg, 'desc': desc},
+                                     'bearing': brg, 'desc': desc, 'wall': wall},
                       'geometry': {'type': 'Point', 'coordinates': [lo, la]}})
+
+    # 면에 라벨을 붙이면 그 면이 걸친 타일마다 한 번씩 찍혀 글자가 겹친다(실제로 세 번씩
+    # 나왔다). 라벨은 면의 한가운데에 점 하나를 따로 내어 거기에 붙인다.
+    def centroid(poly):
+        xs = [q[0] for q in poly[:-1]] if poly[0] == poly[-1] else [q[0] for q in poly]
+        ys = [q[1] for q in poly[:-1]] if poly[0] == poly[-1] else [q[1] for q in poly]
+        return [round(sum(xs) / len(xs), 5), round(sum(ys) / len(ys), 5)]
+    for kind, poly in [('temple', TEMPLE), ('temple2', pre), ('temple1', sol), ('sanctuary', her)]:
+        feats.append({'type': 'Feature',
+                      'properties': {'kind': kind, 'label_only': True},
+                      'geometry': {'type': 'Point', 'coordinates': centroid(list(poly))}})
 
     unsure = [[p[0], p[1]] for p in ring if p[3] == '불확실']
     i12 = [r[2] for r in ring].index('성전 산 북서 (안토니아 요새)')
@@ -466,6 +498,9 @@ def main():
     print('성전  스룹바벨~하스몬 %.1f ha (%d규빗=%.1f m 네모, 스큐 %.1f°) · 솔로몬 건물 %.2f×%.2f m'
           % (pre_ha, SQUARE_CUBITS, pre_side, SQUARE_SKEW_DEG, sol_size[0], sol_size[1]))
     print('      헤롯 %.1f ha 는 그 %.1f 배다' % (tha, tha / pre_ha))
+    print('건물  솔로몬 %.2f×%.2f m · 헤롯 성소 %.1f×%.1f m (바닥 넓이로 %.1f 배)'
+          % (sol_size[0], sol_size[1], her_size[0], her_size[1],
+             (her_size[0] * her_size[1]) / (sol_size[0] * sol_size[1])))
     print('성문  %d개 (발굴 %d · 추정 %d · 불확실 %d)'
           % (len(GATES), sum(1 for g in GATES if g[4] == '발굴'),
              sum(1 for g in GATES if g[4] == '추정'), sum(1 for g in GATES if g[4] == '불확실')))
