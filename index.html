@@ -758,6 +758,7 @@
 <div class="status" id="status"></div>
 
 <script type="module">
+const TOUCH_DEVICE = navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches;
 // ---------- 우주 배경 ----------
 // 지구 밖은 MapLibre 캔버스가 투명하다. 그 뒤에 별을 직접 그려 넣는다.
 // 지표로 내려올수록 걷어내야 한다. 낮 하늘 위에 별이 남으면 오히려 비현실적이다.
@@ -769,7 +770,9 @@ let seed = SKY_SEED;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 
 function drawSpace() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // 화면 전체를 덮는 별 캔버스까지 2배로 만들 필요는 없다. 모바일에서는 1배면 충분하고
+  // 메인 WebGL 프레임버퍼와 동시에 차지하던 메모리를 줄인다.
+  const dpr = TOUCH_DEVICE ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   const w = space.clientWidth, h = space.clientHeight;
   if (!w || !h) return;
   space.width = Math.round(w * dpr);
@@ -863,12 +866,38 @@ if (!maplibregl) {
 }
 
 function initMap() {
-const TOUCH = matchMedia('(pointer: coarse)').matches;
+// iPad 에 트랙패드를 붙이면 주 포인터가 fine 으로 바뀌어도 화면은 여전히 iOS WebKit 과
+// 같은 메모리 한도 안에 있다. 포인터 미디어쿼리 하나로만 모바일을 가르면 이 경우 모든
+// 안전장치가 빠진다. 실제 터치점이 하나라도 있으면 터치 기기로 본다.
+const TOUCH = TOUCH_DEVICE;
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const memory = navigator.deviceMemory || 0;
 const cores = navigator.hardwareConcurrency || 0;
 const saveData = Boolean(navigator.connection && navigator.connection.saveData);
-const LOW_POWER = TOUCH && (saveData || (memory > 0 && memory <= 4) || (cores > 0 && cores <= 4));
+// Safari·iOS Chrome 은 deviceMemory 를 내주지 않는다. '모름(0)'을 고성능으로 취급하면
+// 메모리 한도가 가장 작은 iPhone 이 오히려 높은 렌더링 배율을 받는다.
+const memoryKnown = memory > 0;
+const LOW_POWER = TOUCH && (saveData || !memoryKnown || memory <= 4 || (cores > 0 && cores <= 4));
+const LIGHT_KEY = 'bibleatlas.light';
+
+// iOS 가 메모리 압박으로 탭을 강제 재시작하면 unload/pagehide 를 보낼 기회가 없다.
+// sessionStorage 의 active 표식이 남아 있으면 직전 실행이 정상 종료되지 않은 것으로 보고
+// 이번 한 번은 2D 안전 모드로 복구한다. 정상 새로고침·뒤로가기는 pagehide 에서 지운다.
+const MOBILE_SESSION_KEY = 'bibleatlas.mobile-session';
+let recoverFromCrash = false;
+if (TOUCH) {
+  try {
+    const prior = JSON.parse(sessionStorage.getItem(MOBILE_SESSION_KEY) || 'null');
+    recoverFromCrash = Boolean(prior && prior.active && Date.now() - prior.t < 6 * 3600e3);
+    const armMobileSession = () =>
+      sessionStorage.setItem(MOBILE_SESSION_KEY, JSON.stringify({ active: true, t: Date.now() }));
+    armMobileSession();
+    addEventListener('pagehide', () => sessionStorage.removeItem(MOBILE_SESSION_KEY), { capture: true });
+    // BFCache 에서 돌아온 뒤에도 다시 표식을 세운다. 그렇지 않으면 복귀 후의 강제 종료는
+    // 다음 시작에서 알아차릴 수 없다.
+    addEventListener('pageshow', armMobileSession, { capture: true });
+  } catch (e) {}
+}
 // 긴 flyTo 애니메이션은 모바일 GPU를 계속 최고 부하로 유지한다. 짧게 끝내되
 // 데스크톱의 공간 이동 감각은 그대로 보존한다.
 const motionMs = ms => REDUCED_MOTION ? 0 : (TOUCH ? Math.min(ms, 700) : ms);
@@ -1170,7 +1199,6 @@ const style = {
   sources: {
     terrain: { type: 'raster-dem', tiles: [LAND_DEM], encoding: 'terrarium', tileSize: 512, maxzoom: 12,
                attribution: 'Terrain: Mapterhorn' },
-    land:    { type: 'raster-dem', tiles: [LAND_DEM], encoding: 'terrarium', tileSize: 512, maxzoom: 12 },
     bathy:   { type: 'raster-dem', tiles: [BATHY_DEM], encoding: 'terrarium', tileSize: 256, maxzoom: 10,
                attribution: 'Bathymetry: Mapzen/AWS Terrain Tiles (ETOPO1)' },
     vector:  { type: 'vector', url: VECTOR_URL, attribution: '© OpenStreetMap contributors, OpenFreeMap' },
@@ -1203,7 +1231,7 @@ const style = {
       paint: { 'background-color': ['interpolate', ['linear'], ['zoom'], 8, '#1e4f86', 11, '#39699b'] } },
 
     // 2) 육지: 고도별 색상 (어디서나 불투명)
-    { id: 'relief', type: 'color-relief', source: 'land',
+    { id: 'relief', type: 'color-relief', source: 'terrain',
       paint: { 'color-relief-color': reliefRamp(2500), 'color-relief-opacity': 1 } },
 
     // 2a) 바다. OSM 해안선 폴리곤으로 그린다 — DEM 은 '바다 0m' 와 '삼각주 육지 0m'
@@ -1372,7 +1400,7 @@ const style = {
                'circle-pitch-alignment': 'viewport', 'circle-pitch-scale': 'viewport' } },
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
-    { id: 'hillshade', type: 'hillshade', source: 'land',
+    { id: 'hillshade', type: 'hillshade', source: 'terrain',
       paint: {
         // 다중 광원. 단일 광원은 주광 반대면이 통째로 뭉개져 산줄기가 사라진다.
         // 주광(북서) + 보조광 3개로 채우면 능선·계곡이 살아나고 그늘이 새까맣게 죽지 않는다.
@@ -1910,10 +1938,13 @@ const map = new maplibregl.Map({
 // 자리를 잡은 뒤가 다를 수 있고(창을 다른 배율의 화면으로 옮겨도 바뀐다), 그래서 한
 // 번만 잡아 두면 안 된다. 로드와 크기 변경 때마다 다시 잡는다.
 let gestureBusy = false;
+const pixelRatioCap = LOW_POWER ? 1.25 : 1.5;
 const syncPixelRatio = () => {
   if (!TOUCH) return;
   // 손가락이 닿아 있는 동안에는 1 로 떨군다. 아래 설명 참조.
-  const want = gestureBusy ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+  // 중요: 제스처가 끝나거나 화면이 회전해도 저전력 상한을 넘기지 않는다. 예전 코드는
+  // 이 경로에서 2배로 되돌려, 1.25/1.5 상한이 첫 동작 뒤 사실상 풀렸다.
+  const want = gestureBusy ? 1 : Math.min(window.devicePixelRatio || 1, pixelRatioCap);
   if (map.getPixelRatio() !== want) map.setPixelRatio(want);
 };
 syncPixelRatio();
@@ -1978,13 +2009,10 @@ syncSpace();
 map.on('move', syncSpace);
 map.on('zoom', syncSpace);
 
-// 고밀도 모바일 화면은 실제 CSS 크기보다 훨씬 많은 픽셀을 그린다. 3D 지형은
-// 픽셀 수가 곧 GPU 부하이므로 일반 터치는 1.5배, 저전력 신호에서는 1.25배로 제한한다.
-const pixelRatioCap = LOW_POWER ? 1.25 : 1.5;
-if (TOUCH && (window.devicePixelRatio || 1) > pixelRatioCap) map.setPixelRatio(pixelRatioCap);
-
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1 }), 'top-right');
+// 모바일 TerrainControl 은 '가볍게 보기'와 별도로 3D 를 다시 켤 수 있어 체크상자와 실제
+// 상태가 어긋났다. 터치 기기에서는 한 군데(설정의 가볍게 보기)에서만 전환한다.
+if (!TOUCH) map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1 }), 'top-right');
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: 'metric' }), 'bottom-right');
 
 // ---------- 트랙패드 두 손가락 드래그 → 회전(좌우)·기울기(상하) ----------
@@ -2079,7 +2107,6 @@ $('borders').addEventListener('change', e =>
 //
 // 켠 것은 이 기기에 기억한다. 죽어서 다시 들어온 사람에게 매번 다시 켜라고 할 수는 없다.
 // (길찾기의 연결로 스위치와 반대다. 그쪽은 켜면 무거워지므로 기억하지 않는다.)
-const LIGHT_KEY = 'bibleatlas.light';
 let lightOn = false;
 
 function applyLightMode(on) {
@@ -2107,7 +2134,53 @@ $('lightMode').addEventListener('change', e => applyLightMode(e.target.checked))
 map.once('style.load', () => {
   let want = false;
   try { want = localStorage.getItem(LIGHT_KEY) === '1'; } catch (e) {}
-  if (want) { $('lightMode').checked = true; applyLightMode(true); }
+  if (want || recoverFromCrash) {
+    $('lightMode').checked = true;
+    applyLightMode(true);
+    if (recoverFromCrash) {
+      $('lightNote').innerHTML = '직전 실행이 비정상 종료되어 <b>가볍게 보기로 자동 복구했습니다.</b> ' +
+        '3D 지형이 필요하면 이 체크를 끌 수 있습니다.';
+    }
+  }
+});
+
+// WebGL 컨텍스트 손실은 GPU 재설정·메모리 압박의 직접 신호다. 다음 실행을 안전 모드로
+// 예약하고, 브라우저가 컨텍스트를 복구하면 즉시 2D 로 낮춘다. 탭 자체가 종료되더라도
+// 위 sessionStorage 표식이 다음 시작에서 같은 역할을 한다.
+let webglLost = false;
+map.getCanvas().addEventListener('webglcontextlost', e => {
+  // 브라우저가 컨텍스트 복구를 시도할 수 있게 한다.
+  e.preventDefault();
+  webglLost = true;
+  try { localStorage.setItem(LIGHT_KEY, '1'); } catch (e) {}
+  const s = $('status');
+  s.style.display = 'block';
+  s.textContent = '그래픽 메모리 부족을 감지했습니다. 지도를 가볍게 보기로 복구합니다.';
+}, false);
+map.getCanvas().addEventListener('webglcontextrestored', () => {
+  if (!webglLost) return;
+  webglLost = false;
+  setTimeout(() => {
+    try {
+      $('lightMode').checked = true;
+      applyLightMode(true);
+    } catch (e) {}
+  }, 0);
+}, false);
+
+// 앱 전환 뒤 백그라운드 탭에서 관성 애니메이션과 큰 프레임버퍼를 계속 갱신하지 않는다.
+// 돌아오면 실제 viewport 를 다시 읽고 한 번만 그린다.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    map.stop();
+    clearTimeout(restoreTimer);
+  } else {
+    gestureBusy = false;
+    touchesDown = 0;
+    syncPixelRatio();
+    map.resize();
+    map.triggerRepaint();
+  }
 });
 
 // 보던 자리를 남겨 둔다. 탭이 죽어 다시 열리면 주소의 해시가 남지 않는 일이 있는데,
@@ -4115,7 +4188,7 @@ function modelBounds(model, cam) {
 function drawTerrainModel(cv, model, cam, fast) {
   if (!model || !model.grid) return;
   const ctx = cv.getContext('2d');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, TOUCH ? 1.25 : 2);
   const W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -5292,11 +5365,12 @@ for (const id of PLACE_LAYERS) map.on('click', id, () => { if (profilePicking) c
 // ---------- 오류 표시 ----------
 let errHide = null;
 map.on('error', ev => {
+  if (webglLost) return;                  // 위의 더 정확한 GPU 복구 안내를 덮지 않는다
   const e = (ev && ev.error) || {};
   const s = $('status');
   s.style.display = 'block';
   s.dataset.source = (ev && ev.sourceId) || '';
-  const WHO = { terrain: '지형', land: '지형', bathy: '해저 지형', vector: '물·국경',
+  const WHO = { terrain: '지형', bathy: '해저 지형', vector: '물·국경',
                 world: '전지구 자연색' };
   const who = WHO[ev && ev.sourceId] || '타일';
   s.textContent = who + ' 로드 오류: ' + (e.message || '네트워크 확인');
