@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>bible-atlas2 — 3D 지형 프로토타입 v0.1</title>
-<link id="mlcss" href="https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+<link id="mlcss" href="https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
   :root {
     --ink: #2b2a26;
@@ -600,10 +600,9 @@
   <div class="sub" style="margin:-2px 0 6px">음영 세기를 경사도에 비례시킨다. 유대 광야의
     급경사와 해안 평야가 갈라져 보인다. 기본은 네 방향 판독광이라 반대면도 뭉개지지 않는다.</div>
   <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
-  <div class="row touch-only"><label><input type="checkbox" id="lightMode" /> 가볍게 보기 (3D 지형 끄기)</label></div>
-  <div class="sub touch-only" id="lightNote" style="margin:2px 0 6px">3D 지형과 음영을 끄고 평면으로 봅니다.
-    휴대폰에서 확대해 돌리다 화면이 꺼지거나 첫 화면으로 되돌아간다면 이것을 켜 주세요.
-    켠 것은 이 기기에 기억해 둡니다.</div>
+  <div class="row touch-only"><label><input type="checkbox" id="lightMode" checked /> 가볍게 보기 (3D 지형 끄기)</label></div>
+  <div class="sub touch-only" id="lightNote" style="margin:2px 0 6px">모바일은 Safari·Chrome 탭 종료를 막기 위해
+    2D로 안전하게 시작합니다. 3D 지형이 꼭 필요할 때만 체크를 끄세요.</div>
   <div class="row desktop-only"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
   <div class="sub desktop-only" style="margin:2px 0 4px">좌우 = 회전, 상하 = 기울기 · 핀치 = 확대/축소 · 한 손가락 드래그 = 이동</div>
   <div class="row" style="margin-top:8px">
@@ -850,8 +849,8 @@ addEventListener('resize', () => {
 
 // ---------- 라이브러리 로드 (MapLibre v6는 ESM 전용: .mjs만 배포됨) ----------
 const CDNS = [
-  'https://unpkg.com/maplibre-gl@^6.0.0/dist/maplibre-gl.mjs',
-  'https://cdn.jsdelivr.net/npm/maplibre-gl@6/dist/maplibre-gl.mjs'
+  'https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.mjs',
+  'https://cdn.jsdelivr.net/npm/maplibre-gl@6.9.0/dist/maplibre-gl.mjs'
 ];
 let maplibregl = null;
 for (const url of CDNS) {
@@ -1401,6 +1400,7 @@ const style = {
 
     // 9) 음영기복 (육지 DEM만 → 바다는 평평하게)
     { id: 'hillshade', type: 'hillshade', source: 'terrain',
+      layout: { visibility: TOUCH ? 'none' : 'visible' },
       paint: {
         // 다중 광원. 단일 광원은 주광 반대면이 통째로 뭉개져 산줄기가 사라진다.
         // 주광(북서) + 보조광 3개로 채우면 능선·계곡이 살아나고 그늘이 새까맣게 죽지 않는다.
@@ -1892,7 +1892,10 @@ const style = {
         'text-opacity': PLACE_OPACITY
       } }
   ],
-  terrain: { source: 'terrain', exaggeration: 1 }
+  // iOS WebKit은 스타일의 terrain을 지도 생성과 동시에 올린다. style.load 뒤에서
+  // 끄는 방식은 초기 GPU 메모리 압박으로 탭이 종료될 때 실행될 기회조차 없다.
+  // 터치 기기는 처음부터 2D로 만들고, 사용자가 명시적으로 선택한 뒤에만 3D를 올린다.
+  ...(TOUCH ? {} : { terrain: { source: 'terrain', exaggeration: 1 } })
 };
 
 // 지도를 만들기 전에 주소의 해시를 붙잡아 둔다. hash:true 인 MapLibre 는 만들어지는 즉시
@@ -1901,9 +1904,20 @@ const style = {
 // 자리 되살리기가 한 번도 듣지 않았다.
 const INITIAL_HASH = location.hash;
 
+// MapLibre의 hash:true는 생성자 옵션보다 URL 해시를 우선한다. 예를 들어 Safari 오류
+// 화면에서 확인된 #7.2/32.4/35.6/-8/58은 생성 즉시 pitch 58° terrain 렌더링을 시작한다.
+// 모바일에서는 위치·확대·방향은 보존하고 기울기만 0°로 낮춘 다음 지도를 생성한다.
+if (TOUCH && /^#-?\d/.test(location.hash)) {
+  const hashParts = location.hash.slice(1).split('/');
+  if (hashParts.length >= 5 && hashParts.slice(0, 5).every(part => Number.isFinite(Number(part)))) {
+    hashParts[4] = '0';
+    history.replaceState(null, '', `${location.pathname}${location.search}#${hashParts.join('/')}`);
+  }
+}
+
 const map = new maplibregl.Map({
   container: 'map', style,
-  center: [36.5, 33.5], zoom: 4.6, pitch: 50, bearing: -8,
+  center: [36.5, 33.5], zoom: 4.6, pitch: TOUCH ? 0 : 50, bearing: -8,
   // 지면 가까이까지 내려갈 수 있게 한다. 위성 원본은 10 m 라 z14 를 넘으면 늘어나지만,
   // 지형 위를 걷는 듯한 시점은 그때부터 나온다.
   // 기울기를 크게 눕히면 지형이 지평선까지 화면을 채운다. 지형 위에서는 손가락을
@@ -2103,10 +2117,8 @@ $('borders').addEventListener('change', e =>
 //
 // 지형을 켜면 MapLibre 는 DEM 타일마다 격자 그물을 만들고, 손가락이 움직일 때마다 화면
 // 좌표를 GPU 에서 되읽는다(readPixels). 그 둘이 사라지면 부담이 크게 준다. 대신 평면이
-// 되므로 이 지도의 값어치도 함께 준다 — 그래서 **기본은 켜지 않고**, 죽는 사람만 켜게 한다.
-//
-// 켠 것은 이 기기에 기억한다. 죽어서 다시 들어온 사람에게 매번 다시 켜라고 할 수는 없다.
-// (길찾기의 연결로 스위치와 반대다. 그쪽은 켜면 무거워지므로 기억하지 않는다.)
+// 되므로 데스크톱은 3D를 유지한다. 모바일은 초기 terrain 생성 자체가 Safari 탭을 죽일 수
+// 있어 항상 2D로 시작하고, 3D는 현재 방문에서만 사용자가 명시적으로 켤 수 있게 한다.
 let lightOn = false;
 
 function applyLightMode(on) {
@@ -2122,19 +2134,19 @@ function applyLightMode(on) {
   // 지형이 없으면 기울일 이유가 없다. 기울기 조작 자체를 막아 되읽기를 부르지 않는다.
   if (on) map.dragRotate.disable(); else map.dragRotate.enable();
   $('lightNote').innerHTML = on
-    ? '3D 지형과 음영을 껐습니다. 평면으로 보는 대신 <b>훨씬 가볍습니다</b>. ' +
-      '이 기기에 기억해 두었으니 다음에 들어와도 꺼진 채로 열립니다.'
-    : '3D 지형과 음영을 끄고 평면으로 봅니다. 휴대폰에서 확대해 돌리다 화면이 꺼지거나 ' +
-      '첫 화면으로 되돌아간다면 이것을 켜 주세요. 켠 것은 이 기기에 기억해 둡니다.';
+    ? '모바일은 3D 지형과 음영을 끈 <b>안전한 2D 상태</b>입니다. ' +
+      '다음 방문도 이 상태로 시작합니다.'
+    : '3D 지형을 켰습니다. Safari·Chrome이 멈추거나 새로고침되면 다시 접속하세요. ' +
+      '다음 방문은 자동으로 안전한 2D 상태에서 시작합니다.';
   try { on ? localStorage.setItem(LIGHT_KEY, '1') : localStorage.removeItem(LIGHT_KEY); } catch (e) {}
 }
 
 $('lightMode').addEventListener('change', e => applyLightMode(e.target.checked));
-// 기억해 둔 것이 있으면 스타일이 준비된 뒤에 되살린다.
+// 모바일은 항상 2D로 시작한다. 사용자가 3D를 켠 선택은 다음 로드로 넘기지 않는다.
 map.once('style.load', () => {
   let want = false;
   try { want = localStorage.getItem(LIGHT_KEY) === '1'; } catch (e) {}
-  if (want || recoverFromCrash) {
+  if (TOUCH || want || recoverFromCrash) {
     $('lightMode').checked = true;
     applyLightMode(true);
     if (recoverFromCrash) {
