@@ -618,7 +618,8 @@
     <div class="sub" id="jeruNote" style="margin:-2px 0 6px">성읍 83.3 ha · 둘레 3.75 km · 남북 1,178 m · 동서 900 m<br>
       성전 산 대지 14.1 ha (성읍의 16.9%) · 성문 9곳<br>
       성전 산 세 시대 — 스룹바벨~하스몬 6.9 ha · 헤롯 14.1 ha (1규빗 0.525 m)<br>
-      성전 건물 — 솔로몬 36.8×10.5 m · 헤롯 성소 52.5×52.5 m (바닥 넓이 7.1배)</div>
+      성전 건물 — 솔로몬 36.8×10.5 m · 헤롯 성소 52.5×52.5 m (바닥 넓이 7.1배)<br>
+      베데스다 못 83×52 m — 성읍 <b>밖</b>, 경계에서 143 m</div>
     <div class="sub" id="jeruCaution" hidden style="margin:-2px 0 6px">
       <b>성벽 복원도가 아니라 성읍이 얼마나 컸는지를 보이는 것입니다.</b> 꼭짓점 17개 가운데
       <b>9개를 발굴된 유구</b>에 걸었습니다 — 성전 산 남벽(로빈슨 아치·훌다 두 문·단일문),
@@ -1471,6 +1472,24 @@ const style = {
         'text-anchor': 'bottom', 'text-offset': [0, -0.6],
         'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
       paint: { 'text-color': '#0f4a4a', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
+
+    // 베데스다 못. 성읍 밖이라 성읍과 다른 색(물빛)으로 둔다.
+    { id: 'jeru-pool-fill', type: 'fill', source: 'jeruc1', minzoom: 14,
+      filter: ['all', ['==', ['get', 'kind'], 'pool'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#2f6f9e', 'fill-opacity': 0.35 } },
+    { id: 'jeru-pool-line', type: 'line', source: 'jeruc1', minzoom: 14,
+      filter: ['all', ['==', ['get', 'kind'], 'pool'], ['==', ['geometry-type'], 'Polygon']],
+      layout: { visibility: 'none', 'line-join': 'round' },
+      paint: { 'line-color': '#1b4a6b', 'line-opacity': 0.95,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1.4, 17, 2.8, 19, 4] } },
+    { id: 'jeru-pool-label', type: 'symbol', source: 'jeruc1', minzoom: 15,
+      filter: ['all', ['==', ['get', 'kind'], 'pool'], ['==', ['geometry-type'], 'Point']],
+      layout: { visibility: 'none', 'text-field': '베데스다 못', 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 15, 10.5, 19, 13],
+        'text-anchor': 'bottom', 'text-offset': [0, -0.7],
+        'text-pitch-alignment': 'viewport', 'text-rotation-alignment': 'viewport' },
+      paint: { 'text-color': '#14384f', 'text-halo-color': '#ffffff', 'text-halo-width': 2 } },
 
     // 헤롯 성소 '건물'. 솔로몬 건물과 견주려고 같이 그린다.
     { id: 'jeru-sanct-fill', type: 'fill', source: 'jeruc1', minzoom: 14,
@@ -2696,6 +2715,7 @@ for (const key of Object.keys(ROAD_SETS)) {
 // 확정된 발굴선이 없는 제2성벽 구간만 점선으로 갈라 그린다.
 const JERU_LAYERS = ['jeru-fill', 'jeru-line', 'jeru-unsure', 'jeru-anchor',
                      'jeru-t2-fill', 'jeru-t2-line', 'jeru-t2-label',
+                     'jeru-pool-fill', 'jeru-pool-line', 'jeru-pool-label',
                      'jeru-sanct-fill', 'jeru-sanct-line', 'jeru-sanct-label',
                      'jeru-t1-fill', 'jeru-t1-line', 'jeru-t1-label',
                      'jeru-temple-fill', 'jeru-temple-line', 'jeru-temple-label',
@@ -2751,6 +2771,21 @@ function openJeruPopup(feature, at) {
       '<div class="certainty">검산 넷을 통과합니다 — 동벽의 제1성전기 석조가 네모의 동변에 붙고, ' +
       '헤롯기 북쪽 확장부는 네모 밖이며, 네 모서리가 모두 헤롯 대지 안이고, 헤롯 서벽과의 간격이 ' +
       '연구 자료의 25 m 와 맞습니다. 헤롯은 이 크기를 2.0배로 넓혔습니다.</div></div>';
+  } else if (p.kind === 'pool') {
+    html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
+      '<div class="context">요 5:2 · 양문 곁의 쌍못</div>' +
+      `<div class="meta">발굴 구역 <b>${p.ew_m} × ${p.ns_m} m</b> · <b>${p.ha} ha</b></div>` +
+      `<div class="meta"><b>성읍 밖</b> — 경계에서 ${p.outside_m} m 북쪽</div>` +
+      '<p>북쪽 못이 먼저입니다. 기원전 700년대에 샘을 막아 저수지로 삼았고, 하스몬기에 ' +
+      '남쪽 못을 덧대었습니다. 두 못 사이의 둑이 «행각 다섯» 가운데 다섯째 자리로 읽힙니다 — ' +
+      '네 변을 두른 행각에 둑 위의 하나를 더한 셈입니다.</p>' +
+      '<p><b>1세기에는 성벽 밖이었습니다.</b> 제2성벽은 안토니아까지만 올라갔고, 이 일대는 ' +
+      '성 밖 베제타 지구였습니다. 아그립바가 서기 42년부터 쌓은 제3성벽이 비로소 이곳을 ' +
+      '성 안으로 넣었습니다 — 예수께서 오셨을 때는 아직 성 밖이었습니다.</p>' +
+      `<div class="certainty">테두리는 ${esc(p.cert)}로, 오늘 파내어 보이는 만큼입니다. 옛 복합은 ` +
+      '뒷날의 비잔틴 교회와 수도원 부지 아래로 더 뻗습니다. 한편 Warren·Wilson 이 말한 ' +
+      '«성전 산 북서 모서리의 쌍못»(165×48 ft)은 안토니아 곁의 스트루티온 못으로 여기가 ' +
+      '아닙니다 — 에우세비우스 시대의 전승지를 논한 대목입니다.</div></div>';
   } else if (p.kind === 'sanctuary') {
     html = `<div class="pp"><h3>${esc(p.ko)}</h3>` +
       '<div class="context">헤롯 성전 — 성소 건물</div>' +
@@ -2812,7 +2847,7 @@ function openJeruPopup(feature, at) {
 // 솔로몬 성전을 눌러도 성읍 설명이 떴다. 그래서 핸들러는 하나만 두고, 작은 것부터
 // 찾아 맨 먼저 걸리는 하나만 연다.
 const JERU_PICK_ORDER = ['jeru-gate', 'jeru-gate-label', 'jeru-anchor',
-                         'jeru-t1-fill', 'jeru-sanct-fill', 'jeru-t2-fill',
+                         'jeru-pool-fill', 'jeru-t1-fill', 'jeru-sanct-fill', 'jeru-t2-fill',
                          'jeru-temple-fill', 'jeru-fill'];
 
 map.on('click', e => {
