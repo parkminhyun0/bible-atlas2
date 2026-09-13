@@ -2756,7 +2756,7 @@ function openPlacePopup(feature, lngLat) {
     (aliases.length ? `<div class="meta">다른 이름: ${esc(aliases.join(' · '))}</div>` : '') +
     (p.desc ? `<p>${esc(p.desc)}</p>` : '') +
     (p.grade ? `<div class="meta">자리의 근거: ${esc(HILL_GRADE[p.grade] || p.grade)}</div>` : '') +
-    (p.refs ? `<div class="refs${/^성경/.test(p.refs) ? ' note' : ''}"` +
+    (p.refs ? `<div class="refs${NOT_SCRIPTURE.test(p.refs) ? ' note' : ''}"` +
       ` data-refs="${esc(p.refs)}"${refsParts.length > 1 ? ` data-parts="${esc(JSON.stringify(refsParts))}"` : ''}>` +
       `${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
     (historical ? '<div class="certainty">교육용 대표 위치입니다. 고대 지역 경계와 논쟁적인 지점의 정확한 위치를 확정한다는 뜻은 아닙니다.</div>' : '') +
@@ -3053,7 +3053,8 @@ function openHarbourPopup(feature) {
     `<div class="meta">${esc(p.side)} · ${esc(p.period)} · ${esc(BASIS[p.coordinate_basis] || p.coordinate_basis)}</div>` +
     `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E</div>` +
     `<p>${esc(p.desc)}</p>` +
-    (p.refs ? `<div class="refs" data-refs="${esc(p.refs)}">${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
+    (p.refs ? `<div class="refs${NOT_SCRIPTURE.test(p.refs) ? ' note' : ''}" data-refs="${esc(p.refs)}">` +
+      `${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
     `<div class="certainty"><b>판정 기준:</b> ${esc(p.criterion)}.<br>` +
     `<b>주요 근거:</b> ${esc(p.sources)}.<br>` +
     '대표점은 위치 성격을 확인한 뒤 사용해야 하며, 근사 호안점은 방파제의 정밀 측량 좌표가 아닙니다.</div></div>';
@@ -3103,7 +3104,8 @@ function openSynagoguePopup(feature, lngLat) {
     `<div class="meta">${esc(p.region)} · ${esc(p.period)} · ${esc(BASIS[p.coordinate_basis] || p.coordinate_basis)}</div>` +
     `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E</div>` +
     `<p>${esc(p.desc)}</p>` +
-    (p.refs ? `<div class="refs" data-refs="${esc(p.refs)}">${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
+    (p.refs ? `<div class="refs${NOT_SCRIPTURE.test(p.refs) ? ' note' : ''}" data-refs="${esc(p.refs)}">` +
+      `${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
     `<div class="certainty"><b>판정 기준:</b> ${esc(p.criterion)}.<br>` +
     `<b>주요 근거:</b> ${esc(p.sources)}.<br>` +
     `<b>주의:</b> ${esc(p.caution)}</div></div>`;
@@ -5068,8 +5070,13 @@ function loadVerses() {
 }
 
 // '신 3:9; 시 133:3' → 참조 하나하나를 손 올릴 수 있는 조각으로 만든다.
+// 개역한글로 인용할 수 있는 것과 아닌 것을 가른다. 요세푸스·마카베오상과 '성경에 …'
+// 같은 안내문은 눌러도 펼칠 본문이 없다 — 누를 수 있게 두면 '본문을 찾지 못했습니다'만
+// 나온다. 실제로 회당·항구 팝업에서 그러고 있었다(요세푸스 참조 6곳).
+const NOT_SCRIPTURE = /^(성경|요세푸스|마카베오|탈무드|미쉬나|필론|플리니우스|스트라본|타키투스)/;
+
 function citeHtml(refs) {
-  if (/^성경/.test(refs)) return esc(refs);
+  if (NOT_SCRIPTURE.test(refs)) return esc(refs);
   return refs.split(';').map((seg, i) =>
     `<span class="cite" data-i="${i}">${esc(seg.trim())}</span>`
   ).join('; ');
