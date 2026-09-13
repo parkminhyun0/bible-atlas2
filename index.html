@@ -3051,8 +3051,13 @@ function openHarbourPopup(feature) {
     `<div class="pp"><h3>${esc(p.ko)}${p.en ? `<span class="en">${esc(p.en)}</span>` : ''}</h3>` +
     `<div class="context">갈릴리 호수 항구·정박 후보 · ${esc(p.grade)} ${esc(p.confidence)}</div>` +
     `<div class="meta">${esc(p.side)} · ${esc(p.period)} · ${esc(BASIS[p.coordinate_basis] || p.coordinate_basis)}</div>` +
-    `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E</div>` +
+    // 호안선까지의 거리를 함께 낸다. 항만 점이 뭍으로 들어가 있으면 한눈에 보인다.
+    `<div class="meta">대표 좌표 ${(+pt[1]).toFixed(4)}°N, ${(+pt[0]).toFixed(4)}°E` +
+    `${Number.isFinite(+p.shore_distance_m) ? ` · 오늘의 호안선까지 ${p.shore_distance_m} m` : ''}</div>` +
     `<p>${esc(p.desc)}</p>` +
+    // Nun 1999 원문을 한 줄씩 맞춰 본 결과. 논문이 다루지 않는 곳은 그렇다고 적는다 —
+    // 근거가 있는 척하지 않는 것이 이 자료의 값어치다.
+    (p.nun1999 ? `<div class="certainty"><b>Nun 1999 원문 대조:</b> ${esc(p.nun1999)}</div>` : '') +
     (p.refs ? `<div class="refs${NOT_SCRIPTURE.test(p.refs) ? ' note' : ''}" data-refs="${esc(p.refs)}">` +
       `${citeHtml(p.refs)}</div><div class="verse" hidden></div>` : '') +
     `<div class="certainty"><b>판정 기준:</b> ${esc(p.criterion)}.<br>` +

@@ -1,7 +1,7 @@
 {
  "type": "FeatureCollection",
  "attribution": "Raban 1988 · Nun 1989/1999 · De Luca & Lena 2014 · Sarti et al. 2013 · Galili et al. 2018 · IAA 2011",
- "note": "Nun의 16은 구조물/정박지 조사 수다. 중복 시설을 장소 단위로 묶고 1세기 확실성을 A/B/C로 구분한다.",
+ "note": "Nun 1999 는 호수에 \"적어도 15곳\"(도면 설명)에서 \"적어도 16곳\"(본문)의 인공 항구가 있었다고 적는다. 같은 글 안에서 수가 갈리므로 어느 한쪽을 확정해 옮기지 않는다. 여기 담은 14곳은 장소 단위로 묶은 것이고, 1세기 확실성은 A/B/C 로 나눈다. 로마기 최고 수위는 오늘보다 약 1m 낮았고 얕은 물가가 최대 46m 더 바깥이었다 — 그래서 옛 항만 시설은 오늘의 물가에 걸치거나 물속에 있다.",
  "evidence_model": {
   "A": "1세기 사용을 직접 지지하는 발굴·층위·유물",
   "B": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
@@ -19,9 +19,11 @@
     "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
     "coordinate_basis": "shore",
     "period": "헬레니즘–로마기 유력",
-    "desc": "현무암 방파제·부두·계선 시설이 조사된 큰 항구다. 800m라는 수치는 항만과 인접 호안 시설 전체 범위로 보아야 하며, 서기 1세기 단일 부두 길이로 단정하지 않는다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
-    "refs": "막 1:21; 마 4:13"
+    "desc": "호안을 따라 762m(2,500피트) 길이의 포장 산책로가 뻗고, 폭 2.4m(8피트) 안벽이 그것을 받쳤다. 거기서 약 30m(100피트)씩 내민 부두들이 있었는데 둘씩 짝지어 안으로 굽은 것, 곧은 것, 삼각형인 것이 섞여 있다. 마태가 맡았던 해상 세관이 이 항구에 있었다.",
+    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조) · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "상세 기술 — 산책로 2,500피트·안벽 폭 8피트·부두 약 100피트 돌출·쌍곡/직선/삼각 부두. 산책로 높이 해수면 아래 687피트로, 오늘의 최고 수위(686피트)보다 낮다.",
+    "refs": "막 1:21; 마 4:13",
+    "shore_distance_m": 81
    },
    "geometry": {
     "type": "Point",
@@ -42,15 +44,17 @@
     "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
     "coordinate_basis": "harbour",
     "period": "로마기 사용 유력",
-    "desc": "서로 다른 두 방파제로 보호된 정박 시설 가운데 하나다. 약 60m와 40m 방파제가 보고되며, 인근 온천수 때문에 겨울 어장이 형성되었다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19",
-    "refs": "막 1:16-20; 요 21:1-17"
+    "desc": "가버나움 어부들이 겨울에 일하던 작은 항구다. 따뜻한 광천이 솟아 겨울·봄에 무슈트(베드로 고기)가 모였기 때문이다. 물이 낮을 때 방파제 흔적이 드러난다. 베드로 수위 교회가 선 바위가 예수께서 제자들을 부르신 자리로 전해진다.",
+    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조) · De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19",
+    "nun1999": "간단 기술 — \"물이 낮을 때 방파제 흔적이 보인다\"가 전부다. **치수는 주지 않는다.** 전에 적어 둔 60m·40m 방파제 수치는 이 논문에 없어 뺐다.",
+    "refs": "막 1:16-20; 요 21:1-17",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.5508,
-     32.8737
+     35.55158,
+     32.87242
     ]
    }
   },
@@ -67,7 +71,9 @@
     "period": "자연 정박 후보·1세기 연대 미확정",
     "desc": "텔 동·남쪽 만은 자연 피항에 적합하지만 현대 개발로 해안 흔적이 크게 교란되었다. 항만 구조와 서기 1세기 사용을 확정해 표시해서는 안 된다.",
     "sources": "De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19",
-    "refs": "막 6:53"
+    "nun1999": "항구 도면 설명의 보기로 \"Gennesar\"가 한 번 나올 뿐, 이 정박지를 따로 다루지 않는다.",
+    "refs": "막 6:53",
+    "shore_distance_m": 320
    },
    "geometry": {
     "type": "Point",
@@ -90,13 +96,15 @@
     "period": "기원전 40년–서기 70년 선박",
     "desc": "1986년 갯벌에서 길이 약 8.2m의 어선이 발견되었다. 항구 구조의 직접 증거라기보다 예수 시대 호수 운항과 이 해안의 선박 활동을 입증하는 지점이다.",
     "sources": "Raban 1988, The boat from Migdal Nunia and the anchorages of the Sea of Galilee",
-    "refs": "막 6:53"
+    "nun1999": "\"막달라 북쪽 약 1마일 진흙에서 온전히 보존된 나무배가 나왔다\"고 사진 설명에 적는다. 배는 다루지만 이 지점의 항만 구조는 다루지 않는다.",
+    "refs": "막 6:53",
+    "shore_distance_m": 1
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.52363,
-     32.84764
+     35.52556,
+     32.84694
     ]
    }
   },
@@ -111,9 +119,11 @@
     "criterion": "1세기 사용을 직접 지지하는 발굴·층위·유물",
     "coordinate_basis": "harbour",
     "period": "후기 헬레니즘–중기 로마기",
-    "desc": "안벽·계선석·경사로·계단·플랫폼이 발굴되었다. 로마기 안벽은 수경성 모르타르를 썼고 네 개의 계선석이 확인되어, 서기 1세기 사용 근거가 가장 강한 항구다.",
+    "desc": "안벽·계선석·경사로·계단·플랫폼이 발굴되었다. 로마기 안벽은 수경성 모르타르를 썼고 네 개의 계선석이 확인되어, 서기 1세기 사용 근거가 가장 강한 항구다. 히브리 이름 미그달 누니야(물고기 탑), 그리스 이름 타리케아(물고기를 절이는 곳)가 이 항구의 성격을 그대로 말한다.",
     "sources": "Raban 1988, The boat from Migdal Nunia and the anchorages of the Sea of Galilee · De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19 · Sarti et al. 2013, Magdala harbour sedimentation, Quaternary International 303",
-    "refs": "막 8:10; 마 15:39"
+    "nun1999": "상세 기술 — 산책로가 호안과 나란히 아랍 마을 미그달 폐허 아래에서 북으로 약 300피트(91m) 이어지고, 그 안쪽에 보호된 정박 수역이 있다. 요세푸스는 막달라에 배와 조선공, 목재가 많았다고 적는다.",
+    "refs": "막 8:10; 마 15:39",
+    "shore_distance_m": 8
    },
    "geometry": {
     "type": "Point",
@@ -134,15 +144,17 @@
     "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
     "coordinate_basis": "shore",
     "period": "서기 19년 이후 로마기 유력",
-    "desc": "헤롯 안티파스가 서기 19년경 세운 수도의 항만권이다. 항구 사용은 도시 성격과 문헌상 확실하지만, 현재 점은 공개된 항만 구조 좌표가 아닌 고대 도시 호안 대표점이다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
-    "refs": "요 6:23"
+    "desc": "헤롯 안티파스가 서기 19년경 세운 수도의 항만권이다. Nun 은 1989–91년 가뭄에 드러난 호안에서 돌닻과 계선석, 그물추 수백 개를 찾아 이 구역을 항구로 확정했다. 다만 방파제는 실마리만 잡혔을 뿐 발굴되지 않아 도면을 완성할 수 없다.",
+    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조) · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "상세 기술 — 항구는 **현대 시가 남쪽**, 5세기 비잔틴 방어벽 남쪽의 교란되지 않은 약 500피트 구간에 있다. 기둥 여섯 줄이 약 80피트에 걸쳐 있으나 이는 아랍기(8~9세기) 재사용 건물이다. 전에 찍어 둔 점은 현대 시가 한복판이라 이 기술과 어긋났다.",
+    "refs": "요 6:23",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.5312,
-     32.7959
+     35.54598,
+     32.77606
     ]
    }
   },
@@ -152,13 +164,15 @@
     "ko": "함맛·엠마오 정박지",
     "en": "Hammat / Emmaus anchorage",
     "side": "서안",
-    "grade": "B",
-    "confidence": "유력",
-    "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
+    "grade": "C",
+    "confidence": "추정",
+    "criterion": "목록·지형·부분 조사에 근거하나 연대나 위치가 제한적",
     "coordinate_basis": "site",
-    "period": "로마기",
-    "desc": "디베랴 남쪽 온천 취락의 정박지다. 문헌의 엠마오/암마투스와 연결되지만, 점은 온천 유적 대표 좌표이므로 정확한 방파제 위치로 읽어서는 안 된다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4"
+    "period": "로마기·근거 제한적",
+    "desc": "디베랴 남쪽 온천 취락의 정박지로 알려져 있다. 점은 온천 유적 대표 좌표이므로 정확한 방파제 위치로 읽어서는 안 된다.",
+    "sources": "Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "**언급 없음** — 이 논문은 함맛도 엠마오도 다루지 않는다(원문 검색 0회). 전에는 이 논문을 근거로 달았으나 뒷받침하지 않아 뺐고, 등급도 B 에서 C 로 내렸다.",
+    "shore_distance_m": 106
    },
    "geometry": {
     "type": "Point",
@@ -180,7 +194,9 @@
     "coordinate_basis": "site",
     "period": "헬레니즘기 취락·로마기 관계 불확실",
     "desc": "호수 남단의 텔과 필로테리아·세나브리스 명칭은 연구사에서 서로 복잡하게 연결된다. 항만 목록에는 포함되지만 서기 1세기 시설의 정확한 위치와 동일시가 확정되지 않았다.",
-    "sources": "De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel"
+    "sources": "De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "**언급 없음** — 다만 요단강 옛 출구가 오늘의 키네레트 마을 부근이었고 약 1,000년 전 남쪽으로 옮겨 가며 수위가 올랐다는 설명이 이 일대를 지난다.",
+    "shore_distance_m": 543
    },
    "geometry": {
     "type": "Point",
@@ -201,15 +217,17 @@
     "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
     "coordinate_basis": "shore",
     "period": "헬레니즘–로마기 유력",
-    "desc": "호수 동남안에서 조사된 대형 항만 시설로 가다라의 호수 출입항 후보다. 복음서의 귀신 축출 장소를 이곳으로 특정하는 것은 별도의 지리 가설이므로 항만 증거와 분리한다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4",
-    "refs": "마 8:28-34; 막 5:1-20"
+    "desc": "가다라의 호수 출입항이다. 호수를 두른 항구 가운데 가장 크고 화려했다. 가다라 주화는 250년 동안 군선을 새겼고, 2세기 주화가 기념하는 해전 경기(나우마키아)가 이 넓은 항내에서 열렸을 것으로 본다. 복음서의 귀신 축출 장소를 이곳으로 특정하는 것은 별도의 지리 가설이므로 항만 증거와 분리한다.",
+    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조)",
+    "nun1999": "상세 기술 — 텔 삼라(오늘의 하온 휴양촌). 중앙 방파제 800피트·기저 폭 15피트, 산책로 650피트, 항내 폭 150피트·넓이 3에이커, 산책로와 방파제를 합해 1,600피트. 산책로 한가운데 탑 자리와 항만 관리 건물로 보이는 큰 구조의 잔해가 있다.",
+    "refs": "마 8:28-34; 막 5:1-20",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.6238,
-     32.7286
+     35.61867,
+     32.72448
     ]
    }
   },
@@ -224,14 +242,16 @@
     "criterion": "조사된 항만 구조와 헬레니즘·로마기 사용 근거",
     "coordinate_basis": "shore",
     "period": "헬레니즘–로마기",
-    "desc": "히포스 도시는 높은 언덕 위에 있지만 항구는 엔게브 일대 호안에 있었다. 기존처럼 산 위 도시 좌표에 닻을 찍지 않고 실제 출입 해안권을 표시한다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel"
+    "desc": "히포스(수시타)는 호수 위 300m 언덕의 요새 도시였고, 항구와 15에이커짜리 해안 교외는 그 아래 호안에 있었다. 탈무드는 수시타 일대를 디베랴의 곳간이라 부른다. 미드라시는 노아의 방주가 \"디베랴에서 수시타로 가듯\" 쉽게 떠갔다고 적는데, 이 구절이 Nun 에게 하부 도시와 항구를 찾게 한 실마리였다.",
+    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조) · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "상세 기술 — 항구는 **엔게브 키부츠 남쪽**이다. 주 방파제 약 400피트·기저 폭 20피트로 북쪽을 두르다 남으로 꺾여 호안과 나란해지고, 남쪽에 짧은 방파제가 하나 더 있다. 항내는 약 1에이커, 방파제에서 작은 부두가 뻗어 붐비는 항내에 들어가지 않고도 타고 내릴 수 있었다. 전에 찍어 둔 점은 엔게브 마을 노드와 소수점까지 같았다.",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.6389,
-     32.7811
+     35.63914,
+     32.77029
     ]
    }
   },
@@ -247,13 +267,15 @@
     "coordinate_basis": "shore",
     "period": "고대 항만·세부 연대 제한적",
     "desc": "유황 온천이 솟는 고프라 해안의 석축 정박 후보다. 해양고고학 목록에는 들지만 서기 1세기 사용을 직접 좁혀 주는 공개 층위 자료는 제한적이다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · Galili et al. 2018, Five Decades of Marine Archaeology in Israel"
+    "sources": "Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "**언급 없음** — 이 논문은 이 지점을 다루지 않는다(원문 검색 0회). 전에는 이 논문을 근거로 달았으나 뒷받침하지 않아 뺐다.",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.6462,
-     32.8006
+     35.6417,
+     32.80231
     ]
    }
   },
@@ -268,15 +290,17 @@
     "criterion": "1세기 사용을 직접 지지하는 발굴·층위·유물",
     "coordinate_basis": "harbour",
     "period": "헬레니즘–로마기",
-    "desc": "반원형 방파제·보호 수역·안벽과 로마기 토기가 조사되었다. 갈릴리 호수에서 가장 상세히 도면화된 고대 항구 중 하나다.",
-    "sources": "Raban 1988, The boat from Migdal Nunia and the anchorages of the Sea of Galilee · Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4",
-    "refs": "막 5:1-13; 막 8:1-10"
+    "desc": "1970년 교회·수도원 발굴 때 라반(Avner Raban)의 수중 조사로 방파제가 확인된, 갈릴리에서 가장 먼저 찾아낸 고대 항구다. 어시장 부두 위에 활어를 담아 두던 얕은 수조가 있었고, 회반죽을 바른 안쪽에는 호수가 아니라 개울에서 끌어온 물을 채웠다. 부근에서 납 그물추가 백 개 넘게 나왔다.",
+    "sources": "Raban 1988, The boat from Migdal Nunia and the anchorages of the Sea of Galilee · Nun 1999, Ports of Galilee, Biblical Archaeology Review 25:04 (BAS, The Galilee Jesus Knew, 2008 재수록본으로 전문 대조)",
+    "nun1999": "상세 기술 — 방파제 500피트가 호안에서 살짝 꺾여 나가며 폭 80피트·길이 330피트(약 0.5에이커)의 좁은 수역을 감싼다. 활어 수조 10×11피트를 바닥에서 3피트 올려 지었고, 어시장 부두는 25×16피트다. 북쪽에 모자이크 바닥이 남은 관리 건물이 있다. 호수 수위가 낮을 때 한 해의 대부분 드러나는 유일한 항구여서, 옛 탐사자들이 보고도 알아보지 못했다.",
+    "refs": "막 5:1-13; 막 8:1-10",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.6525,
-     32.8239
+     35.64433,
+     32.82639
     ]
    }
   },
@@ -292,13 +316,15 @@
     "coordinate_basis": "shore",
     "period": "로마–비잔틴기 범위·1세기 미확정",
     "desc": "키나르 해변의 고대 취락·호안 시설이다. IAA 둘레길 조사에서 풍부한 유구가 기록되었으나 서기 1세기 정박지로 좁혀 확정할 자료는 부족하다.",
-    "sources": "Israel Antiquities Authority 2011, The Kinneret Trail survey · Galili et al. 2018, Five Decades of Marine Archaeology in Israel"
+    "sources": "Israel Antiquities Authority 2011, The Kinneret Trail survey · Galili et al. 2018, Five Decades of Marine Archaeology in Israel",
+    "nun1999": "**언급 없음** — 이 논문은 이 지점을 다루지 않는다.",
+    "shore_distance_m": 0
    },
    "geometry": {
     "type": "Point",
     "coordinates": [
-     35.6505,
-     32.8558
+     35.64697,
+     32.85463
     ]
    }
   },
@@ -314,8 +340,10 @@
     "coordinate_basis": "shore",
     "period": "항만 후보·정확 위치 논쟁",
     "desc": "요단 삼각주 서쪽의 유구를 벳새다 어업 교외 항구로 보는 제안이다. 엣텔과 엘아라즈는 도시 후보이지 확인된 항구 자체가 아니므로 별도 닻 두 개로 표시하지 않는다.",
-    "sources": "Nun 1999, Ports of Galilee, Biblical Archaeology Review 25.4 · De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19",
-    "refs": "막 6:45; 요 1:44"
+    "sources": "De Luca & Lena 2014, The Harbor of Magdala/Taricheae, BYZAS 19",
+    "nun1999": "**언급 없음** — 이 논문에는 벳새다가 한 번도 나오지 않는다(원문 검색 0회). 전에는 이 논문을 근거로 달았으나 뒷받침하지 않아 뺐다.",
+    "refs": "막 6:45; 요 1:44",
+    "shore_distance_m": 100
    },
    "geometry": {
     "type": "Point",
