@@ -126,6 +126,69 @@ GATES = [
     ('겐나트 문',     35.22880, 31.77650,  95, '불확실', '요세푸스가 제2성벽이 여기서 갈라졌다고 한 문. 자리는 확정되지 않았다.', '성읍'),
 ]
 
+# ── 느헤미야 성벽 (기원전 445년, 페르시아기) ──
+#
+# **먼저 밝혀 둘 것: 페르시아기 성벽은 아직 하나도 확실히 발굴되지 않았다.**
+# Steiner 의 정리가 그렇다 — "No Persian city walls have actually been found."
+# 케니언이 페르시아기로 본 동쪽 사면의 탑은 후기 헬레니즘기로 보는 견해가 있고,
+# 에일랏 마자르가 2007년에 '느헤미야 성벽'이라 발표한 30 m 구간도 토기가 탑 **아래**에
+# 있었으므로 그 탑이 그보다 늦다는 것만 말해 준다(terminus post quem). 핑켈슈타인은
+# "이론상 오스만 시대에 지었을 수도 있다"고까지 했다.
+# 그래서 이 선은 '발굴'이 아니라 **문헌(느 3장·12:31-40) + 지형** 재구성이다.
+#
+# 그럼에도 한 가지는 확실하다. **서쪽 언덕은 페르시아기에 비어 있었다.**
+# 히스기야 때 넓힌 서쪽 언덕은 기원전 586년에 무너진 뒤 하스몬기에야 다시 사람이 산다.
+# 그래서 아비갓의 '브로드 월'과 히스기야 못은 느헤미야 성벽 **밖**이어야 한다 —
+# 1세기 성읍과 갈리는 가장 뚜렷한 지점이고, 아래 NEH_CHECKS 의 시금석으로 삼는다.
+#
+# 크기도 함께 적는다. 성벽이 두른 넓이와 실제로 사람이 산 넓이는 다르다.
+#   핑켈슈타인: 사람이 산 자리 20~25 두남(2~2.5 ha) · 400~500명(다른 셈으로 625명)
+#   립시츠:     약 60 두남(6 ha) · 1,000~1,500명
+# 두 배 넘게 갈리므로 한쪽을 고르지 않고 둘 다 적는다.
+#
+# [문서]/[헤롯성전 관련 자료] 대조: 바클레이 『City of the Great King』(1858)은 느헤미야
+# 성벽이 시온산(서쪽 언덕)을 둘러쌌다고 읽고, 블리스·디키의 남쪽 성벽 조사도 그 읽기를
+# 받쳤다. 19세기의 이 '큰 성읍' 재구성은 지금 학계가 받아들이지 않는다 — 측량 자료는
+# 여전히 쓰지만 페르시아기 성벽선에 대한 결론은 따르지 않는다. 그 사실을 적어 둔다.
+#
+# 북쪽은 스룹바벨~하스몬기 성전 산(500규빗 정방형)을 그대로 쓴다. 아래 네 값은
+# build_temples() 가 내는 정방형 모서리와 같아야 하며, 어긋나면 베이크가 실패한다.
+NEH_SQUARE = [(35.23455, 31.77865), (35.23732, 31.77871),
+              (35.23739, 31.77633), (35.23462, 31.77627)]   # 북서·북동·남동·남서
+
+# 성전 산 남변에서 다윗 성 등성이를 타고 내려갔다 돌아온다. (경도, 위도, 무엇, 근거, 지형맞춤)
+# 지형맞춤은 (방위각, 훑을 거리 m). 다윗 성 등성이는 폭이 100~150 m 밖에 되지 않아
+# 1세기 성읍에 쓴 ±90 m 로 훑으면 티로포에온을 건너 시온산 사면까지 올라가 버린다.
+# DEM 동서 단면으로 확인한 값: 위도 31.7725 에서 마루는 경도 35.2350(688 m)이고
+# 동쪽 급사면은 35.2360(669 m)부터 떨어진다. 서쪽은 ±35 m 로 묶는다.
+NEH_RIDGE = [
+    (35.23680, 31.77500, '오벨 남쪽 동사면',        '문헌+지형', (90, 60)),   # 느 3:26-27
+    (35.23640, 31.77430, '마자르 탑 주장 지점 부근', '문헌+지형', (90, 60)),
+    (35.23620, 31.77340, '계단식 석조 구조물 위 마루', '문헌+지형', (90, 50)),
+    (35.23600, 31.77180, '다윗 성 동사면',          '문헌+지형', (90, 50)),
+    (35.23555, 31.77020, '성읍 남단',              '문헌+지형', None),
+    (35.23430, 31.76985, '셀라(실로암) 못 가',      '문헌',     None),  # 느 3:15 — 고정
+    (35.23430, 31.77080, '못 서쪽',                '문헌+지형', (270, 30)),
+    (35.23455, 31.77250, '다윗 성 서사면',          '문헌+지형', (270, 35)),
+    (35.23480, 31.77450, '티로포에온 위 마루',      '문헌+지형', (270, 35)),
+]
+
+# 느헤미야 성벽의 시금석. 1세기 성읍과 갈리는 지점을 일부러 넣었다.
+NEH_CHECKS = [
+    ('브로드 월',          35.23165, 31.77594, '밖', 60),   # 서쪽 언덕은 비어 있었다
+    ('히스기야 못',        35.22902, 31.77718, '밖', 60),
+    ('성묘 교회 (골고다)', 35.22972, 31.77833, '밖', 60),
+    ('다메섹 문',          35.23018, 31.78182, '밖', 60),
+    ('베데스다 못',        35.23599, 31.78147, '밖', 20),
+    ('기혼 샘',            35.23683, 31.77323, '밖', 10),   # 성 밖 샘 — 히스기야 수로의 까닭
+    ('실로암 못',          35.23512, 31.77040, '안', 20),   # 느 3:15 셀라 못
+    ('계단식 석조 구조물',  35.23590, 31.77377, '안', 15),
+    ('다윗 성',            35.23572, 31.77242, '안', 15),
+    ('기바티 주차장 발굴',  35.23510, 31.77444, '안', 15),
+    ('티로포에온 골짜기 바닥', 35.23300, 31.77300, '밖', 30),   # 등성이를 건너가지 못하게
+    ('티로포에온 남쪽 바닥',   35.23250, 31.77050, '밖', 30),
+]
+
 # 경계가 맞는지 재는 시금석. 여유 거리까지 본다 — 아슬아슬하게 걸치면 맞다고 할 수 없다.
 CHECKS = [
     ('성묘 교회 (골고다)', 35.22972, 31.77833, '밖', 20),
@@ -238,9 +301,9 @@ def dist_to_ring(pt, ring):
     return best
 
 
-def check(ring):
+def check(ring, table=None):
     bad = []
-    for name, lo, la, want, margin in CHECKS:
+    for name, lo, la, want, margin in (CHECKS if table is None else table):
         got = '안' if inside((lo, la), ring) else '밖'
         d = dist_to_ring((lo, la), ring)
         if got != want:
@@ -354,6 +417,62 @@ def build_temples():
     return pre, sol, her, side, (70 * CUBIT, 20 * CUBIT), (100 * CUBIT, 100 * CUBIT), west_off, dn
 
 
+
+def build_nehemiah(dem, pre):
+    """느헤미야 성벽(기원전 445) 고리. 성전 산 정방형 + 다윗 성 등성이.
+
+    지형 맞춤은 1세기 성읍과 같은 규칙을 쓴다 — 마루로 옮기되, 옮긴 뒤에도 고고 검증이
+    모두 통과할 때만 받아들인다. 통과하지 못하면 마루에서 원위치 쪽으로 물러난다.
+    페르시아기 성벽이 발굴된 적 없으므로 지형이 가장 센 단서다.
+    """
+    # 북쪽은 build_temples 가 낸 500규빗 정방형을 그대로 쓴다. 표에 적어 둔 값과
+    # 어긋나면 한쪽을 고친 뒤 다른 쪽을 안 고친 것이므로 여기서 잡는다.
+    order = [2, 1, 0, 3]                      # pre = 남동·북동·북서·남서
+    square = [(pre[i][0], pre[i][1]) for i in (2, 1, 0, 3)]   # 북서·북동·남동·남서
+    for (sx, sy), (tx, ty) in zip(square, NEH_SQUARE):
+        if math.hypot((sx - tx) * KX, (sy - ty) * KY) > 5:
+            raise SystemExit('NEH_SQUARE 가 500규빗 정방형과 5 m 넘게 어긋난다 — 표를 맞춰라')
+
+    ring = [[x, y, '성전 산 정방형', '문헌 + 발굴 앵커'] for x, y in square[:3]]
+    ridge = [[p[0], p[1], p[2], p[3]] for p in NEH_RIDGE]
+    ring += ridge
+    ring.append([square[3][0], square[3][1], '성전 산 정방형', '문헌 + 발굴 앵커'])
+
+    bad = check(ring, NEH_CHECKS)
+    if bad:
+        raise SystemExit('느헤미야 성벽 — 지형 맞춤 전부터 검증 실패: ' + ' / '.join(bad))
+
+    print('\n느헤미야 성벽 지형 맞춤:')
+    base = len(square[:3])
+    for i, (lo, la, name, cert, fit) in enumerate(NEH_RIDGE):
+        if fit is None:
+            continue
+        bearing, rng = fit
+        t, nx, ny = crest_offset(dem, lo, la, bearing, rng=rng)
+        if t is None:
+            print('  %-26s DEM 없음' % name)
+            continue
+        for k in range(10, -1, -1):
+            tt = t * k / 10
+            cand = [lo + nx * tt / KX, la + ny * tt / KY, name, cert]
+            trial = [r[:] for r in ring]
+            trial[base + i] = cand
+            if not check(trial, NEH_CHECKS):
+                ring[base + i] = [round(cand[0], 5), round(cand[1], 5), name, cert]
+                print('  %-26s %+5.0f m · 고도 %.0f m%s'
+                      % (name, tt, elev(dem, cand[0], cand[1]),
+                         '' if abs(tt - t) < 1 else ' (고고 검증에 막혀 물러섬)'))
+                break
+        else:
+            print('  %-26s 옮기지 못함 (고고 검증)' % name)
+
+    bad = check(ring, NEH_CHECKS)
+    if bad:
+        raise SystemExit('느헤미야 성벽 — 지형 맞춤 뒤 검증 실패: ' + ' / '.join(bad))
+    print('느헤미야 고고 검증 %d/%d 통과' % (len(NEH_CHECKS), len(NEH_CHECKS)))
+    return ring
+
+
 def main():
     dem = load_dem()
     print('DEM 준비 — 바위 돔 %.0f m · 실로암 못 %.0f m · 시온산 %.0f m'
@@ -454,6 +573,37 @@ def main():
                                  'west_off_m': round(west_off),
                                  'cert': '문헌 + 발굴 앵커'},
                   'geometry': {'type': 'Polygon', 'coordinates': [pre + [pre[0]]]}})
+
+    # ── 느헤미야 성벽 (기원전 445) ──
+    neh = build_nehemiah(dem, pre)
+    neh_ring = [[q[0], q[1]] for q in neh]
+    neh_ha = area_ha(neh_ring)
+    neh_per = perim_m(neh_ring)
+    neh_lats = [q[1] for q in neh_ring]
+    neh_lons = [q[0] for q in neh_ring]
+    neh_ns = (max(neh_lats) - min(neh_lats)) * 110540
+    neh_ew = (max(neh_lons) - min(neh_lons)) * 111320 * math.cos(math.radians(sum(neh_lats) / len(neh_lats)))
+    print('느헤미야 성벽 %.1f ha · 둘레 %.2f km · 남북 %.0f m · 동서 %.0f m (1세기 성읍의 %.0f%%)'
+          % (neh_ha, neh_per / 1000, neh_ns, neh_ew, 100 * neh_ha / ha))
+    feats.append({'type': 'Feature',
+                  'properties': {'kind': 'nehemiah', 'ko': '느헤미야가 다시 쌓은 성벽 (기원전 445)',
+                                 'ha': round(neh_ha, 1),
+                                 'perimeter_km': round(neh_per / 1000, 2),
+                                 'ns_m': round(neh_ns), 'ew_m': round(neh_ew),
+                                 'vs_c1_pct': round(100 * neh_ha / ha),
+                                 'cert': '문헌(느 3장·12:31-40) + 지형',
+                                 'settled': '사람이 산 자리는 이보다 훨씬 좁다 — '
+                                            '핑켈슈타인 20~25두남(2~2.5 ha)·400~500명, '
+                                            '립시츠 약 60두남(6 ha)·1,000~1,500명',
+                                 'dug': '페르시아기 성벽은 아직 하나도 확실히 발굴되지 않았다'},
+                  'geometry': {'type': 'Polygon',
+                               'coordinates': [neh_ring + [neh_ring[0]]]}})
+    feats.append({'type': 'Feature',
+                  'properties': {'kind': 'nehemiah', 'label_only': True},
+                  'geometry': {'type': 'Point',
+                               'coordinates': [round(sum(neh_lons) / len(neh_lons), 5),
+                                               round(sum(neh_lats) / len(neh_lats), 5)]}})
+
     feats.append({'type': 'Feature',
                   'properties': {'kind': 'sanctuary', 'ko': '헤롯 성소 (건물)',
                                  'len_m': round(her_size[0], 1), 'wid_m': round(her_size[1], 1),
