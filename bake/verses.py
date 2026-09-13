@@ -10,7 +10,16 @@ m0ty/bible-io-json 의 kor-krv-1938 은 둘 다 빠지거나 어긋난 절이 �
 (역대하 26장이 통째로 없거나, 26:10·32:30·35:20 이 모두 같은 엉뚱한 본문을 돌려줌).
 getbible.net v2 의 korean 은 장별 절 수가 맞아 이것을 쓴다.
 
-사용법:  python3 bake/verses.py data/verses.json data/*.geojson
+인용할 수 없는 참조도 있다. 요세푸스·마카베오상처럼 개역한글에 없는 것, 그리고
+'성경에 직접 나오지는 않는다' 같은 안내문이다. 이런 것은 표에 넣지 않고, 뷰어가
+NOT_SCRIPTURE 로 갈라 눌리지 않는 글로 낸다. 둘을 섞으면 눌렀을 때 '본문을 찾지
+못했습니다'만 나온다.
+
+자료 파일을 적지 않으면 data 안의 geojson 을 모두 훑는다. 전에 지명 두 벌만 주고
+돌린 탓에 항구·회당·봉우리의 참조 12개가 표에 없었고, 그 팝업에서는 본문이 끝내
+나오지 않았다. 빠뜨리기 쉬운 일이라 기본값을 '전부'로 두고, 끝에 검사까지 한다.
+
+사용법:  python3 bake/verses.py data/verses.json [자료.geojson …]
 """
 import json, pathlib, re, subprocess, sys, time
 
@@ -124,8 +133,36 @@ def main(out_path, data_paths):
     if skipped:
         print('해석 못한 참조:', ' | '.join(skipped[:10]))
     if missing:
-        print('본문에 없는 절:', ' '.join(missing[:10]))
+        # 개역한글에 없는 절이 있다. 행 28:29 가 그렇다 — 사본에 따라 빠지는 절이고,
+        # 우리가 잘못 받은 것이 아니다. 없는 대로 두고 있는 절만 낸다.
+        print('개역한글에 없는 절(그대로 둔다):', ' '.join(sorted(set(missing))))
+
+    # 마지막 검사: 자료가 쓰는 참조가 표에 있거나, 인용할 수 없는 것이어야 한다.
+    # 하나라도 어긋나면 그 팝업에서 본문이 나오지 않는다 — 조용히 넘어가면 안 된다.
+    holes = []
+    for ref in collect(data_paths):
+        if ref in table or ref.startswith('성경') or ref in skipped:
+            continue
+        holes.append(ref)
+    if holes:
+        sys.exit('표에도 없고 인용할 수 없는 것도 아닌 참조: ' + ' | '.join(holes))
+    print('검사 통과 — 자료가 쓰는 참조가 모두 표에 있거나 인용할 수 없는 것이다.')
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2:])
+    out = sys.argv[1]
+    paths = sys.argv[2:]
+    if not paths:
+        root = pathlib.Path(out).resolve().parent
+        # 앞 200자만 보고 거르면 파일마다 머리말 길이가 달라 몇 개를 놓친다 —
+        # 실제로 그렇게 해서 참조 12개를 빠뜨렸다. 열어서 확인한다.
+        paths = []
+        for p in sorted(root.glob('*.geojson')):
+            try:
+                d = json.loads(p.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                continue
+            if any((f.get('properties') or {}).get('refs') for f in d.get('features', [])):
+                paths.append(str(p))
+        print('훑는 자료:', ', '.join(pathlib.Path(x).name for x in paths))
+    main(out, paths)
