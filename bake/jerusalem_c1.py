@@ -91,6 +91,21 @@ SQUARE_SKEW_DEG = -4.2            # 헤롯 외벽 기준. 음수라야 정방형
 SQUARE_WEST_OFFSET_SPEC = 25.0    # 헤롯 서벽과 정방형 서변 사이 (명세값, 검산에 쓴다)
 HEROD_WALLS = {'south': 280.0, 'east': 470.0, 'north': 315.0, 'west': 485.0}
 
+# ── 베데스다 못 ──
+# 요 5:2 "예루살렘에 있는 양문 곁에 히브리 말로 베데스다라 하는 못이 있는데 거기 행각
+# 다섯이 있고". 성 안나 교회 곁의 쌍못이다. 북쪽 못이 먼저(기원전 700년대 댐으로 샘을
+# 저수지로 바꾼 것), 남쪽 못은 하스몬기 증축. 둘 사이의 둑이 다섯째 행각 자리로 읽힌다.
+# 1888년 K. Schick 이 드러냈고 비잔틴 교회가 그 위에 섰다.
+#
+# 다른 이름의 '쌍못'과 헷갈리지 않아야 한다. Warren·Wilson 의 『Recovery of Jerusalem』이
+# 말하는 "성전 산 북서 모서리의 쌍못"(길이 165 ft · 폭 48 ft)은 안토니아 곁의 스트루티온
+# 못으로, 여기가 아니다. 에우세비우스 시대의 전승지를 논하는 대목이다.
+#
+# 폴리곤은 OSM 의 발굴 구역(Wikidata Q831297). 오늘 파내어 보이는 만큼이고, 옛 복합은
+# 뒷날의 교회와 수도원 부지 아래로 더 뻗는다 — 팝업에 그렇게 적는다.
+BETHESDA_RING = [[35.23565, 31.78124], [35.23559, 31.78127], [35.23558, 31.7813], [35.23556, 31.78138], [35.23555, 31.7814], [35.23558, 31.78146], [35.23558, 31.7815], [35.2356, 31.7815], [35.23564, 31.78151], [35.23564, 31.78152], [35.23564, 31.78156], [35.23564, 31.78159], [35.23565, 31.7816], [35.23568, 31.78161], [35.23592, 31.78165], [35.23593, 31.78166], [35.23593, 31.78167], [35.23592, 31.78169], [35.23599, 31.7817], [35.23603, 31.78171], [35.23606, 31.78169], [35.23608, 31.78168], [35.23611, 31.78169], [35.23614, 31.78168], [35.23619, 31.78167], [35.23628, 31.78167], [35.23634, 31.78168], [35.23643, 31.78149], [35.23574, 31.78127], [35.23565, 31.78124]]
+BETHESDA_CENTER = [35.23597, 31.78151]
+
 SEAM = (35.23758, 31.77635)          # 동벽 이음매 (발굴)
 ROCK = (35.23542, 31.77802)          # 바위 돔 아래 반석 (에스사흐라)
 FIRST_TEMPLE_MASONRY = (35.23752, 31.77683)   # 동벽의 제1성전기 석조 (발굴)
@@ -475,6 +490,31 @@ def main():
         feats.append({'type': 'Feature',
                       'properties': {'kind': kind, 'label_only': True},
                       'geometry': {'type': 'Point', 'coordinates': centroid(list(poly))}})
+
+    # ── 베데스다 못 ──
+    bring = [list(q) for q in BETHESDA_RING]
+    if bring[0] != bring[-1]:
+        bring.append(list(bring[0]))
+    b_ha = area_ha([[q[0], q[1]] for q in bring])
+    bxs = [q[0] for q in bring]
+    bys = [q[1] for q in bring]
+    b_ew = (max(bxs) - min(bxs)) * KX
+    b_ns = (max(bys) - min(bys)) * KY
+    # 성읍 안인가 밖인가. 요한복음은 '양문 곁'이라 하고, 제2성벽 밖 베제타 지구다.
+    b_in = sum(1 for q in bring[:-1] if inside((q[0], q[1]), ring))
+    b_gap = dist_to_ring((BETHESDA_CENTER[0], BETHESDA_CENTER[1]), ring)
+    if b_in:
+        raise SystemExit('베데스다 못 꼭짓점 %d 개가 성읍 안으로 들어왔다 — 제2성벽 밖이어야 한다' % b_in)
+    print('베데스다 못  %.0f×%.0f m · %.2f ha · 성읍 **밖** · 경계에서 %.0f m'
+          % (b_ew, b_ns, b_ha, b_gap))
+    feats.append({'type': 'Feature',
+                  'properties': {'kind': 'pool', 'ko': '베데스다 못',
+                                 'ha': round(b_ha, 2), 'ew_m': round(b_ew), 'ns_m': round(b_ns),
+                                 'outside_m': round(b_gap), 'cert': '발굴 구역 (OSM · Wikidata Q831297)'},
+                  'geometry': {'type': 'Polygon', 'coordinates': [bring]}})
+    feats.append({'type': 'Feature',
+                  'properties': {'kind': 'pool', 'label_only': True},
+                  'geometry': {'type': 'Point', 'coordinates': list(BETHESDA_CENTER)}})
 
     unsure = [[p[0], p[1]] for p in ring if p[3] == '불확실']
     i12 = [r[2] for r in ring].index('성전 산 북서 (안토니아 요새)')
