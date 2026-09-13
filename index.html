@@ -255,6 +255,22 @@
     border: 0; background: none; color: var(--ink-soft); font-size: 15px; line-height: 1; cursor: pointer;
   }
   #navClose:hover { color: var(--accent); }
+  /* 길 고르는 방식 단추. 셋을 나란히 두고 고른 것만 진하게 둔다. */
+  .nav-modes { display: flex; gap: 6px; margin: 0 0 10px; }
+  .nav-mode {
+    flex: 1; min-width: 0; padding: 7px 4px 6px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: 7px;
+    font: inherit; font-size: 12px; color: var(--ink-soft); line-height: 1.25;
+  }
+  .nav-mode span { font-size: 10.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .nav-mode:hover { border-color: var(--accent); }
+  .nav-mode.on {
+    border-color: #1f7a4d; background: rgba(31, 122, 77, .1);
+    color: var(--ink); font-weight: 600;
+  }
+  .nav-mode.on span { color: #1f7a4d; font-weight: 400; }
+
   .nav-card {
     border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; margin: 0 0 8px;
   }
@@ -263,6 +279,9 @@
   .nav-card .nav-big span { font-size: 12px; font-weight: 400; color: var(--ink-soft); }
   .nav-card .nav-detail { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-soft); }
   .nav-card .nav-detail b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  /* 카드 밖에 놓이는 덧말(직선 거리·걸어 들어가는 거리)도 카드 안과 같은 크기로 둔다. */
+  #navCards > .nav-detail { margin: 8px 2px 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); }
+  #navCards > .nav-detail b { color: var(--ink); font-variant-numeric: tabular-nums; }
   #navPanel .nav-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.55; margin: 10px 0 0; }
   #navPanel .nav-note b { color: var(--ink); }
 
@@ -2974,12 +2993,28 @@ for (const id of ['syn-dot', 'syn-icon', 'syn-label']) {
 // Tobler 의 도보 속도식으로 잰다. 성경을 읽는 사람에게 중요한 것은 평지 환산이
 // 아니라 '이 비탈을 걸어 며칠'이기 때문이다.
 const NAV_CAR_KMH = { motorway: 95, trunk: 80, primary: 70, secondary: 60, tertiary: 50 };
+
+// 길을 고르는 세 가지 방식. 같은 그물에서 '무엇을 아끼느냐'만 다르다.
+//   주요 도로 — 시간을 아낀다. 큰 길이 빠르니 자연히 고속·간선을 탄다.
+//   일반 도로 — 시간을 아끼되 큰 길에 벌점을 준다. 마을을 지나는 옛 길에 가깝다.
+//   최단 거리 — 거리만 아낀다. 느려도 가장 짧은 길이다.
+// 벌점은 '몇 배 더 멀게 친다'는 뜻이다. 막지 않고 비싸게만 만들어, 큰 길밖에 없는
+// 구간에서는 그대로 탄다 — 아예 막으면 길이 끊겨 경로를 못 찾는다.
+const NAV_MODES = {
+  main:  { ko: '주요 도로', desc: '큰 길을 따라 빨리 가는 길',
+           penalty: { motorway: 1, trunk: 1, primary: 1, secondary: 1.5, tertiary: 2.2 } },
+  local: { ko: '일반 도로', desc: '마을을 지나는 작은 길 위주',
+           penalty: { motorway: 3.5, trunk: 2.2, primary: 1.3, secondary: 1, tertiary: 1 } },
+  short: { ko: '최단 거리', desc: '느려도 가장 짧은 길', distanceOnly: true },
+};
+const NAV_MODE_KEYS = ['main', 'local', 'short'];
 const NAV_CLS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
 const NAV_WALK_DAY_H = 8;      // 하루에 걷는 시간. 옛 여정의 통상 가정이다.
 const NAV_SNAP_MAX_KM = 8;     // 이보다 멀면 그 지명은 도로 자료 밖으로 본다.
 
 let navGraph = null, navBuilding = null;
 let navPicking = false, navA = null, navB = null;
+let navRoutes = null, navMode = 'main';   // 마지막으로 푼 세 길과, 지금 고른 방식
 
 // 두 자료를 모두 읽어 정점·간선을 만든다. 타입 배열로 담아야 브라우저가 견딘다 —
 // [경도,위도] 배열 133만 개를 그대로 들고 있으면 100 MB 가 넘는다.
@@ -3064,7 +3099,10 @@ function navSnap(g, x, y) {
 // Dijkstra. mode 'car' 는 등급별 속도로, 'walk' 는 거리로 푼다(도보 시간은 나중에
 // 고도를 읽어 따로 잰다 — 고도를 미리 알 수 없으니 탐색 중에는 쓸 수 없다).
 // 보행자는 고속도로를 걷지 못하므로 mode 'walk' 에서는 그 간선을 건너뛴다.
+// mode: 'walk' 이거나 NAV_MODES 의 열쇠. 'walk' 는 고속도로를 빼고 거리로만 고른다.
 function navRoute(g, s, t, mode) {
+  const walking = mode === 'walk';
+  const m = walking ? { distanceOnly: true } : (NAV_MODES[mode] || NAV_MODES.main);
   const N = g.N;
   const cost = new Float64Array(N).fill(Infinity);
   const dist = new Float64Array(N).fill(Infinity);
@@ -3090,8 +3128,13 @@ function navRoute(g, s, t, mode) {
     if (u === t) { found = true; break; }
     for (let e = g.head[u]; e !== -1; e = g.next[e]) {
       const c = g.cls[e];
-      if (mode === 'walk' && c === 0) continue;
-      const step = mode === 'walk' ? g.w[e] : g.w[e] / NAV_CAR_KMH[NAV_CLS[c]];
+      if (walking && c === 0) continue;          // 보행자는 고속도로를 걷지 못한다
+      let step;
+      if (m.distanceOnly) step = g.w[e];
+      else {
+        const cls = NAV_CLS[c];
+        step = g.w[e] / NAV_CAR_KMH[cls] * (m.penalty ? m.penalty[cls] : 1);
+      }
       const nc = cost[u] + step, v = g.to[e];
       if (nc < cost[v]) { cost[v] = nc; dist[v] = dist[u] + g.w[e]; prev[v] = u; push(nc, v); }
     }
@@ -3100,7 +3143,17 @@ function navRoute(g, s, t, mode) {
   const nodes = [];
   for (let u = t; u !== -1; u = prev[u]) nodes.push(u);
   nodes.reverse();
-  return { nodes, km: dist[t], hours: mode === 'car' ? cost[t] : null };
+  // 자동차 시간은 벌점 없이 다시 잰다 — 벌점은 '어느 길을 고를까'에만 쓰고
+  // 결과로 보여 주는 시간에는 섞지 않는다.
+  let drive = 0;
+  for (let i = 1; i < nodes.length; i++) {
+    const u = nodes[i - 1], v = nodes[i];
+    let best = Infinity;
+    for (let e = g.head[u]; e !== -1; e = g.next[e])
+      if (g.to[e] === v) best = Math.min(best, g.w[e] / NAV_CAR_KMH[NAV_CLS[g.cls[e]]]);
+    if (best < Infinity) drive += best;
+  }
+  return { nodes, km: dist[t], hours: drive };
 }
 
 // 길 위를 일정 간격으로 집어 고도를 읽고, Tobler 의 도보 속도식으로 시간을 잰다.
@@ -3172,6 +3225,7 @@ let navResultHtml = '';
 
 function navReset() {
   navA = navB = null;
+  navRoutes = null;
   navResultHtml = '';
   map.getSource('navroute').setData({ type: 'FeatureCollection', features: [] });
   navDrawerOpen(false);
@@ -3229,24 +3283,59 @@ async function navTakePlace(feature, lngLat) {
 
   $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 길을 찾는 중…';
   await new Promise(r => setTimeout(r, 0));        // 화면이 안내문을 먼저 그리게 둔다
-  const car = navRoute(g, sa.node, sb.node, 'car');
+  // 세 방식을 모두 풀어 견주게 한다. 한 번 푸는 데 60 ms 안팎이라 셋을 다 풀어도 싸다.
+  const routes = {};
+  for (const key of NAV_MODE_KEYS) {
+    const r = navRoute(g, sa.node, sb.node, key);
+    if (r) routes[key] = r;
+  }
   const walk = navRoute(g, sa.node, sb.node, 'walk');
-  if (!car && !walk) {
+  if (!Object.keys(routes).length && !walk) {
     $('navNote').textContent = '두 지명을 잇는 길을 찾지 못했습니다. 도로망이 끊긴 곳일 수 있습니다.';
     navDraw(null, g);
     return;
   }
-  const shown = walk || car;
-  navDraw(shown.nodes, g);
+  // 같은 길이 나오는 방식이 있을 수 있다. 그때는 그렇다고 말해 준다.
+  const sameAsMain = {};
+  for (const key of NAV_MODE_KEYS)
+    if (key !== 'main' && routes[key] && routes.main)
+      sameAsMain[key] = routes[key].nodes.length === routes.main.nodes.length &&
+                        Math.abs(routes[key].km - routes.main.km) < 0.05;
+
+  navRoutes = { g, routes, walk, sa, sb, a: navA.name, b: navB.name, same: sameAsMain,
+                straight: navKm(navA.pt[0], navA.pt[1], navB.pt[0], navB.pt[1]) };
+  navMode = routes[navMode] ? navMode : (routes.main ? 'main' : Object.keys(routes)[0]);
+  navDraw(routes[navMode].nodes, g);
 
   $('navNote').textContent = navA.name + ' → ' + navB.name + ' · 오르내림을 재는 중…';
   const wt = walk ? await navWalkTime(g, walk.nodes) : null;
+  navRoutes.wt = wt;
+  renderNavCards();
+  return;
+}
 
+// 서랍에 세 방식을 나란히 보이고, 누르면 그 길을 지도에 그린다.
+function renderNavCards() {
+  if (!navRoutes) return;
+  const { g, routes, walk, sa, sb, wt, same, straight } = navRoutes;
   const cards = [];
-  if (car) cards.push(
-    '<div class="nav-card"><p class="nav-h">자동차</p>' +
-    '<div class="nav-big">' + navFmtH(car.hours) + ' <span>· ' + car.km.toFixed(1) + ' km</span></div>' +
-    '<p class="nav-detail">등급별 통상 속도로 어림한 값입니다. 신호·정체·일방통행은 셈하지 않습니다.</p></div>');
+  cards.push('<div class="nav-modes" role="group" aria-label="길 고르는 방식">' +
+    NAV_MODE_KEYS.filter(k => routes[k]).map(k =>
+      `<button type="button" class="nav-mode${k === navMode ? ' on' : ''}" data-mode="${k}"` +
+      ` aria-pressed="${k === navMode}">${NAV_MODES[k].ko}<span>${routes[k].km.toFixed(1)} km · ` +
+      `${navFmtH(routes[k].hours)}</span></button>`).join('') + '</div>');
+
+  const dup = NAV_MODE_KEYS.filter(k => routes[k] && same[k]).map(k => NAV_MODES[k].ko);
+  if (dup.length) cards.push("<p class=\"nav-detail\">" + dup.join(" · ") +
+    " 는 이 두 곳 사이에서는 주요 도로와 같은 길로 나옵니다.</p>");
+
+  const cur = routes[navMode];
+  cards.push(
+    '<div class="nav-card"><p class="nav-h">자동차 — ' + NAV_MODES[navMode].ko + '</p>' +
+    '<div class="nav-big">' + navFmtH(cur.hours) + ' <span>· ' + cur.km.toFixed(1) + ' km</span></div>' +
+    '<p class="nav-detail">' + NAV_MODES[navMode].desc + '. 등급별 통상 속도로 어림한 값이라 ' +
+    '신호·정체·일방통행은 셈하지 않습니다.</p></div>');
+
   if (walk && wt) {
     const days = wt.hours / NAV_WALK_DAY_H;
     cards.push(
@@ -3255,24 +3344,41 @@ async function navTakePlace(feature, lngLat) {
       '<p class="nav-detail">하루 ' + NAV_WALK_DAY_H + '시간을 걸으면 <b>' +
       (days < 1 ? '하루 안' : (Math.round(days * 10) / 10) + '일') + '</b>' +
       ' · 오르막 <b>' + Math.round(wt.up).toLocaleString('ko-KR') + ' m</b>' +
-      ' · 내리막 <b>' + Math.round(wt.down).toLocaleString('ko-KR') + ' m</b>' +
+      ' · 내리막 <b>' + Math.round(wt.down).toLocaleString('ko-KR') + ' m</b><br>' +
+      '보행자는 고속도로를 걷지 못하므로 그 길은 빼고 가장 짧은 길로 잽니다.' +
       (wt.miss ? '<br>고도를 읽지 못한 구간 ' + wt.miss + '곳은 평지로 셈했습니다.' : '') +
       '</p></div>');
   }
+  // 오늘의 도로가 크게 돌아가는 곳이 있다 — 분리 장벽처럼 1세기에는 없던 사정 때문이다.
+  // 그런 곳에서는 직선 거리를 함께 적어, 옛 걸음과의 차이를 가늠하게 한다.
+  const shortest = walk ? walk.km : Math.min(...Object.values(routes).map(r => r.km));
+  if (straight > 0.3 && shortest > straight * 1.6 && shortest - straight > 1.5)
+    cards.push("<p class=\"nav-detail\">두 곳의 <b>직선 거리는 " + straight.toFixed(1) +
+      " km</b> 입니다. 오늘의 도로가 " + (shortest / straight).toFixed(1) +
+      "배 돌아가는 것은 오늘의 길과 경계 때문이며, 1세기의 걸음과는 다릅니다.</p>");
+
   if (sa.km > 0.5 || sb.km > 0.5)
-    cards.push('<p class="nav-detail">길까지 ' + navA.name + ' ' + sa.km.toFixed(1) + ' km · ' +
-               navB.name + ' ' + sb.km.toFixed(1) + ' km 는 걸어 들어갑니다.</p>');
+    cards.push('<p class="nav-detail">길까지 ' + navRoutes.a + ' ' + sa.km.toFixed(1) + ' km · ' +
+               navRoutes.b + ' ' + sb.km.toFixed(1) + ' km 는 걸어 들어갑니다.</p>');
 
   navResultHtml = cards.join('');
-  $('navTitle').textContent = navA.name + ' → ' + navB.name;
-  $('navSub').textContent = '오늘의 도로를 따라 잰 거리와 시간입니다.';
+  $('navTitle').textContent = navRoutes.a + ' → ' + navRoutes.b;
+  $('navSub').textContent = '오늘의 도로를 따라 잰 거리와 시간입니다. 방식을 눌러 견주어 보세요.';
   $('navCards').innerHTML = navResultHtml;
   $('navCaution').innerHTML =
     '<b>자동차 시간은 오늘의 길, 도보 시간은 옛 걸음입니다.</b> 자동차는 등급별 통상 속도로 ' +
     '어림한 값이고, 도보는 그 길의 실제 오르내림을 지형에서 읽어 Tobler 식으로 잰 것입니다. ' +
     '다만 걷는 길도 <b>오늘 깔린 도로</b>입니다 — 1세기 사람이 다닌 길이 아닙니다.';
-  $('navNote').textContent = navA.name + ' → ' + navB.name;
+  $('navNote').textContent = navRoutes.a + ' → ' + navRoutes.b;
   navDrawerOpen(true);
+  // 방식 단추를 여기서 잇는다 — 서랍 내용을 다시 그릴 때마다 새로 생기기 때문이다.
+  for (const btn of $('navCards').querySelectorAll('.nav-mode')) {
+    btn.addEventListener('click', () => {
+      navMode = btn.dataset.mode;
+      navDraw(navRoutes.routes[navMode].nodes, navRoutes.g);
+      renderNavCards();
+    });
+  }
 }
 
 // ---------- 등고선 ----------
