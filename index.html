@@ -2195,9 +2195,23 @@ safeSel.addEventListener('change', e => {
 // 단계에 따라 사라진 레이어·소스를 건드리는 조작은 잠근다. 없는 것을 건드리면 예외가 나고,
 // 그 예외가 다른 기능까지 함께 멈춘다.
 if (DEM_OFF) {
-  for (const id of ['shade', 'slope', 'contour', 'exag']) {
+  // **잠근 것만 흐리게 한다.** 처음에는 closest('.row, div') 로 감쌌는데, 지형 높이
+  // 슬라이더는 .row 안에 있지 않아 위로 거슬러 올라가다 패널 전체(div#panel)가 잡혔다.
+  // 그래서 설정 창이 통째로 45% 로 흐려졌다 — 잠기지 않은 항목까지 못 쓰는 것처럼 보였다.
+  // 'div' 를 후보에 넣은 것이 화근이었다. 이제 .row 가 없으면 그 요소만 흐리게 한다.
+  const dim = el => { if (el) el.style.opacity = 0.45; };
+  for (const id of ['shade', 'slope', 'contour']) {
     const el = $(id);
-    if (el) { el.disabled = true; el.closest('.row, div').style.opacity = 0.45; }
+    if (el) { el.disabled = true; dim(el.closest('.row') || el); }
+  }
+  const exag = $('exag');
+  if (exag) {
+    exag.disabled = true;
+    dim(exag);
+    // 슬라이더의 이름표 줄과 설명도 함께 흐리게 해야 한 덩어리로 읽힌다.
+    const exagLabel = document.querySelector('label[for="exag"]');
+    if (exagLabel) dim(exagLabel.closest('.row'));
+    dim($('exagNote'));
   }
   $('contourNote').textContent = '고도 타일을 읽지 않는 단계에서는 등고선을 만들 수 없습니다. ' +
     '위의 단계를 1 이하로 낮추면 다시 쓸 수 있습니다.';
