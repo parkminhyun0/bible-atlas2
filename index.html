@@ -600,9 +600,14 @@
   <div class="sub" style="margin:-2px 0 6px">음영 세기를 경사도에 비례시킨다. 유대 광야의
     급경사와 해안 평야가 갈라져 보인다. 기본은 네 방향 판독광이라 반대면도 뭉개지지 않는다.</div>
   <div class="row"><label><input type="checkbox" id="borders" checked /> 국경선 (일반 지도 형식)</label></div>
-  <div class="row touch-only"><label><input type="checkbox" id="lightMode" checked /> 가볍게 보기 (3D 지형 끄기)</label></div>
-  <div class="sub touch-only" id="lightNote" style="margin:2px 0 6px">모바일은 Safari·Chrome 탭 종료를 막기 위해
-    2D로 안전하게 시작합니다. 3D 지형이 꼭 필요할 때만 체크를 끄세요.</div>
+  <div class="row"><label for="safeLevel">가볍게 보기 단계</label></div>
+  <select id="safeLevel" style="width:100%;margin:2px 0 4px">
+    <option value="0">0 · 전부 켬 (3D 지형·고도색·음영)</option>
+    <option value="1">1 · 3D 지형 끔</option>
+    <option value="2">2 · 고도색·음영·해저색까지 끔 (DEM 안 읽음)</option>
+    <option value="3">3 · 평면 지도 · 최대 확대 14</option>
+  </select>
+  <div class="sub" id="safeNote" style="margin:2px 0 6px"></div>
   <div class="row desktop-only"><label><input type="checkbox" id="gesture" checked /> 두 손가락 드래그 = 회전·기울기</label></div>
   <div class="sub desktop-only" style="margin:2px 0 4px">좌우 = 회전, 상하 = 기울기 · 핀치 = 확대/축소 · 한 손가락 드래그 = 이동</div>
   <div class="row" style="margin-top:8px">
@@ -877,7 +882,7 @@ const saveData = Boolean(navigator.connection && navigator.connection.saveData);
 // 메모리 한도가 가장 작은 iPhone 이 오히려 높은 렌더링 배율을 받는다.
 const memoryKnown = memory > 0;
 const LOW_POWER = TOUCH && (saveData || !memoryKnown || memory <= 4 || (cores > 0 && cores <= 4));
-const LIGHT_KEY = 'bibleatlas.light';
+const SAFE_KEY = 'bibleatlas.safe';
 
 // iOS 가 메모리 압박으로 탭을 강제 재시작하면 unload/pagehide 를 보낼 기회가 없다.
 // sessionStorage 의 active 표식이 남아 있으면 직전 실행이 정상 종료되지 않은 것으로 보고
@@ -897,6 +902,39 @@ if (TOUCH) {
     addEventListener('pageshow', armMobileSession, { capture: true });
   } catch (e) {}
 }
+// ---------- 단계별 안전 모드 ----------
+// 아이폰에서 확대하다 첫 화면으로 되돌아가는 일을 네 차례 고쳐 봤으나 여전하다는 보고를
+// 받았다(PR #89·#94·#95·#96). 그동안 고친 것은 모두 **3D 지형**을 겨눴는데, #96 이후
+// 모바일은 애초에 지형 없이 2D 로 시작한다. 그런데도 같은 일이 난다면 지형은 원인이
+// 아니다. 추정으로 한 번 더 고치는 대신, 무엇을 껐을 때 멈추는지 **단계로 나누어
+// 직접 확인**할 수 있게 한다.
+//
+//   0단계 — 전부 켠다 (데스크톱 기본)
+//   1단계 — 3D 지형을 끈다
+//   2단계 — 고도색·음영기복·해저색까지 끈다. 곧 **DEM 타일을 아예 읽지 않는다**
+//   3단계 — 구형(globe) 대신 평면으로 그리고 최대 확대를 14 로 묶는다
+//
+// 2단계를 나눈 이유가 있다. 지금까지 '가볍게 보기'는 지형과 hillshade 만 껐는데,
+// 같은 DEM 소스를 쓰는 color-relief 두 겹(고도색·해저색)은 그대로 살아 있었다.
+// 레이어를 감춰도 소스는 타일을 계속 받아 해독한다. 확대할수록 이 일이 늘어나므로,
+// 지형을 껐는데도 무거웠던 까닭이 여기일 수 있다.
+//
+// 터치 기기 기본은 2단계다. 첫 화면으로 되돌아가는 지도는 고도색이 있어도 쓸 수 없다.
+// 되돌리는 것은 패널에서 한 번에 된다.
+function readSafeLevel() {
+  let raw = null;
+  try { raw = localStorage.getItem(SAFE_KEY); } catch (e) {}
+  const n = raw === null ? NaN : parseInt(raw, 10);
+  if (n >= 0 && n <= 3) return n;
+  return TOUCH ? 2 : 0;
+}
+let SAFE_LEVEL = readSafeLevel();
+// 직전 실행이 비정상 종료됐으면 이번 한 번은 한 단계 더 내려 연다.
+if (recoverFromCrash) SAFE_LEVEL = Math.min(3, Math.max(SAFE_LEVEL, 2) + 1);
+const TERRAIN_ON = SAFE_LEVEL === 0;
+const DEM_OFF    = SAFE_LEVEL >= 2;
+const FLAT_MAP   = SAFE_LEVEL >= 3;
+
 // 긴 flyTo 애니메이션은 모바일 GPU를 계속 최고 부하로 유지한다. 짧게 끝내되
 // 데스크톱의 공간 이동 감각은 그대로 보존한다.
 const motionMs = ms => REDUCED_MOTION ? 0 : (TOUCH ? Math.min(ms, 700) : ms);
@@ -1895,29 +1933,52 @@ const style = {
   // iOS WebKit은 스타일의 terrain을 지도 생성과 동시에 올린다. style.load 뒤에서
   // 끄는 방식은 초기 GPU 메모리 압박으로 탭이 종료될 때 실행될 기회조차 없다.
   // 터치 기기는 처음부터 2D로 만들고, 사용자가 명시적으로 선택한 뒤에만 3D를 올린다.
-  ...(TOUCH ? {} : { terrain: { source: 'terrain', exaggeration: 1 } })
+  ...(TERRAIN_ON ? { terrain: { source: 'terrain', exaggeration: 1 } } : {})
 };
 
 // 지도를 만들기 전에 주소의 해시를 붙잡아 둔다. hash:true 인 MapLibre 는 만들어지는 즉시
 // 첫 시점을 해시에 써 넣으므로, 뒤에서 location.hash 를 보면 **언제나** 값이 있다.
 // 그 값으로는 '사용자가 자리를 지정해 들어왔는가'를 가릴 수 없다. 실제로 그렇게 만들었다가
 // 자리 되살리기가 한 번도 듣지 않았다.
+// 안전 단계에 따라 스타일에서 덜어낸다. 레이어를 감추는 것으로는 부족하다 —
+// 소스가 남아 있으면 타일을 계속 받아 해독하므로, 소스째 뺀다.
+if (DEM_OFF) {
+  style.layers = style.layers.filter(l => l.source !== 'terrain' && l.source !== 'bathy');
+  delete style.sources.terrain;
+  delete style.sources.bathy;
+}
+if (FLAT_MAP) style.projection = { type: 'mercator' };
+
 const INITIAL_HASH = location.hash;
 
 // MapLibre의 hash:true는 생성자 옵션보다 URL 해시를 우선한다. 예를 들어 Safari 오류
 // 화면에서 확인된 #7.2/32.4/35.6/-8/58은 생성 즉시 pitch 58° terrain 렌더링을 시작한다.
 // 모바일에서는 위치·확대·방향은 보존하고 기울기만 0°로 낮춘 다음 지도를 생성한다.
-if (TOUCH && /^#-?\d/.test(location.hash)) {
+// 주소의 해시를 지금 단계가 그릴 수 있는 범위로 맞춘다. 상한을 넘는 확대값이 들어오면
+// MapLibre 는 값을 깎는 대신 **그 해시를 통째로 무시한다.** 그러면 링크를 받고 열었는데
+// 지도는 엉뚱한 자리에 머무르고 주소만 그 자리인 것처럼 보인다. 3단계(최대 확대 14)에서
+// #16/... 을 열어 실제로 그렇게 되는 것을 보고 넣었다.
+const HASH_MAX_ZOOM = FLAT_MAP ? 14 : (TOUCH ? 16 : 18);
+if (/^#-?\d/.test(location.hash)) {
   const hashParts = location.hash.slice(1).split('/');
-  if (hashParts.length >= 5 && hashParts.slice(0, 5).every(part => Number.isFinite(Number(part)))) {
-    hashParts[4] = '0';
-    history.replaceState(null, '', `${location.pathname}${location.search}#${hashParts.join('/')}`);
+  if (hashParts.length >= 3 && hashParts.every(part => Number.isFinite(Number(part)))) {
+    let changed = false;
+    if (Number(hashParts[0]) > HASH_MAX_ZOOM) {
+      hashParts[0] = String(HASH_MAX_ZOOM);
+      changed = true;
+    }
+    // 지형이 없으면 기울기도 없다.
+    if (SAFE_LEVEL > 0 && hashParts.length >= 5 && hashParts[4] !== '0') {
+      hashParts[4] = '0';
+      changed = true;
+    }
+    if (changed) history.replaceState(null, '', `${location.pathname}${location.search}#${hashParts.join('/')}`);
   }
 }
 
 const map = new maplibregl.Map({
   container: 'map', style,
-  center: [36.5, 33.5], zoom: 4.6, pitch: TOUCH ? 0 : 50, bearing: -8,
+  center: [36.5, 33.5], zoom: 4.6, pitch: SAFE_LEVEL > 0 ? 0 : 50, bearing: -8,
   // 지면 가까이까지 내려갈 수 있게 한다. 위성 원본은 10 m 라 z14 를 넘으면 늘어나지만,
   // 지형 위를 걷는 듯한 시점은 그때부터 나온다.
   // 기울기를 크게 눕히면 지형이 지평선까지 화면을 채운다. 지형 위에서는 손가락을
@@ -1929,7 +1990,8 @@ const map = new maplibregl.Map({
   // 최대 확대도 터치 기기만 낮춘다. DEM 은 z12, OSM 벡터는 z14 가 끝이라 z16 을 넘으면
   // 새로 드러나는 것 없이 확대만 되는데, 최악 프레임은 크게 나빠진다.
   //   z16 → 최대 254ms · z18 → 최대 855ms (터치 드래그, 기울기 65°)
-  maxPitch: TOUCH ? 65 : 85, minZoom: 1, maxZoom: TOUCH ? 16 : 18,
+  maxPitch: SAFE_LEVEL > 0 ? 0 : (TOUCH ? 65 : 85), minZoom: 1,
+  maxZoom: FLAT_MAP ? 14 : (TOUCH ? 16 : 18),
   // 타일 캐시 상한. 정하지 않으면 MapLibre 가 화면 크기로 알아서 잡는데, 이 지도는
   // 지형(DEM)·위성·벡터를 한꺼번에 쓰므로 그 기본값이 너무 헐겁다. 실측(모바일
   // 390x844, 화면배율 3, z12~15 여섯 곳을 기울여 돌아본 뒤) RSS 1,048 → 2,001 MB 로
@@ -2026,7 +2088,7 @@ map.on('zoom', syncSpace);
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 // 모바일 TerrainControl 은 '가볍게 보기'와 별도로 3D 를 다시 켤 수 있어 체크상자와 실제
 // 상태가 어긋났다. 터치 기기에서는 한 군데(설정의 가볍게 보기)에서만 전환한다.
-if (!TOUCH) map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1 }), 'top-right');
+if (TERRAIN_ON) map.addControl(new maplibregl.TerrainControl({ source: 'terrain', exaggeration: 1 }), 'top-right');
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: 'metric' }), 'bottom-right');
 
 // ---------- 트랙패드 두 손가락 드래그 → 회전(좌우)·기울기(상하) ----------
@@ -2093,13 +2155,13 @@ $('exag').addEventListener('input', e => {
   $('exagNote').textContent = v === 1
     ? '실제 고도 비율입니다. 높이면 지형 판독용 과장 표시입니다.'
     : `실제보다 높이를 ${Math.round((v - 1) * 100)}% 강조해 표시합니다. 고도 수치는 실제값을 유지합니다.`;
-  map.setTerrain({ source: 'terrain', exaggeration: v });
+  if (map.getSource('terrain')) map.setTerrain({ source: 'terrain', exaggeration: v });
 });
 $('snow').addEventListener('input', e => {
   const v = parseInt(e.target.value, 10);
   $('snowOut').textContent = fmt(v) + ' m';
   $('snowLabel').textContent = fmt(v) + '+';
-  map.setPaintProperty('relief', 'color-relief-color', reliefRamp(v));
+  if (map.getLayer('relief')) map.setPaintProperty('relief', 'color-relief-color', reliefRamp(v));
   paintRampBar(v);
 });
 $('forest').addEventListener('change', e => {
@@ -2107,78 +2169,57 @@ $('forest').addEventListener('change', e => {
   for (const id of ['forest', 'farmland', 'sand']) map.setLayoutProperty(id, 'visibility', v);
 });
 $('shade').addEventListener('change', e =>
+  map.getLayer('hillshade') &&
   map.setLayoutProperty('hillshade', 'visibility', e.target.checked ? 'visible' : 'none'));
 $('borders').addEventListener('change', e =>
   map.setLayoutProperty('borders', 'visibility', e.target.checked ? 'visible' : 'none'));
-// ---------- 가볍게 보기 ----------
-// 아이폰에서 확대한 채 두 손가락으로 돌리면 탭이 통째로 죽는다는 보고가 이어졌다.
-// 그리는 해상도를 제스처 중에만 떨구는 것(PR #89)으로는 모자랐다. 그래서 가장 무거운
-// 것을 아예 끄는 길을 내준다 — **3D 지형**이다.
-//
-// 지형을 켜면 MapLibre 는 DEM 타일마다 격자 그물을 만들고, 손가락이 움직일 때마다 화면
-// 좌표를 GPU 에서 되읽는다(readPixels). 그 둘이 사라지면 부담이 크게 준다. 대신 평면이
-// 되므로 데스크톱은 3D를 유지한다. 모바일은 초기 terrain 생성 자체가 Safari 탭을 죽일 수
-// 있어 항상 2D로 시작하고, 3D는 현재 방문에서만 사용자가 명시적으로 켤 수 있게 한다.
-let lightOn = false;
-
-function applyLightMode(on) {
-  lightOn = on;
-  if (on) {
-    map.setTerrain(null);
-    map.setLayoutProperty('hillshade', 'visibility', 'none');
-    if (map.getPitch() > 0) map.easeTo({ pitch: 0, duration: 400 });
-  } else {
-    map.setTerrain({ source: 'terrain', exaggeration: parseFloat($('exag').value) });
-    if ($('shade').checked) map.setLayoutProperty('hillshade', 'visibility', 'visible');
-  }
-  // 지형이 없으면 기울일 이유가 없다. 기울기 조작 자체를 막아 되읽기를 부르지 않는다.
-  if (on) map.dragRotate.disable(); else map.dragRotate.enable();
-  $('lightNote').innerHTML = on
-    ? '모바일은 3D 지형과 음영을 끈 <b>안전한 2D 상태</b>입니다. ' +
-      '다음 방문도 이 상태로 시작합니다.'
-    : '3D 지형을 켰습니다. Safari·Chrome이 멈추거나 새로고침되면 다시 접속하세요. ' +
-      '다음 방문은 자동으로 안전한 2D 상태에서 시작합니다.';
-  try { on ? localStorage.setItem(LIGHT_KEY, '1') : localStorage.removeItem(LIGHT_KEY); } catch (e) {}
-}
-
-$('lightMode').addEventListener('change', e => applyLightMode(e.target.checked));
-// 모바일은 항상 2D로 시작한다. 사용자가 3D를 켠 선택은 다음 로드로 넘기지 않는다.
-map.once('style.load', () => {
-  let want = false;
-  try { want = localStorage.getItem(LIGHT_KEY) === '1'; } catch (e) {}
-  if (TOUCH || want || recoverFromCrash) {
-    $('lightMode').checked = true;
-    applyLightMode(true);
-    if (recoverFromCrash) {
-      $('lightNote').innerHTML = '직전 실행이 비정상 종료되어 <b>가볍게 보기로 자동 복구했습니다.</b> ' +
-        '3D 지형이 필요하면 이 체크를 끌 수 있습니다.';
-    }
-  }
+// ---------- 단계별 안전 모드 (조작) ----------
+// 단계를 바꾸면 다시 불러온다. 스타일에서 소스를 빼고 넣는 일은 지도를 새로 세우는 것이
+// 가장 확실하고, 무엇보다 **바꾼 뒤의 상태가 다음에 열 때와 같아야** 비교가 된다.
+const SAFE_NOTES = [
+  '3D 지형·고도색·음영기복을 모두 켭니다. 가장 무겁습니다.',
+  '3D 지형을 끄고 평면으로 봅니다. 고도색과 음영기복은 그대로입니다.',
+  '<b>DEM(고도 타일)을 아예 읽지 않습니다.</b> 고도색·음영기복·해저색이 사라지는 대신, ' +
+    '확대할 때 가장 무거운 일이 없어집니다. 휴대폰에서 첫 화면으로 되돌아간다면 이 단계로 두세요.',
+  '평면 지도로 그리고 최대 확대를 14 로 묶습니다. 가장 가볍습니다.'
+];
+const safeSel = $('safeLevel');
+safeSel.value = String(SAFE_LEVEL);
+$('safeNote').innerHTML = SAFE_NOTES[SAFE_LEVEL] +
+  (recoverFromCrash ? ' <b>직전 실행이 비정상 종료되어 한 단계 더 내려 열었습니다.</b>' : '');
+safeSel.addEventListener('change', e => {
+  try { localStorage.setItem(SAFE_KEY, e.target.value); } catch (err) {}
+  location.reload();
 });
 
-// WebGL 컨텍스트 손실은 GPU 재설정·메모리 압박의 직접 신호다. 다음 실행을 안전 모드로
-// 예약하고, 브라우저가 컨텍스트를 복구하면 즉시 2D 로 낮춘다. 탭 자체가 종료되더라도
-// 위 sessionStorage 표식이 다음 시작에서 같은 역할을 한다.
+// 단계에 따라 사라진 레이어·소스를 건드리는 조작은 잠근다. 없는 것을 건드리면 예외가 나고,
+// 그 예외가 다른 기능까지 함께 멈춘다.
+if (DEM_OFF) {
+  for (const id of ['shade', 'slope', 'contour', 'exag']) {
+    const el = $(id);
+    if (el) { el.disabled = true; el.closest('.row, div').style.opacity = 0.45; }
+  }
+  $('contourNote').textContent = '고도 타일을 읽지 않는 단계에서는 등고선을 만들 수 없습니다. ' +
+    '위의 단계를 1 이하로 낮추면 다시 쓸 수 있습니다.';
+}
+
+// WebGL 컨텍스트 손실은 그래픽 메모리 압박의 직접 신호다. 다음 실행을 한 단계 더 낮게
+// 예약한다. 탭 자체가 종료되더라도 sessionStorage 표식이 같은 역할을 한다.
 let webglLost = false;
 map.getCanvas().addEventListener('webglcontextlost', e => {
-  // 브라우저가 컨텍스트 복구를 시도할 수 있게 한다.
   e.preventDefault();
   webglLost = true;
-  try { localStorage.setItem(LIGHT_KEY, '1'); } catch (e) {}
+  try { localStorage.setItem(SAFE_KEY, String(Math.min(3, SAFE_LEVEL + 1))); } catch (err) {}
   const s = $('status');
   s.style.display = 'block';
-  s.textContent = '그래픽 메모리 부족을 감지했습니다. 지도를 가볍게 보기로 복구합니다.';
+  s.textContent = '그래픽 메모리 부족을 감지했습니다. 다음 실행을 한 단계 더 가볍게 예약했습니다.';
 }, false);
 map.getCanvas().addEventListener('webglcontextrestored', () => {
   if (!webglLost) return;
   webglLost = false;
-  setTimeout(() => {
-    try {
-      $('lightMode').checked = true;
-      applyLightMode(true);
-    } catch (e) {}
-  }, 0);
+  location.reload();
 }, false);
+
 
 // 앱 전환 뒤 백그라운드 탭에서 관성 애니메이션과 큰 프레임버퍼를 계속 갱신하지 않는다.
 // 돌아오면 실제 viewport 를 다시 읽고 한 번만 그린다.
@@ -2219,6 +2260,104 @@ if (!INITIAL_HASH) {
       map.jumpTo({ center: [v.lng, v.lat], zoom: v.z, pitch: v.p, bearing: v.b });
     }
   } catch (e) {}
+}
+
+// ---------- 죽은 자리를 남긴다 (진단) ----------
+// 네 차례 고쳤는데도 같은 일이 난다는 것은, 우리가 고친 곳이 원인이 아니라는 뜻이다.
+// 문제는 그 순간을 볼 수 없다는 데 있다 — 운영체제가 탭을 통째로 거둬 가면 콘솔도 오류도
+// 남지 않고 페이지는 그냥 처음부터 다시 뜬다. 그래서 죽기 **전**의 상태를 계속 적어 둔다.
+//
+// 정상적으로 닫으면 표식을 지우므로, 다음에 열었을 때 표식이 남아 있으면 거둬 간 것이다.
+// 그때 마지막으로 적어 둔 상태를 보여 주고, 최근 여덟 건을 모아 둔다. 추정 대신 자료로
+// 이야기하기 위한 것이다. (탭을 직접 닫거나 브라우저를 강제 종료해도 같게 보일 수 있다.)
+const DIAG_LAST = 'bibleatlas.diag.last';
+const DIAG_LOG = 'bibleatlas.diag.log';
+const DIAG_ALIVE = 'bibleatlas.diag.alive';
+
+function diagSnapshot() {
+  const cv = map.getCanvas();
+  let terrain = false;
+  try { terrain = !!map.getTerrain(); } catch (e) {}
+  return {
+    t: new Date().toISOString(),
+    level: SAFE_LEVEL,
+    z: +map.getZoom().toFixed(2),
+    pitch: Math.round(map.getPitch()),
+    bearing: Math.round(map.getBearing()),
+    pr: map.getPixelRatio(),
+    cw: cv.width, ch: cv.height,
+    dpr: +(window.devicePixelRatio || 1).toFixed(2),
+    terrain, fingers: touchesDown,
+    contour: !!($('contour') && $('contour').checked),
+    // WebKit 은 이 값을 내주지 않는다. 있으면 적고 없으면 비운다.
+    heapMB: (window.performance && performance.memory)
+      ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
+    ua: navigator.userAgent.slice(0, 120)
+  };
+}
+
+let diagAt = 0, diagTimer = 0;
+function diagTick() {
+  const now = Date.now();
+  if (now - diagAt < 400) {
+    clearTimeout(diagTimer);
+    diagTimer = setTimeout(diagTick, 400);
+    return;
+  }
+  diagAt = now;
+  try { localStorage.setItem(DIAG_LAST, JSON.stringify(diagSnapshot())); } catch (e) {}
+}
+map.on('move', diagTick);
+map.on('zoom', diagTick);
+
+let diagDied = null;
+try {
+  if (localStorage.getItem(DIAG_ALIVE) === '1') {
+    diagDied = JSON.parse(localStorage.getItem(DIAG_LAST) || 'null');
+    if (diagDied) {
+      const log = JSON.parse(localStorage.getItem(DIAG_LOG) || '[]');
+      log.unshift(diagDied);
+      localStorage.setItem(DIAG_LOG, JSON.stringify(log.slice(0, 8)));
+    }
+  }
+  localStorage.setItem(DIAG_ALIVE, '1');
+} catch (e) {}
+addEventListener('pagehide', () => { try { localStorage.setItem(DIAG_ALIVE, '0'); } catch (e) {} });
+addEventListener('pageshow', () => { try { localStorage.setItem(DIAG_ALIVE, '1'); } catch (e) {} });
+
+if (diagDied) {
+  const bar = document.createElement('div');
+  bar.setAttribute('role', 'status');
+  bar.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:60;background:#3a2a12;' +
+    'color:#ffeccd;border:1px solid #7a5a22;border-radius:10px;padding:9px 11px;font-size:13px;' +
+    'line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.35)';
+  const d = diagDied;
+  bar.innerHTML = '<b>직전에 지도가 갑자기 닫혔습니다.</b> 그때 상태 — 단계 ' + d.level +
+    ' · 확대 ' + d.z + ' · 기울기 ' + d.pitch + '° · 3D ' + (d.terrain ? '켜짐' : '꺼짐') +
+    ' · 화면배율 ' + d.pr + ' · 손가락 ' + d.fingers + '개' +
+    '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">' +
+    '<button id="diagCopy" style="font-size:12px">기록 복사</button>' +
+    '<button id="diagClose" style="font-size:12px">닫기</button></div>' +
+    '<div style="margin-top:5px;opacity:.75;font-size:11.5px">탭을 직접 닫으셨거나 브라우저를 ' +
+    '강제 종료하신 경우에도 이렇게 보일 수 있습니다.</div>';
+  document.body.appendChild(bar);
+  $('diagClose').addEventListener('click', () => bar.remove());
+  $('diagCopy').addEventListener('click', async () => {
+    let text = '(기록을 읽지 못했습니다)';
+    try { text = localStorage.getItem(DIAG_LOG) || '[]'; } catch (e) {}
+    try {
+      await navigator.clipboard.writeText(text);
+      $('diagCopy').textContent = '복사했습니다';
+    } catch (e) {
+      // 클립보드를 막아 둔 브라우저에서는 눈으로 읽어 갈 수 있게 펼쳐 준다.
+      const pre = document.createElement('pre');
+      pre.textContent = text;
+      pre.style.cssText = 'max-height:38vh;overflow:auto;font-size:11px;white-space:pre-wrap;' +
+        'margin:6px 0 0;user-select:text;-webkit-user-select:text';
+      bar.appendChild(pre);
+      $('diagCopy').textContent = '아래를 길게 눌러 복사';
+    }
+  });
 }
 
 $('gesture').addEventListener('change', e => { gestureOn = e.target.checked; });
@@ -3943,6 +4082,7 @@ $('contour').addEventListener('change', async e => {
 // 실측(갈릴리 산지 z11, 화면 밝기 기준): 인접 픽셀 차이 1.63 → 2.52 (+54%),
 // 대비 표준편차 16.5 → 20.2 (+23%).
 $('slope').addEventListener('change', e => {
+  if (!map.getLayer('hillshade')) return;
   map.setPaintProperty('hillshade', 'hillshade-method',
                        e.target.checked ? 'combined' : 'multidirectional');
 });
